@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Facility Planning - Utilities</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --stage-max-width:1200px;
+      --bg:#0e0e12; --accent:#00e0ff; --locked:#4a4a4a; --done:#22c55e;
+    }
+    *{box-sizing:border-box}
+    body{ margin:0;min-height:100svh;display:grid;place-items:center;
+      background:var(--bg);color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .frame{ width:min(95vw,var(--stage-max-width)); border-radius:28px;border:2px solid rgba(255,255,255,.12);
+      box-shadow:0 20px 60px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04); overflow:hidden;background:#11151a; }
+    .titlebar{ padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08); font-weight:600;letter-spacing:.2px;
+      background:linear-gradient(180deg,rgba(255,255,255,.05),transparent); }
+    .stage{ position:relative;width:100%;aspect-ratio:6000/4000; background:center / 100% 100% no-repeat; }
+
+    .hotspot{ position:absolute;display:grid;place-items:center; transform:translate(-50%,-50%);cursor:pointer;
+      font-weight:800;color:#fff;font-size:14px;letter-spacing:.6px; border:6px solid transparent;background:rgba(255,255,255,.06);
+      transition:transform .2s ease, opacity .2s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+    .hotspot.circle{ border-radius:50%; } .hotspot.oval{ border-radius:9999px; padding:6px 16px; }
+    .hotspot.pill{ position:absolute;right:3%;bottom:5%;left:auto;top:auto;transform:none; border-radius:9999px;padding:10px 18px;font-size:16px; }
+    .hotspot:not(.pill){font-size:0; line-height:0;}
+    .hotspot.locked{ pointer-events:none; opacity:0; background:transparent; border-color:transparent; box-shadow:none; animation:none;}
+    .hotspot.clickable{ pointer-events:auto; background:rgba(0,224,255,.12); border-color:var(--accent); animation:megaPulse 1.1s ease-in-out infinite; }
+    .hotspot.clickable:hover{ transform:translate(-50%,-50%) scale(1.05); }
+    .hotspot.pill.clickable:hover{ transform:none; }
+    .hotspot.done{ pointer-events:auto; background:rgba(34,197,94,.22); border-color:var(--done);
+      box-shadow:0 0 0 8px rgba(34,197,94,.25), 0 0 28px 8px rgba(34,197,94,.55); }
+    @keyframes megaPulse{ 0%{box-shadow:0 0 0 0 rgba(0,224,255,.95), 0 0 26px 8px rgba(0,224,255,.95);}
+      50%{box-shadow:0 0 0 18px rgba(0,224,255,0), 0 0 54px 18px rgba(0,224,255,1);}
+      100%{box-shadow:0 0 0 0 rgba(0,224,255,0), 0 0 26px 8px rgba(0,224,255,.95);} }
+
+    .inner-window{ position:absolute;display:none;flex-direction:column;z-index:20;background:#000;border-radius:16px;
+      box-shadow:0 0 40px rgba(0,0,0,.8);overflow:hidden; }
+    .inner-window.active{display:flex}
+    .inner-window.large{ top:8%; left:8%; width:84%; height:84%; }
+    .inner-window.small{ right:3%; bottom:6%; width:min(520px, 46%); max-height:60%; }
+
+    .inner-window header{ background:#1a1a1a;color:#fff;padding:10px 12px;font-weight:700;
+      display:flex;justify-content:space-between;align-items:center;gap:8px; }
+    .inner-window header .right{display:flex;gap:8px;align-items:center}
+
+    .viewer{ flex:1; display:flex; flex-direction:column; gap:12px; align-items:stretch;
+      padding:12px; background:#000; height:100%; min-height:0; }
+    .mediaArea{ position:relative; flex:1; min-height:0; display:grid; place-items:center; overflow:hidden; border-radius:10px; background:#000; }
+    .mediaArea video, .mediaArea img{ max-width:100%; max-height:100%; object-fit:contain; }
+
+    .caption{ position:absolute; left:12px; right:12px; bottom:12px; background:rgba(0,0,0,.65); color:#fff;
+      padding:10px 12px; border-radius:10px; font-size:16px; line-height:1.35; pointer-events:none; z-index:2; white-space:pre-wrap; }
+
+    .subs-only{ display:flex; flex-direction:column; gap:12px; }
+    .subs-text{ font-size:16px; line-height:1.45; color:#e9eef5; background:#0b0b0b; border:1px solid rgba(255,255,255,.15);
+      border-radius:12px; padding:12px; max-height:28vh; overflow:auto; }
+
+    .audio-ui{ flex:0 0 auto; width:100%; display:grid; gap:10px; }
+    .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .biglabel{font-weight:700}
+    .controls{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{ background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2); padding:10px 14px;border-radius:8px;cursor:pointer; }
+    .btn[disabled]{opacity:.5;cursor:not-allowed}
+    .bar{ position:relative;height:14px;border-radius:9999px;overflow:hidden;
+      background:linear-gradient(90deg, rgba(255,255,255,.12), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.2);
+      pointer-events:none; }
+    .fill{ position:absolute;inset:0 auto 0 0;width:0%; background:linear-gradient(90deg, #00e0ff, #22c55e); box-shadow:0 0 10px rgba(0,224,255,.9); }
+    .time{font-variant-numeric:tabular-nums}
+  </style>
+</head>
+<body>
+  <main class="frame" role="main" aria-label="Training Chapter">
+    <div class="titlebar">Facility Planning - Utilities</div>
+
+    <section class="stage" aria-label="Main visual with hotspots">
+      <!-- Hotspots will be generated by JavaScript -->
+      <div id="innerWindow" class="inner-window" aria-modal="true" role="dialog" aria-label="Content viewer">
+        <header>
+          <span id="viewerTitle">Narration</span>
+          <div class="right">
+            <button id="switchMedia" class="btn" style="display:none">Switch Media</button>
+          </div>
+        </header>
+        <div id="viewer" class="viewer"></div>
+      </div>
+
+      <audio id="vo" preload="metadata"></audio>
+    </section>
+  </main>
+
+  <script>
+    // ========== MODULAR CONFIGURATION ==========
+    const CONFIG = {
+      title: "Facility Planning - Utilities",
+      audioFile: "2.1 Facility Planning_Utilities.wav",
+      backgroundImage: "home.jpg",
+      canvasDimensions: { width: 6000, height: 4000 },
+      hotspots: [
+        { id:"b1", type:"oval",  centerX:681,  centerY:340,  width:1054, height:302,  tcStart:"00;00;00;00", tcEnd:"00;00;15;15", order:"first" },
+        { id:"b2", type:"circle",centerX:2356, centerY:3198, width:940,  height:940,  tcStart:"00;00;15;15", tcEnd:"00;00;37;28", order:"second" },
+        { id:"b3", type:"circle",centerX:1328, centerY:2472, width:940,  height:940,  tcStart:"00;01;03;04", tcEnd:"00;01;24;23", order:"mid" },
+        { id:"b4", type:"circle",centerX:1637, centerY:1332, width:940,  height:940,  tcStart:"00;01;24;23", tcEnd:"00;01;39;18", order:"mid" },
+        { id:"b5", type:"circle",centerX:2839, centerY:759,  width:940,  height:940,  tcStart:"00;00;37;28", tcEnd:"00;01;03;04", order:"mid" },
+        { id:"b6", type:"circle",centerX:4155, centerY:792,  width:940,  height:940,  tcStart:"00;01;39;18", tcEnd:"00;02;07;15", order:"mid" },
+        { id:"b7", type:"circle",centerX:5307, centerY:1323, width:940,  height:940,  tcStart:"00;02;07;15", tcEnd:"00;02;38;21", order:"final" },
+        { id:"b8", type:"pill",  text:"Done", tcStart:"00;02;38;21", tcEnd:"00;03;01;00", order:"done" }
+      ],
+      subtitles: {
+        b1:`[Intro]
+Every vacation rental relies on basic utilities – water, gas, electricity, and WiFi. These aren't just conveniences. They're essentials that must be safe, reliable, and high quality for your guests.`,
+        b2:`[What Utilities Are & Why They Matter]
+Utilities include water, gas, electricity, and internet. Guests expect each of these to work flawlessly. Safe wiring, clean water, steady gas service, and strong WiFi make your property feel trustworthy and professional.
+If even one of these fails, the guest experience – and your reviews – will suffer.`,
+        b3:`[Air Conditioning Units]
+Air conditioning is another critical utility. Hosts should ensure that AC units are kept clean, with filters replaced on schedule. Units should be plugged into outlets that can handle the load – never overloaded power strips. Clean and properly powered AC keeps guests comfortable and prevents dangerous electrical issues.`,
+        b4:`[Water Availability]
+Don't overlook water. Guests should always have access to drinking water in communal areas and bedrooms. Whether through bottled water, filtration systems, or pitchers, this simple step enhances comfort and convenience.`,
+        b5:`[Alternative Heating Sources]
+Some homes rely on alternative heating sources like space heaters or oil heaters. If you provide these, safety comes first. Space heaters should never be left running unattended, and they should be placed far from curtains, bedding, or furniture. Oil heaters must be regularly cleaned and inspected to prevent leaks. Always provide clear instructions for safe use.`,
+        b6:`[WiFi Access & Standards]
+Finally, let's talk about WiFi. In today's world, reliable internet is considered table stakes – every guest expects it. Unless your property is meant to not have WiFi at all, it's not optional. That's why GuestGuard inspectors check WiFi connectivity speeds during inspections. The minimum standard is 25 megabits per second – enough for streaming, work, and multiple devices. Make sure your WiFi is accessible, fast, and easy to connect to. Understanding that some properties, especially those in rural or rustic areas, don't have WiFi, we at GuestGuard want to make sure that if the property is meant to have WiFi, it's working as advertised.`,
+        b7:`[Hypothetical Example]
+Imagine a guest arrives after a long flight. They find bottled water waiting in the bedroom, the WiFi is fast enough for them to check in with family, and the AC runs quietly with clean, fresh air. Later, they notice a small space heater placed safely in the living room with clear instructions. Every utility works exactly as it should – reliable, safe, and easy to use. Because you prepared properly, their stay feels smooth and worry-free.`,
+        b8:`[Closing]
+To summarize: keep your utilities functioning, safe, and reliable. Manage alternative heating carefully, maintain AC units, provide water in living spaces, and ensure fast WiFi for all guests. When utilities are dependable, guests feel cared for – and your property stands out as both safe and professional.`
+      },
+      media: {
+        b3: ["HVAC video (shutterstock).mov","2.1 Common Area AC Unit, Extinguisher, Clean.jpg"],
+        b4: ["Water utilities (shutterstock).mov","2.1 Water Cooler.jpg"]
+      },
+      nextPage: "2-2.html"
+    };
+
+    // ========== MODULAR TRAINING SYSTEM ==========
+    class ModularTrainingSystem {
+      constructor(config) {
+        this.config = config;
+        this.FPS = 30;
+        this.STORAGE_KEY = 'hotspots_done';
+        this.VER_KEY = 'hotspots_schema';
+        this.SCHEMA_VERSION = 2;
+
+        // Cache / apply assets
+        this.stage = document.querySelector('.stage');
+        this.innerWindow = document.getElementById('innerWindow');
+        this.viewer = document.getElementById('viewer');
+        this.switchMediaBtn = document.getElementById('switchMedia');
+        this.viewerTitle = document.getElementById('viewerTitle');
+        this.audio = document.getElementById('vo');
+
+        this.stage.style.backgroundImage = `url('${this.config.backgroundImage}')`;
+        this.audio.src = this.config.audioFile;
+
+        this.initializeStorage();
+        this.createHotspots();
+        this.setupEventListeners();
+        this.applyStates();
+
+        this.seg = {start:0, end:0, active:false, rafId:null, currentId:null};
+        this.currentMediaIndex = 0;
+      }
+
+      initializeStorage() {
+        const currentVer = parseInt(localStorage.getItem(this.VER_KEY) || '0', 10);
+        if (currentVer !== this.SCHEMA_VERSION) {
+          localStorage.removeItem(this.STORAGE_KEY);
+          localStorage.setItem(this.VER_KEY, this.SCHEMA_VERSION);
+        }
+        this.done = new Set(JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]'));
+      }
+
+      createHotspots() {
+        const stage = this.stage;
+
+        this.config.hotspots.forEach(hotspot => {
+          const button = document.createElement('button');
+          button.id = hotspot.id;
+          button.className = `hotspot ${hotspot.type}`;
+          button.dataset.id = hotspot.id;
+          button.dataset.tcStart = hotspot.tcStart;
+          button.dataset.tcEnd = hotspot.tcEnd;
+          button.dataset.order = hotspot.order;
+
+          if (hotspot.type === 'pill') {
+            button.textContent = hotspot.text || 'Done';
+            button.style.cssText = 'right:3%;bottom:5%;';
+          } else {
+            button.textContent = hotspot.id.replace('b', ''); /* hidden by CSS */
+            const leftPercent = (hotspot.centerX / this.config.canvasDimensions.width) * 100;
+            const topPercent = (hotspot.centerY / this.config.canvasDimensions.height) * 100;
+            const widthPercent = (hotspot.width / this.config.canvasDimensions.width) * 100;
+            const heightPercent = (hotspot.height / this.config.canvasDimensions.height) * 100;
+            button.style.cssText = `left:${leftPercent}%;top:${topPercent}%;width:${widthPercent}%;height:${heightPercent}%;`;
+          }
+
+          stage.appendChild(button);
+        });
+
+        this.buttons = {};
+        this.config.hotspots.forEach(h => {
+          this.buttons[h.id] = document.getElementById(h.id);
+        });
+
+        this.order = {
+          first: this.config.hotspots.find(h => h.order === 'first')?.id,
+          second: this.config.hotspots.find(h => h.order === 'second')?.id,
+          mids: this.config.hotspots.filter(h => h.order === 'mid').map(h => h.id),
+          final: this.config.hotspots.find(h => h.order === 'final')?.id,
+          doneBtn: this.config.hotspots.find(h => h.order === 'done')?.id
+        };
+      }
+
+      setupEventListeners() {
+        // Click opens the viewer (no navigation here)
+        this.config.hotspots.forEach(hotspot => {
+          const button = document.getElementById(hotspot.id);
+          button.addEventListener('click', () => {
+            if (button.classList.contains('locked')) return;
+            this.openFor(button);
+          });
+        });
+      }
+
+      tcToSeconds(tc) {
+        const parts = tc.split(/[;:]/).map(n => parseInt(n, 10) || 0);
+        const [hh, mm, ss, ff] = [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts[3] || 0];
+        return hh * 3600 + mm * 60 + ss + (ff / this.FPS);
+      }
+
+      fmt(t) {
+        return `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`;
+      }
+
+      saveDone() {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify([...this.done]));
+      }
+
+      setState(el, state) {
+        el.classList.remove('clickable', 'locked', 'done');
+        el.classList.add(state);
+        el.setAttribute('aria-disabled', state === 'locked' ? 'true' : 'false');
+      }
+
+      applyStates() {
+        this.config.hotspots.forEach(h => this.setState(this.buttons[h.id], 'locked'));
+
+        if (!this.done.has(this.order.first)) {
+          this.setState(this.buttons[this.order.first], 'clickable');
+          return;
+        }
+        this.setState(this.buttons[this.order.first], 'done');
+
+        if (!this.done.has(this.order.second)) {
+          this.setState(this.buttons[this.order.second], 'clickable');
+          return;
+        }
+        this.setState(this.buttons[this.order.second], 'done');
+
+        let midsDone = true;
+        this.order.mids.forEach(id => {
+          if (this.done.has(id)) {
+            this.setState(this.buttons[id], 'done');
+          } else {
+            this.setState(this.buttons[id], 'clickable');
+            midsDone = false;
+          }
+        });
+
+        if (this.done.has(this.order.final)) {
+          this.setState(this.buttons[this.order.final], 'done');
+          this.setState(this.buttons[this.order.doneBtn], 'clickable');
+        } else if (midsDone) {
+          this.setState(this.buttons[this.order.final], 'clickable');
+          this.setState(this.buttons[this.order.doneBtn], 'locked');
+        } else {
+          this.setState(this.buttons[this.order.final], 'locked');
+          this.setState(this.buttons[this.order.doneBtn], 'locked');
+        }
+      }
+
+      buildAudioUI(total) {
+        const ui = document.createElement('div');
+        ui.className = 'audio-ui';
+        ui.innerHTML = `
+          <div class="row">
+            <div class="biglabel">Narration</div>
+            <div class="time"><span id="tcur">0:00</span> / <span id="tlen">${this.fmt(total)}</span></div>
+          </div>
+          <div class="bar"><div class="fill" id="fill"></div></div>
+          <div class="row">
+            <div class="controls">
+              <button class="btn" id="playPause">Play</button>
+              <button class="btn" id="replay">Replay</button>
+            </div>
+            <div class="time" id="status">Ready</div>
+          </div>`;
+        return ui;
+      }
+
+      closeViewerAuto() {
+        this.innerWindow.classList.remove('active');
+        this.viewer.innerHTML = '';
+        if (!this.audio.paused) this.audio.pause();
+        this.seg.active = false;
+        cancelAnimationFrame(this.seg.rafId);
+      }
+
+      onSegmentComplete(id) {
+        if (!this.done.has(id)) {
+          this.done.add(id);
+          this.saveDone();
+          this.applyStates();
+        }
+
+        // Navigate ONLY after the Done segment's narration finishes
+        if (id === this.order.doneBtn && this.config.nextPage) {
+          window.location.assign(this.config.nextPage);
+          return;
+        }
+
+        this.closeViewerAuto();
+      }
+
+      wireAudioSegment(startSec, endSec, id) {
+        const total = endSec - startSec;
+        this.seg = { start: startSec, end: endSec, active: true, currentId: id };
+
+        const fill = document.getElementById('fill');
+        const playPause = document.getElementById('playPause');
+        const replay = document.getElementById('replay');
+        const status = document.getElementById('status');
+        const tcur = document.getElementById('tcur');
+
+        const syncUI = () => {
+          if (!this.seg.active) return;
+          const now = Math.min(Math.max(this.audio.currentTime, this.seg.start), this.seg.end);
+          const elapsed = now - this.seg.start;
+          fill.style.width = `${(elapsed / total) * 100}%`;
+          tcur.textContent = this.fmt(elapsed);
+          if (now >= this.seg.end - 0.02) {
+            this.audio.pause();
+            playPause.textContent = 'Play';
+            status.textContent = 'Finished';
+            cancelAnimationFrame(this.seg.rafId);
+            this.onSegmentComplete(id);
+            return;
+          }
+          this.seg.rafId = requestAnimationFrame(syncUI);
+        };
+
+        const startSeg = () => {
+          this.audio.currentTime = this.seg.start;
+          this.audio.play().then(() => {
+            playPause.textContent = 'Pause';
+            status.textContent = 'Playing';
+            cancelAnimationFrame(this.seg.rafId);
+            this.seg.rafId = requestAnimationFrame(syncUI);
+          }).catch(() => {
+            status.textContent = 'Tap Play to start audio';
+          });
+        };
+
+        this.audio.ontimeupdate = () => {
+          if (!this.seg.active) return;
+          if (this.audio.currentTime < this.seg.start) this.audio.currentTime = this.seg.start;
+          if (this.audio.currentTime > this.seg.end) this.audio.currentTime = this.seg.end;
+        };
+
+        playPause.onclick = () => {
+          if (this.audio.paused) {
+            if (this.audio.currentTime <= this.seg.start || this.audio.currentTime >= this.seg.end) {
+              startSeg();
+            } else {
+              this.audio.play().then(() => {
+                playPause.textContent = 'Pause';
+                status.textContent = 'Playing';
+                cancelAnimationFrame(this.seg.rafId);
+                this.seg.rafId = requestAnimationFrame(syncUI);
+              });
+            }
+          } else {
+            this.audio.pause();
+            playPause.textContent = 'Play';
+            status.textContent = 'Paused';
+          }
+        };
+
+        replay.onclick = () => startSeg();
+        startSeg();
+      }
+
+      // Split [Title] from body
+      getTitleAndBody(text) {
+        const m = (text || '').match(/^\s*\[([^\]]+)\]\s*\n?([\s\S]*)$/);
+        return m ? { title: m[1], body: (m[2] || '').trimStart() } : { title: 'Narration', body: text || '' };
+      }
+
+      openFor(button) {
+        const id = button.id;
+        const s = this.tcToSeconds(button.dataset.tcStart);
+        const e = this.tcToSeconds(button.dataset.tcEnd);
+
+        const subsRaw = this.config.subtitles[id] || '';
+        const { title, body } = this.getTitleAndBody(subsRaw);
+
+        const hasMedia = Array.isArray(this.config.media?.[id]);
+        const mediaList = hasMedia ? this.config.media[id] : [];
+
+        this.innerWindow.classList.remove('small', 'large');
+        this.viewer.innerHTML = '';
+
+        this.viewerTitle.textContent = title || 'Narration';
+        this.switchMediaBtn.style.display = hasMedia && mediaList.length > 1 ? '' : 'none';
+
+        if (hasMedia) {
+          const mediaArea = document.createElement('div');
+          mediaArea.className = 'mediaArea';
+
+          const caption = document.createElement('div');
+          caption.className = 'caption';
+          caption.textContent = body;
+          mediaArea.appendChild(caption);
+
+          this.currentMediaIndex = (mediaList.findIndex(n => /\.(mp4|mov|webm|m4v)$/i.test(n)) + mediaList.length) % mediaList.length;
+
+          const mountMedia = () => {
+            const file = mediaList[this.currentMediaIndex] || '';
+            [...mediaArea.children].forEach(ch => { if (ch !== caption) ch.remove(); });
+            if (/\.(mp4|mov|webm|m4v)$/i.test(file)) {
+              const v = document.createElement('video');
+              v.src = file; v.controls = true; v.autoplay = true;
+              mediaArea.appendChild(v);
+            } else {
+              const img = document.createElement('img');
+              img.src = file; img.alt = 'Visual';
+              mediaArea.appendChild(img);
+            }
+          };
+          mountMedia();
+
+          this.viewer.appendChild(mediaArea);
+          this.viewer.appendChild(this.buildAudioUI(e - s));
+          this.innerWindow.classList.add('active');
+          this.wireAudioSegment(s, e, id);
+
+          this.switchMediaBtn.onclick = () => {
+            this.currentMediaIndex = (this.currentMediaIndex + 1) % mediaList.length;
+            mountMedia();
+          };
+          this.innerWindow.classList.add('large');
+        } else {
+          const wrap = document.createElement('div');
+          wrap.className = 'subs-only';
+          const text = document.createElement('div');
+          text.className = 'subs-text';
+          text.textContent = body;
+          wrap.appendChild(text);
+          wrap.appendChild(this.buildAudioUI(e - s));
+          this.viewer.appendChild(wrap);
+          this.innerWindow.classList.add('active', 'small');
+          this.wireAudioSegment(s, e, id);
+        }
+      }
+    }
+
+    // Initialize the training system
+    new ModularTrainingSystem(CONFIG);
+  </script>
+</body>
+</html>
