@@ -11,6 +11,8 @@
       --active:#f8fafc; 
       --completed:#0b242c; 
       --locked:#4a4a4a;
+      --badge-offset: 2px;
+      --badge-size: 20px;
     }
     *{box-sizing:border-box}
     body{ margin:0;min-height:100svh;display:grid;place-items:center;
@@ -43,11 +45,6 @@
     .hotspot.done{ pointer-events:auto; background:rgba(11,36,44,0.3); border-color:#fff; color:#fff;
       box-shadow:0 0 0 3px rgba(11,36,44,.5); }
     .hotspot.pill.done{ background:var(--completed); }
-
-    :root{
-      --badge-offset: 2px;
-      --badge-size: 20px;
-    }
 
     .hotspot::before{
       content: attr(data-number);
@@ -126,11 +123,9 @@
       left:12px;
       right:auto;
       bottom:12px;
-
       display:inline-block;
       width:fit-content;
       max-width:calc(100% - 24px);
-
       background:rgba(0,0,0,.65);
       color:#fff;
       padding:10px 12px;
@@ -139,7 +134,6 @@
       line-height:1.35;
       pointer-events:none;
       z-index:2;
-
       white-space:pre-wrap;
       overflow-wrap:anywhere;
     }
@@ -165,7 +159,6 @@
       display:flex;
       flex-direction:column;
     }
-    
     .real-life-popup header{ 
       background:#1a1a1a; 
       padding:12px; 
@@ -174,7 +167,6 @@
       align-items:center;
       flex-shrink:0;
     }
-    
     .real-life-popup .close-btn{ 
       background:none; 
       border:none; 
@@ -186,7 +178,6 @@
       transition:background .2s ease;
     }
     .real-life-popup .close-btn:hover{ background:rgba(255,255,255,.1); }
-    
     .real-life-popup .content{ 
       flex:1;
       display:flex;
@@ -205,7 +196,6 @@
       border-radius:8px;
       display:block;
     }
-    
     .real-life-popup .nav{ 
       display:flex; 
       justify-content:space-between; 
@@ -213,7 +203,6 @@
       padding:0 12px 12px;
       flex-shrink:0;
     }
-    
     .real-life-popup .nav button{ 
       background:#2a2a2a; 
       border:1px solid rgba(255,255,255,.3); 
@@ -245,19 +234,9 @@
       display: grid;
       grid-template-rows: 1fr auto;
     }
-
-    .inner-window.small .subs-only{
-      min-height: 0;
-      overflow: auto;
-    }
-
-    .inner-window.small .subs-text{
-      max-height: none;
-    }
-
-    .inner-window.small .audio-ui{
-      align-self: stretch;
-    }
+    .inner-window.small .subs-only{ min-height: 0; overflow: auto; }
+    .inner-window.small .subs-text{ max-height: none; }
+    .inner-window.small .audio-ui{ align-self: stretch; }
 
     .audio-ui{ flex:0 0 auto; width:100%; display:grid; gap:10px; }
     .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
@@ -280,118 +259,42 @@
     .next-btn:hover{ background:#22c55e; }
     .close-btn{ background:#666; color:#fff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; }
 
-    /* Chapter completion dialog */
-    .chapter-complete-overlay {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: rgba(0,0,0,.8);
-      backdrop-filter: blur(4px);
-      z-index: 9998;
-    }
-    .chapter-complete-dialog {
-      background: #0f1216;
-      border: 1px solid rgba(255,255,255,.15);
-      border-radius: 16px;
-      padding: 24px;
-      width: min(480px, 90vw);
-      box-shadow: 0 20px 60px rgba(0,0,0,.7);
-      text-align: center;
-    }
-    .chapter-complete-dialog h2 {
-      margin: 0 0 16px 0;
-      font-size: 24px;
-      color: #22c55e;
-    }
-    .chapter-complete-dialog p {
-      margin: 0 0 20px 0;
-      color: #cfd7e3;
-      line-height: 1.5;
-    }
-    .chapter-complete-dialog .actions {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-    }
-    .chapter-complete-dialog .btn {
-      background: #2a2a2a;
-      color: #fff;
-      border: 1px solid rgba(255,255,255,.2);
-      padding: 12px 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: background .2s ease;
-    }
-    .chapter-complete-dialog .btn.primary {
-      background: #00e0ff;
-      color: #000;
-    }
-    .chapter-complete-dialog .btn:hover {
-      background: #3a3a3a;
-    }
-    .chapter-complete-dialog .btn.primary:hover {
-      background: #22c55e;
-    }
+    .chapter-complete-overlay { position: fixed; inset: 0; display: grid; place-items: center;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px); z-index: 9998; }
+    .chapter-complete-dialog { background: #0f1216; border: 1px solid rgba(255,255,255,.15); border-radius: 16px;
+      padding: 24px; width: min(480px, 90vw); box-shadow: 0 20px 60px rgba(0,0,0,.7); text-align: center; }
+    .chapter-complete-dialog h2 { margin: 0 0 16px 0; font-size: 24px; color: #22c55e; }
+    .chapter-complete-dialog p { margin: 0 0 20px 0; color: #cfd7e3; line-height: 1.5; }
+    .chapter-complete-dialog .actions { display: flex; gap: 12px; justify-content: center; }
+    .chapter-complete-dialog .btn { background: #2a2a2a; color: #fff; border: 1px solid rgba(255,255,255,.2);
+      padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: background .2s ease; }
+    .chapter-complete-dialog .btn.primary { background: #00e0ff; color: #000; }
+    .chapter-complete-dialog .btn:hover { background: #3a3a3a; }
+    .chapter-complete-dialog .btn.primary:hover { background: #22c55e; }
 
     @media (max-width: 768px) {
-      .real-life-popup {
-        max-width:95vw;
-        max-height:95vh;
-      }
-      .inner-window.large {
-        top:4%;
-        left:4%;
-        width:92%;
-        height:92%;
-      }
-      .inner-window.small {
-        right:2%;
-        bottom:4%;
-        width:min(520px, 94%);
-        max-height:70%;
-      }
+      .real-life-popup { max-width:95vw; max-height:95vh; }
+      .inner-window.large { top:4%; left:4%; width:92%; height:92%; }
+      .inner-window.small { right:2%; bottom:4%; width:min(520px, 94%); max-height:70%; }
     }
 
+    /* Startup overlay (used only in debug mode) */
     .startup {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: rgba(0,0,0,.7);
-      backdrop-filter: blur(2px);
-      z-index: 9999;
+      position: fixed; inset: 0; display: none; place-items: center;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(2px); z-index: 9999;
     }
     .startup .panel {
-      background: #0f1216;
-      border: 1px solid rgba(255,255,255,.15);
-      border-radius: 16px;
-      padding: 20px;
-      width: min(520px, 92vw);
-      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      background: #0f1216; border: 1px solid rgba(255,255,255,.15); border-radius: 16px;
+      padding: 20px; width: min(520px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.6);
     }
-    .startup h1 {
-      margin: 0 0 8px 0;
-      font-size: 18px;
-      letter-spacing: .2px;
-    }
+    .startup h1 { margin: 0 0 8px 0; font-size: 18px; letter-spacing: .2px; }
     .startup p { margin: 0 0 14px 0; color:#cfd7e3; font-size:14px; }
     .startup .actions { display:flex; gap:10px; flex-wrap:wrap; }
-    .startup .actions .btn {
-      background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2);
-      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;
-    }
+    .startup .actions .btn { background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2);
+      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600; }
     .startup .hint { font-size:12px; opacity:.85; margin-top:10px; color:#99a3b3; }
-    .startup .drop {
-      margin-top:12px;
-      padding:14px;
-      border:1px dashed rgba(255,255,255,.25);
-      border-radius:12px;
-      text-align:center;
-      color:#cfd7e3;
-      font-size:13px;
-    }
+    .startup .drop { margin-top:12px; padding:14px; border:1px dashed rgba(255,255,255,.25); border-radius:12px;
+      text-align:center; color:#cfd7e3; font-size:13px; }
     .startup .drop.dragover { background: rgba(255,255,255,.06); }
   </style>
 </head>
@@ -418,7 +321,7 @@
   <!-- Hidden file input for JSON (debug mode only) -->
   <input id="configPicker" type="file" accept=".json,application/json" style="display:none" />
 
-  <!-- Startup overlay (removed after config loads) -->
+  <!-- Startup overlay (removed after config loads in debug mode) -->
   <div id="startup" class="startup" aria-modal="true" role="dialog">
     <div class="panel" id="panel">
       <h1>Select your utilities_config.json</h1>
@@ -438,7 +341,7 @@
     // Sequential module configuration
     const MODULE_SEQUENCE = [
       '2-1.json',
-      '2-2.json', 
+      '2-2.json',
       '2-3.json'
     ];
 
@@ -477,8 +380,8 @@
       }
 
       setupDOM() {
-        document.title = this.config.title;
-        document.getElementById('moduleTitle').textContent = this.config.title;
+        document.title = this.config.title || 'Training Module';
+        document.getElementById('moduleTitle').textContent = this.config.title || 'Training Module';
         
         this.stage = document.getElementById('stage');
         this.innerWindow = document.getElementById('innerWindow');
@@ -488,44 +391,39 @@
         this.closeViewerBtn = document.getElementById('closeViewer');
 
         // Add cache-busting and image verification for background
-        this.setBackgroundImage(this.config.backgroundImage);
-        this.audio.src = this.config.audioFile;
+        this.setBackgroundImage(this.config.backgroundImage || '');
+        if (this.config.audioFile) this.audio.src = this.config.audioFile;
 
         this.closeViewerBtn.addEventListener('click', () => this.closeViewer());
       }
 
       setBackgroundImage(imagePath) {
-        // Add cache-busting parameter and verify image loads
+        if (!imagePath) return;
         const cacheBuster = '?v=' + Date.now();
         const imageUrl = imagePath + cacheBuster;
-        
-        // Test if image loads before setting it
         const testImage = new Image();
         testImage.onload = () => {
-          console.log('Background image loaded successfully:', imagePath);
           this.stage.style.backgroundImage = `url('${imageUrl}')`;
         };
         testImage.onerror = () => {
-          console.warn('Failed to load background image:', imagePath, 'trying without cache buster');
-          // Fallback: try without cache buster
           this.stage.style.backgroundImage = `url('${imagePath}')`;
         };
         testImage.src = imageUrl;
       }
 
       createHotspots() {
-        const W = this.config.canvasDimensions.width;
-        const H = this.config.canvasDimensions.height;
+        const W = this.config.canvasDimensions?.width || 6000;
+        const H = this.config.canvasDimensions?.height || 4000;
 
         this.linearOrder = [];
         let visualIndex = 0;
 
-        this.config.hotspots.forEach((hotspot, idx) => {
+        (this.config.hotspots || []).forEach((hotspot, idx) => {
           const button = document.createElement('button');
           button.id = hotspot.id;
           button.dataset.id = hotspot.id;
-          button.dataset.tcStart = hotspot.tcStart;
-          button.dataset.tcEnd = hotspot.tcEnd;
+          button.dataset.tcStart = hotspot.tcStart || '00:00:00:00';
+          button.dataset.tcEnd = hotspot.tcEnd || '00:00:00:01';
           button.dataset.order = hotspot.order || '';
 
           const isFirst = idx === 0;
@@ -557,8 +455,7 @@
             }
 
           } else {
-            button.className = `hotspot ${hotspot.type}`;
-
+            button.className = `hotspot ${hotspot.type || 'circle'}`;
             const leftPercent   = (hotspot.centerX / W) * 100;
             const topPercent    = (hotspot.centerY / H) * 100;
             const widthPercent  = (hotspot.width   / W) * 100;
@@ -574,14 +471,15 @@
         });
 
         this.buttons = {};
-        this.config.hotspots.forEach(h => {
+        (this.config.hotspots || []).forEach(h => {
           this.buttons[h.id] = document.getElementById(h.id);
         });
       }
 
       setupEventListeners() {
-        this.config.hotspots.forEach(hotspot => {
+        (this.config.hotspots || []).forEach(hotspot => {
           const button = document.getElementById(hotspot.id);
+          if (!button) return;
           button.addEventListener('click', () => {
             if (button.classList.contains('locked')) return;
             this.openFor(button);
@@ -590,7 +488,7 @@
       }
 
       tcToSeconds(tc) {
-        const parts = tc.split(/[;:]/).map(n => parseInt(n, 10) || 0);
+        const parts = String(tc).split(/[;:]/).map(n => parseInt(n, 10) || 0);
         const [hh, mm, ss, ff] = [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts[3] || 0];
         return hh * 3600 + mm * 60 + ss + (ff / this.FPS);
       }
@@ -611,7 +509,6 @@
 
       applyStatesLinear() {
         this.linearOrder.forEach(id => this.setState(this.buttons[id], 'locked'));
-
         let unlockedOne = false;
         this.linearOrder.forEach((id) => {
           if (this.done.has(id)) {
@@ -673,14 +570,11 @@
             </div>
           </div>
         `;
-        
         document.body.appendChild(overlay);
-        
         document.getElementById('stayBtn').onclick = () => {
           overlay.remove();
           this.closeViewer();
         };
-        
         document.getElementById('continueBtn').onclick = () => {
           overlay.remove();
           this.loadNextModule();
@@ -697,10 +591,18 @@
               return r.json(); 
             })
             .then(config => {
-              // Clear current interface
-              this.stage.innerHTML = '';
-              
-              // Initialize new module
+              this.stage.innerHTML = `
+                <div id="innerWindow" class="inner-window" aria-modal="true" role="dialog" aria-label="Content viewer">
+                  <header>
+                    <span id="viewerTitle">Narration</span>
+                    <div class="right">
+                      <button id="closeViewer" class="btn" title="Close">×</button>
+                    </div>
+                  </header>
+                  <div id="viewer" class="viewer"></div>
+                </div>
+                <audio id="vo" preload="metadata"></audio>
+              `;
               new ModularTrainingSystem(config, nextIndex);
             })
             .catch(err => {
@@ -708,7 +610,6 @@
               alert('Failed to load the next chapter. Please refresh the page.');
             });
         } else {
-          // All modules complete
           alert('Congratulations! You have completed all training modules.');
         }
       }
@@ -719,16 +620,13 @@
           this.saveDone();
           this.applyStatesLinear();
         }
-        
-        const hotspot = this.config.hotspots.find(h => h.id === id);
+        const hotspot = (this.config.hotspots || []).find(h => h.id === id);
         const isDone = (hotspot?.order || '').toLowerCase() === 'done';
-        
         const nextBtn = document.getElementById('nextBtn');
         if (nextBtn) {
           nextBtn.style.display = 'block';
           nextBtn.onclick = () => {
             if (isDone) {
-              // Check if this is the last module
               const isLastModule = this.currentModuleIndex === MODULE_SEQUENCE.length - 1;
               if (isLastModule) {
                 alert('Congratulations! You have completed all training modules.');
@@ -744,7 +642,7 @@
       }
 
       wireAudioSegment(startSec, endSec, id) {
-        const total = endSec - startSec;
+        const total = Math.max(0.01, endSec - startSec);
         this.seg = { start: startSec, end: endSec, active: true, currentId: id, currentVideo: this.seg.currentVideo };
 
         const fill = document.getElementById('fill');
@@ -758,13 +656,13 @@
           if (!this.seg.active) return;
           const now = Math.min(Math.max(this.audio.currentTime, this.seg.start), this.seg.end);
           const elapsed = now - this.seg.start;
-          fill.style.width = `${(elapsed / total) * 100}%`;
-          tcur.textContent = this.fmt(elapsed);
+          if (fill) fill.style.width = `${(elapsed / total) * 100}%`;
+          if (tcur) tcur.textContent = this.fmt(elapsed);
           if (now >= this.seg.end - 0.02) {
             this.audio.pause();
             if (this.seg.currentVideo) this.seg.currentVideo.pause();
-            playPause.textContent = '▶';
-            status.textContent = 'Finished';
+            if (playPause) playPause.textContent = '▶';
+            if (status) status.textContent = 'Finished';
             cancelAnimationFrame(this.seg.rafId);
             this.onSegmentComplete(id);
             return;
@@ -776,14 +674,14 @@
           this.audio.currentTime = this.seg.start;
           this.audio.play().then(() => {
             if (this.seg.currentVideo) {
-              this.seg.currentVideo.play().catch(console.error);
+              this.seg.currentVideo.play().catch(()=>{});
             }
-            playPause.textContent = '❚❚';
-            status.textContent = 'Playing';
+            if (playPause) playPause.textContent = '❚❚';
+            if (status) status.textContent = 'Playing';
             cancelAnimationFrame(this.seg.rafId);
             this.seg.rafId = requestAnimationFrame(syncUI);
           }).catch(() => {
-            status.textContent = 'Tap Play to start audio';
+            if (status) status.textContent = 'Tap Play to start audio';
           });
         };
 
@@ -793,30 +691,31 @@
           if (this.audio.currentTime > this.seg.end) this.audio.currentTime = this.seg.end;
         };
 
-        playPause.onclick = () => {
-          if (this.audio.paused) {
-            if (this.audio.currentTime <= this.seg.start || this.audio.currentTime >= this.seg.end) {
-              startSeg();
+        if (playPause) {
+          playPause.onclick = () => {
+            if (this.audio.paused) {
+              if (this.audio.currentTime <= this.seg.start || this.audio.currentTime >= this.seg.end) {
+                startSeg();
+              } else {
+                this.audio.play().then(() => {
+                  if (this.seg.currentVideo) this.seg.currentVideo.play().catch(()=>{});
+                  playPause.textContent = '❚❚';
+                  if (status) status.textContent = 'Playing';
+                  cancelAnimationFrame(this.seg.rafId);
+                  this.seg.rafId = requestAnimationFrame(syncUI);
+                });
+              }
             } else {
-              this.audio.play().then(() => {
-                if (this.seg.currentVideo) this.seg.currentVideo.play().catch(console.error);
-                playPause.textContent = '❚❚';
-                status.textContent = 'Playing';
-                cancelAnimationFrame(this.seg.rafId);
-                this.seg.rafId = requestAnimationFrame(syncUI);
-              });
+              this.audio.pause();
+              if (this.seg.currentVideo) this.seg.currentVideo.pause();
+              playPause.textContent = '▶';
+              if (status) status.textContent = 'Paused';
             }
-          } else {
-            this.audio.pause();
-            if (this.seg.currentVideo) this.seg.currentVideo.pause();
-            playPause.textContent = '▶';
-            status.textContent = 'Paused';
-          }
-        };
+          };
+        }
 
-        replay.onclick = () => startSeg();
-        closeBtn.onclick = () => this.closeViewer();
-        
+        if (replay) replay.onclick = () => startSeg();
+        if (closeBtn) closeBtn.onclick = () => this.closeViewer();
         startSeg();
       }
 
@@ -827,11 +726,9 @@
 
       showRealLifePopup(examples) {
         this.closeRealLifePopup();
-        
         const popup = document.createElement('div');
         popup.id = 'realLifePopup';
         popup.className = 'real-life-popup';
-        
         popup.innerHTML = `
           <header>
             <span>Real Life Example</span>
@@ -846,38 +743,22 @@
             <button id="nextImgBtn">Next ›</button>
           </div>
         `;
-
         document.body.appendChild(popup);
-
         popup.querySelector('.close-btn').onclick = () => this.closeRealLifePopup();
-        
+
         if (examples.length > 1) {
           const prevBtn = popup.querySelector('#prevBtn');
           const nextBtn = popup.querySelector('#nextImgBtn');
           const img = popup.querySelector('#realLifeImg');
           const counter = popup.querySelector('.nav span');
-
           const updateImage = () => {
             img.src = examples[this.realLifeIndex];
             counter.textContent = `${this.realLifeIndex + 1} of ${examples.length}`;
             prevBtn.disabled = this.realLifeIndex === 0;
             nextBtn.disabled = this.realLifeIndex === examples.length - 1;
           };
-
-          prevBtn.onclick = () => {
-            if (this.realLifeIndex > 0) {
-              this.realLifeIndex--;
-              updateImage();
-            }
-          };
-
-          nextBtn.onclick = () => {
-            if (this.realLifeIndex < examples.length - 1) {
-              this.realLifeIndex++;
-              updateImage();
-            }
-          };
-
+          prevBtn.onclick = () => { if (this.realLifeIndex > 0) { this.realLifeIndex--; updateImage(); } };
+          nextBtn.onclick = () => { if (this.realLifeIndex < examples.length - 1) { this.realLifeIndex++; updateImage(); } };
           updateImage();
         }
 
@@ -908,13 +789,13 @@
         this.closeRealLifePopup();
 
         const id = button.id;
-        const hotspot = this.config.hotspots.find(h => h.id === id);
+        const hotspot = (this.config.hotspots || []).find(h => h.id === id);
         const s = this.tcToSeconds(button.dataset.tcStart);
         const e = this.tcToSeconds(button.dataset.tcEnd);
 
         const textContent = hotspot.content || hotspot.text || '';
         const { title, body } = this.getTitleAndBody(textContent);
-        const hasVideo = hotspot.video;
+        const hasVideo = !!hotspot.video;
         const hasRealLife = hotspot.realLifeExamples && hotspot.realLifeExamples.length > 0;
 
         this.innerWindow.classList.remove('small', 'large');
@@ -962,8 +843,8 @@
           const text = document.createElement('div');
           text.className = 'subs-text';
           text.textContent = body;
-          this.viewer.appendChild(wrap);
           wrap.appendChild(text);
+          this.viewer.appendChild(wrap);
         }
 
         this.viewer.appendChild(this.buildAudioUI(e - s));
@@ -972,12 +853,13 @@
       }
     }
 
+    // ------- Single, complete boot block (no duplicates) -------
     (function boot(){
       const title = document.getElementById('moduleTitle');
       const startup = document.getElementById('startup');
-      
+
       if (LocalDebugMode) {
-        // Show debug interface
+        // Debug interface to pick JSON
         title.textContent = 'Select your utilities_config.json…';
         startup.style.display = 'grid';
         
@@ -986,39 +868,12 @@
         const drop = document.getElementById('drop');
         const hint = document.getElementById('hint');
 
-    (function boot(){
-      const title = document.getElementById('moduleTitle');
-      const startup = document.getElementById('startup');
-      
-      console.log('LocalDebugMode:', LocalDebugMode);
-      
-      if (LocalDebugMode) {
-        // Show debug interface
-        title.textContent = 'Select your utilities_config.json…';
-        startup.style.display = 'grid';
-        
-        const picker = document.getElementById('configPicker');
-        const pickBtn = document.getElementById('pickBtn');
-        const drop = document.getElementById('drop');
-        const hint = document.getElementById('hint');
-
-        console.log('Debug mode enabled - setting up file handlers');
-        console.log('Elements found:', {picker, pickBtn, drop, hint});
-
-        if (!pickBtn || !picker || !drop || !hint) {
-          console.error('Missing debug UI elements');
-          return;
-        }
-
-        const parseAndInit = (cfg, label='') => {
-          console.log('parseAndInit called with:', label);
+        const parseAndInit = (cfg) => {
           try {
             if (typeof cfg === 'string') cfg = JSON.parse(cfg);
-            console.log('Config parsed successfully');
             startup.remove();
             new ModularTrainingSystem(cfg, 0);
           } catch (e) {
-            console.error('Parse error:', e);
             if (hint) hint.textContent = 'Invalid JSON: ' + (e?.message || e);
           }
         };
@@ -1030,59 +885,33 @@
           r.readAsText(file, 'utf-8');
         });
 
-        pickBtn.addEventListener('click', () => {
-          console.log('Pick button clicked');
-          picker.value = '';
-          picker.click();
-        });
-
-        picker.addEventListener('change', async () => {
-          console.log('File picker changed');
+        pickBtn?.addEventListener('click', () => { picker.value = ''; picker.click(); });
+        picker?.addEventListener('change', async () => {
           const f = picker.files && picker.files[0];
           if (!f) return;
-          console.log('Selected file:', f.name);
           try {
             const text = await readFile(f);
-            console.log('File read successfully');
-            parseAndInit(text, f.name);
-          } catch (e) {
-            console.error('File read error:', e);
-            hint.textContent = 'Failed to read file: ' + (e?.message || e);
-          }
+            parseAndInit(text);
+          } catch (e) { hint.textContent = 'Failed to read file: ' + (e?.message || e); }
         });
 
         ['dragenter','dragover'].forEach(ev => {
-          drop.addEventListener(ev, (e) => { 
-            console.log('Drag event:', ev);
-            e.preventDefault(); 
-            e.stopPropagation(); 
-            drop.classList.add('dragover'); 
+          drop?.addEventListener(ev, (e) => { 
+            e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); 
           });
         });
-        
         ['dragleave','drop'].forEach(ev => {
-          drop.addEventListener(ev, (e) => { 
-            console.log('Drop event:', ev);
-            e.preventDefault(); 
-            e.stopPropagation(); 
-            drop.classList.remove('dragover'); 
+          drop?.addEventListener(ev, (e) => { 
+            e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); 
           });
         });
-
-        drop.addEventListener('drop', async (e) => {
-          console.log('File dropped');
+        drop?.addEventListener('drop', async (e) => {
           const file = e.dataTransfer.files && e.dataTransfer.files[0];
-          if (!file) {
-            console.log('No file in drop');
-            return;
-          }
-          console.log('Dropped file:', file.name);
+          if (!file) return;
           try {
             const text = await readFile(file);
-            console.log('Dropped file read successfully');
-            parseAndInit(text, file.name);
+            parseAndInit(text);
           } catch (err) {
-            console.error('Dropped file read error:', err);
             hint.textContent = 'Failed to read dropped file: ' + (err?.message || err);
           }
         });
@@ -1090,37 +919,20 @@
         const urlParams = new URLSearchParams(window.location.search);
         const configURL = urlParams.get('config');
         if (configURL) {
-          console.log('Loading config from URL:', configURL);
           hint.textContent = 'Loading config from URL…';
           fetch(configURL)
-            .then(r => { 
-              if (!r.ok) throw new Error(r.status + ' ' + r.statusText); 
-              return r.text(); 
-            })
-            .then(text => parseAndInit(text, configURL))
-            .catch(err => { 
-              console.error('URL config load error:', err);
-              hint.textContent = 'Failed to load ?config: ' + (err?.message || err); 
-            });
+            .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
+            .then(text => parseAndInit(text))
+            .catch(err => { hint.textContent = 'Failed to load ?config: ' + (err?.message || err); });
         } else {
           hint.textContent = 'Debug mode: Select a JSON config file to continue';
         }
-        
-        console.log('Debug mode setup complete - waiting for user input');
-        
       } else {
-        // Production mode - automatically load first module
+        // Production mode — auto load first JSON in sequence
         title.textContent = 'Loading Training Module...';
-        const firstModulePath = MODULE_SEQUENCE[0];
-        
-        fetch(firstModulePath)
-          .then(r => { 
-            if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); 
-            return r.json(); 
-          })
-          .then(config => {
-            new ModularTrainingSystem(config, 0);
-          })
+        fetch(MODULE_SEQUENCE[0])
+          .then(r => { if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
+          .then(config => { new ModularTrainingSystem(config, 0); })
           .catch(err => {
             console.error('Failed to load module:', err);
             title.textContent = 'Failed to load training module';
