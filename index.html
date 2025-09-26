@@ -2,12 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Facility Planning - Utilities</title>
+  <title>Training Module</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
       --stage-max-width:1200px;
-      --bg:#0e0e12; --accent:#00e0ff; --locked:#4a4a4a; --done:#22c55e;
+      --bg:#0e0e12; 
+      --active:#f8fafc; 
+      --completed:#0b242c; 
+      --locked:#4a4a4a;
     }
     *{box-sizing:border-box}
     body{ margin:0;min-height:100svh;display:grid;place-items:center;
@@ -19,20 +22,77 @@
     .stage{ position:relative;width:100%;aspect-ratio:6000/4000; background:center / 100% 100% no-repeat; }
 
     .hotspot{ position:absolute;display:grid;place-items:center; transform:translate(-50%,-50%);cursor:pointer;
-      font-weight:800;color:#fff;font-size:14px;letter-spacing:.6px; border:6px solid transparent;background:rgba(255,255,255,.06);
+      font-weight:800;color:#333;font-size:14px;letter-spacing:.6px; border:3px solid transparent;
       transition:transform .2s ease, opacity .2s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease; }
-    .hotspot.circle{ border-radius:50%; } .hotspot.oval{ border-radius:9999px; padding:6px 16px; }
-    .hotspot.pill{ position:absolute;right:3%;bottom:5%;left:auto;top:auto;transform:none; border-radius:9999px;padding:10px 18px;font-size:16px; }
+    .hotspot.circle{ border-radius:50%; } 
+    .hotspot.oval{ border-radius:9999px; padding:6px 16px; }
+    .hotspot.pill{
+      position:absolute;
+      transform:none;
+      border-radius:9999px;
+      padding:10px 18px;
+      font-size:16px;
+    }
     .hotspot:not(.pill){font-size:0; line-height:0;}
-    .hotspot.locked{ pointer-events:none; opacity:0; background:transparent; border-color:transparent; box-shadow:none; animation:none;}
-    .hotspot.clickable{ pointer-events:auto; background:rgba(0,224,255,.12); border-color:var(--accent); animation:megaPulse 1.1s ease-in-out infinite; }
+    
+    .hotspot.locked{ pointer-events:none; opacity:0.3; background:rgba(74,74,74,0.3); border-color:var(--locked); }
+    .hotspot.clickable{ pointer-events:auto; background:rgba(248,250,252,0.2); border-color:#333; animation:megaPulse 1.1s ease-in-out infinite; }
     .hotspot.clickable:hover{ transform:translate(-50%,-50%) scale(1.05); }
+    .hotspot.pill.clickable{ background:var(--active); }
     .hotspot.pill.clickable:hover{ transform:none; }
-    .hotspot.done{ pointer-events:auto; background:rgba(34,197,94,.22); border-color:var(--done);
-      box-shadow:0 0 0 8px rgba(34,197,94,.25), 0 0 28px 8px rgba(34,197,94,.55); }
-    @keyframes megaPulse{ 0%{box-shadow:0 0 0 0 rgba(0,224,255,.95), 0 0 26px 8px rgba(0,224,255,.95);}
-      50%{box-shadow:0 0 0 18px rgba(0,224,255,0), 0 0 54px 18px rgba(0,224,255,1);}
-      100%{box-shadow:0 0 0 0 rgba(0,224,255,0), 0 0 26px 8px rgba(0,224,255,.95);} }
+    .hotspot.done{ pointer-events:auto; background:rgba(11,36,44,0.3); border-color:#fff; color:#fff;
+      box-shadow:0 0 0 3px rgba(11,36,44,.5); }
+    .hotspot.pill.done{ background:var(--completed); }
+
+    :root{
+      --badge-offset: 2px;
+      --badge-size: 20px;
+    }
+
+    .hotspot::before{
+      content: attr(data-number);
+      position: absolute;
+      top: var(--badge-offset);
+      left: var(--badge-offset);
+      width: var(--badge-size);
+      height: var(--badge-size);
+      display: grid;
+      place-items: center;
+      background:#333;
+      color:#fff;
+      border-radius:50%;
+      font-size:12px;
+      font-weight:700;
+      z-index:2;
+      pointer-events:none;
+    }
+
+    .hotspot.done::after{
+      content: '✓';
+      position: absolute;
+      top: var(--badge-offset);
+      right: var(--badge-offset);
+      width: var(--badge-size);
+      height: var(--badge-size);
+      display: grid;
+      place-items:center;
+      background:#22c55e;
+      color:#fff;
+      border-radius:50%;
+      font-size:12px;
+      font-weight:700;
+      z-index:2;
+      pointer-events:none;
+    }
+
+    .hotspot.pill::before{ top: -2px; left: -2px; }
+    .hotspot.pill.done::after{ top: -2px; right: -2px; }
+
+    @keyframes megaPulse{ 
+      0%{box-shadow:0 0 0 0 rgba(248,250,252,.8), 0 0 20px 4px rgba(248,250,252,.6);}
+      50%{box-shadow:0 0 0 12px rgba(248,250,252,0), 0 0 35px 12px rgba(248,250,252,.9);}
+      100%{box-shadow:0 0 0 0 rgba(248,250,252,0), 0 0 20px 4px rgba(248,250,252,.6);} 
+    }
 
     .inner-window{ position:absolute;display:none;flex-direction:column;z-index:20;background:#000;border-radius:16px;
       box-shadow:0 0 40px rgba(0,0,0,.8);overflow:hidden; }
@@ -43,43 +103,309 @@
     .inner-window header{ background:#1a1a1a;color:#fff;padding:10px 12px;font-weight:700;
       display:flex;justify-content:space-between;align-items:center;gap:8px; }
     .inner-window header .right{display:flex;gap:8px;align-items:center}
+    
+    .header-real-life-btn{ background:rgba(0,0,0,.8); color:#fff; 
+      border:2px solid #00e0ff; border-radius:8px; padding:8px 12px; font-size:14px; cursor:pointer; 
+      transition:all .2s ease; }
+    .header-real-life-btn:hover{ background:rgba(0,224,255,.2); }
 
     .viewer{ flex:1; display:flex; flex-direction:column; gap:12px; align-items:stretch;
       padding:12px; background:#000; height:100%; min-height:0; }
     .mediaArea{ position:relative; flex:1; min-height:0; display:grid; place-items:center; overflow:hidden; border-radius:10px; background:#000; }
-    .mediaArea video, .mediaArea img{ max-width:100%; max-height:100%; object-fit:contain; }
+    .mediaArea video, .mediaArea img{ 
+      max-width:100%; 
+      max-height:100%; 
+      width:100%;
+      height:100%;
+      object-fit:contain; 
+      border-radius:8px;
+    }
 
-    .caption{ position:absolute; left:12px; right:12px; bottom:12px; background:rgba(0,0,0,.65); color:#fff;
-      padding:10px 12px; border-radius:10px; font-size:16px; line-height:1.35; pointer-events:none; z-index:2; white-space:pre-wrap; }
+    .caption{
+      position:absolute;
+      left:12px;
+      right:auto;
+      bottom:12px;
+
+      display:inline-block;
+      width:fit-content;
+      max-width:calc(100% - 24px);
+
+      background:rgba(0,0,0,.65);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:10px;
+      font-size:16px;
+      line-height:1.35;
+      pointer-events:none;
+      z-index:2;
+
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+    }
+
+    .real-life-btn{ position:absolute; top:12px; right:12px; background:rgba(0,0,0,.8); color:#fff; 
+      border:2px solid #00e0ff; border-radius:8px; padding:8px 12px; font-size:14px; cursor:pointer; 
+      transition:all .2s ease; z-index:3; }
+    .real-life-btn:hover{ background:rgba(0,224,255,.2); }
+
+    .real-life-popup{ 
+      position:absolute; 
+      top:50%; 
+      left:50%; 
+      transform:translate(-50%,-50%); 
+      background:#000; 
+      border:2px solid #00e0ff; 
+      border-radius:12px; 
+      max-width:min(90vw, 800px); 
+      max-height:min(90vh, 600px); 
+      z-index:50; 
+      box-shadow:0 0 50px rgba(0,0,0,.9); 
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    
+    .real-life-popup header{ 
+      background:#1a1a1a; 
+      padding:12px; 
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center;
+      flex-shrink:0;
+    }
+    
+    .real-life-popup .close-btn{ 
+      background:none; 
+      border:none; 
+      color:#fff; 
+      font-size:18px; 
+      cursor:pointer; 
+      padding:4px 8px;
+      border-radius:4px;
+      transition:background .2s ease;
+    }
+    .real-life-popup .close-btn:hover{ background:rgba(255,255,255,.1); }
+    
+    .real-life-popup .content{ 
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px; 
+      min-height:0;
+      overflow:hidden;
+    }
+    .real-life-popup img{ 
+      max-width:100%; 
+      max-height:100%; 
+      width:auto;
+      height:auto;
+      object-fit:contain;
+      border-radius:8px;
+      display:block;
+    }
+    
+    .real-life-popup .nav{ 
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center;
+      padding:0 12px 12px;
+      flex-shrink:0;
+    }
+    
+    .real-life-popup .nav button{ 
+      background:#2a2a2a; 
+      border:1px solid rgba(255,255,255,.3); 
+      color:#fff; 
+      border-radius:6px; 
+      padding:8px 16px; 
+      cursor:pointer;
+      transition:background .2s ease;
+    }
+    .real-life-popup .nav button:hover:not(:disabled){ background:#3a3a3a; }
+    .real-life-popup .nav button:disabled{ opacity:.5; cursor:not-allowed; }
 
     .subs-only{ display:flex; flex-direction:column; gap:12px; }
-    .subs-text{ font-size:16px; line-height:1.45; color:#e9eef5; background:#0b0b0b; border:1px solid rgba(255,255,255,.15);
-      border-radius:12px; padding:12px; max-height:28vh; overflow:auto; }
+    .subs-text{
+      font-size:16px;
+      line-height:1.45;
+      color:#e9eef5;
+      background:#0b0b0b;
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:12px;
+      padding:12px;
+      max-height:28vh;
+      overflow:auto;
+      white-space:pre-wrap; 
+      overflow-wrap:anywhere;   
+    }
+
+    .inner-window.small .viewer{
+      display: grid;
+      grid-template-rows: 1fr auto;
+    }
+
+    .inner-window.small .subs-only{
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .inner-window.small .subs-text{
+      max-height: none;
+    }
+
+    .inner-window.small .audio-ui{
+      align-self: stretch;
+    }
 
     .audio-ui{ flex:0 0 auto; width:100%; display:grid; gap:10px; }
     .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
     .biglabel{font-weight:700}
     .controls{display:flex;gap:10px;flex-wrap:wrap}
-    .btn{ background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2); padding:10px 14px;border-radius:8px;cursor:pointer; }
+    .btn{ background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2); padding:8px 12px;border-radius:8px;cursor:pointer; 
+      font-size:16px; display:flex; align-items:center; justify-content:center; min-width:40px; }
     .btn[disabled]{opacity:.5;cursor:not-allowed}
+    .btn[title]:hover::after{ content:attr(title); position:absolute; bottom:120%; left:50%; transform:translateX(-50%); 
+      background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:12px; white-space:nowrap; z-index:100; }
     .bar{ position:relative;height:14px;border-radius:9999px;overflow:hidden;
       background:linear-gradient(90deg, rgba(255,255,255,.12), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.2);
       pointer-events:none; }
     .fill{ position:absolute;inset:0 auto 0 0;width:0%; background:linear-gradient(90deg, #00e0ff, #22c55e); box-shadow:0 0 10px rgba(0,224,255,.9); }
     .time{font-variant-numeric:tabular-nums}
+
+    .viewer-actions{ display:flex; gap:12px; align-items:center; justify-content:flex-end; padding-top:12px; }
+    .next-btn{ background:#00e0ff; color:#000; border:none; padding:10px 20px; border-radius:8px; 
+      font-weight:600; cursor:pointer; transition:all .2s ease; }
+    .next-btn:hover{ background:#22c55e; }
+    .close-btn{ background:#666; color:#fff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; }
+
+    /* Chapter completion dialog */
+    .chapter-complete-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0,0,0,.8);
+      backdrop-filter: blur(4px);
+      z-index: 9998;
+    }
+    .chapter-complete-dialog {
+      background: #0f1216;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 16px;
+      padding: 24px;
+      width: min(480px, 90vw);
+      box-shadow: 0 20px 60px rgba(0,0,0,.7);
+      text-align: center;
+    }
+    .chapter-complete-dialog h2 {
+      margin: 0 0 16px 0;
+      font-size: 24px;
+      color: #22c55e;
+    }
+    .chapter-complete-dialog p {
+      margin: 0 0 20px 0;
+      color: #cfd7e3;
+      line-height: 1.5;
+    }
+    .chapter-complete-dialog .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .chapter-complete-dialog .btn {
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.2);
+      padding: 12px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background .2s ease;
+    }
+    .chapter-complete-dialog .btn.primary {
+      background: #00e0ff;
+      color: #000;
+    }
+    .chapter-complete-dialog .btn:hover {
+      background: #3a3a3a;
+    }
+    .chapter-complete-dialog .btn.primary:hover {
+      background: #22c55e;
+    }
+
+    @media (max-width: 768px) {
+      .real-life-popup {
+        max-width:95vw;
+        max-height:95vh;
+      }
+      .inner-window.large {
+        top:4%;
+        left:4%;
+        width:92%;
+        height:92%;
+      }
+      .inner-window.small {
+        right:2%;
+        bottom:4%;
+        width:min(520px, 94%);
+        max-height:70%;
+      }
+    }
+
+    .startup {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0,0,0,.7);
+      backdrop-filter: blur(2px);
+      z-index: 9999;
+    }
+    .startup .panel {
+      background: #0f1216;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 16px;
+      padding: 20px;
+      width: min(520px, 92vw);
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    .startup h1 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      letter-spacing: .2px;
+    }
+    .startup p { margin: 0 0 14px 0; color:#cfd7e3; font-size:14px; }
+    .startup .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .startup .actions .btn {
+      background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2);
+      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;
+    }
+    .startup .hint { font-size:12px; opacity:.85; margin-top:10px; color:#99a3b3; }
+    .startup .drop {
+      margin-top:12px;
+      padding:14px;
+      border:1px dashed rgba(255,255,255,.25);
+      border-radius:12px;
+      text-align:center;
+      color:#cfd7e3;
+      font-size:13px;
+    }
+    .startup .drop.dragover { background: rgba(255,255,255,.06); }
   </style>
 </head>
 <body>
-  <main class="frame" role="main" aria-label="Training Chapter">
-    <div class="titlebar">Facility Planning - Utilities</div>
+  <main class="frame" role="main" aria-label="Training Module">
+    <div class="titlebar" id="moduleTitle">Loading...</div>
 
-    <section class="stage" aria-label="Main visual with hotspots">
+    <section class="stage" aria-label="Main visual with hotspots" id="stage">
       <!-- Hotspots will be generated by JavaScript -->
       <div id="innerWindow" class="inner-window" aria-modal="true" role="dialog" aria-label="Content viewer">
         <header>
           <span id="viewerTitle">Narration</span>
           <div class="right">
-            <button id="switchMedia" class="btn" style="display:none">Switch Media</button>
+            <button id="closeViewer" class="btn" title="Close">×</button>
           </div>
         </header>
         <div id="viewer" class="viewer"></div>
@@ -89,130 +415,151 @@
     </section>
   </main>
 
+  <!-- Hidden file input for JSON (debug mode only) -->
+  <input id="configPicker" type="file" accept=".json,application/json" style="display:none" />
+
+  <!-- Startup overlay (removed after config loads) -->
+  <div id="startup" class="startup" aria-modal="true" role="dialog" style="display:none;">
+    <div class="panel" id="panel">
+      <h1>Select your utilities_config.json</h1>
+      <p>Pick a config file to start. You can also drag & drop a JSON file onto this box.</p>
+      <div class="actions">
+        <button id="pickBtn" class="btn">Choose config JSON</button>
+      </div>
+      <div id="drop" class="drop" aria-label="Drop JSON here">Drop JSON here</div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+
   <script>
-    // ========== MODULAR CONFIGURATION ==========
-    const CONFIG = {
-      title: "Facility Planning - Utilities",
-      audioFile: "2.1 Facility Planning_Utilities.wav",
-      backgroundImage: "home.jpg",
-      canvasDimensions: { width: 6000, height: 4000 },
-      hotspots: [
-        { id:"b1", type:"oval",  centerX:681,  centerY:340,  width:1054, height:302,  tcStart:"00;00;00;00", tcEnd:"00;00;15;15", order:"first" },
-        { id:"b2", type:"circle",centerX:2356, centerY:3198, width:940,  height:940,  tcStart:"00;00;15;15", tcEnd:"00;00;37;28", order:"second" },
-        { id:"b3", type:"circle",centerX:1328, centerY:2472, width:940,  height:940,  tcStart:"00;01;03;04", tcEnd:"00;01;24;23", order:"mid" },
-        { id:"b4", type:"circle",centerX:1637, centerY:1332, width:940,  height:940,  tcStart:"00;01;24;23", tcEnd:"00;01;39;18", order:"mid" },
-        { id:"b5", type:"circle",centerX:2839, centerY:759,  width:940,  height:940,  tcStart:"00;00;37;28", tcEnd:"00;01;03;04", order:"mid" },
-        { id:"b6", type:"circle",centerX:4155, centerY:792,  width:940,  height:940,  tcStart:"00;01;39;18", tcEnd:"00;02;07;15", order:"mid" },
-        { id:"b7", type:"circle",centerX:5307, centerY:1323, width:940,  height:940,  tcStart:"00;02;07;15", tcEnd:"00;02;38;21", order:"final" },
-        { id:"b8", type:"pill",  text:"Done", tcStart:"00;02;38;21", tcEnd:"00;03;01;00", order:"done" }
-      ],
-      subtitles: {
-        b1:`[Intro]
-Every vacation rental relies on basic utilities – water, gas, electricity, and WiFi. These aren't just conveniences. They're essentials that must be safe, reliable, and high quality for your guests.`,
-        b2:`[What Utilities Are & Why They Matter]
-Utilities include water, gas, electricity, and internet. Guests expect each of these to work flawlessly. Safe wiring, clean water, steady gas service, and strong WiFi make your property feel trustworthy and professional.
-If even one of these fails, the guest experience – and your reviews – will suffer.`,
-        b3:`[Air Conditioning Units]
-Air conditioning is another critical utility. Hosts should ensure that AC units are kept clean, with filters replaced on schedule. Units should be plugged into outlets that can handle the load – never overloaded power strips. Clean and properly powered AC keeps guests comfortable and prevents dangerous electrical issues.`,
-        b4:`[Water Availability]
-Don't overlook water. Guests should always have access to drinking water in communal areas and bedrooms. Whether through bottled water, filtration systems, or pitchers, this simple step enhances comfort and convenience.`,
-        b5:`[Alternative Heating Sources]
-Some homes rely on alternative heating sources like space heaters or oil heaters. If you provide these, safety comes first. Space heaters should never be left running unattended, and they should be placed far from curtains, bedding, or furniture. Oil heaters must be regularly cleaned and inspected to prevent leaks. Always provide clear instructions for safe use.`,
-        b6:`[WiFi Access & Standards]
-Finally, let's talk about WiFi. In today's world, reliable internet is considered table stakes – every guest expects it. Unless your property is meant to not have WiFi at all, it's not optional. That's why GuestGuard inspectors check WiFi connectivity speeds during inspections. The minimum standard is 25 megabits per second – enough for streaming, work, and multiple devices. Make sure your WiFi is accessible, fast, and easy to connect to. Understanding that some properties, especially those in rural or rustic areas, don't have WiFi, we at GuestGuard want to make sure that if the property is meant to have WiFi, it's working as advertised.`,
-        b7:`[Hypothetical Example]
-Imagine a guest arrives after a long flight. They find bottled water waiting in the bedroom, the WiFi is fast enough for them to check in with family, and the AC runs quietly with clean, fresh air. Later, they notice a small space heater placed safely in the living room with clear instructions. Every utility works exactly as it should – reliable, safe, and easy to use. Because you prepared properly, their stay feels smooth and worry-free.`,
-        b8:`[Closing]
-To summarize: keep your utilities functioning, safe, and reliable. Manage alternative heating carefully, maintain AC units, provide water in living spaces, and ensure fast WiFi for all guests. When utilities are dependable, guests feel cared for – and your property stands out as both safe and professional.`
-      },
-      media: {
-        b3: ["HVAC video (shutterstock).mov","2.1 Common Area AC Unit, Extinguisher, Clean.jpg"],
-        b4: ["Water utilities (shutterstock).mov","2.1 Water Cooler.jpg"]
-      },
-      nextPage: "2-2.html"
-    };
+    // Configuration - set to false for production
+    const LocalDebugMode = false;
 
-    // ========== MODULAR TRAINING SYSTEM ==========
+    // Sequential module configuration
+    const MODULE_SEQUENCE = [
+      '2-1.json',
+      '2-2.json', 
+      '2-3.json'
+    ];
+
     class ModularTrainingSystem {
-      constructor(config) {
+      constructor(config, currentModuleIndex = 0) {
         this.config = config;
+        this.currentModuleIndex = currentModuleIndex;
         this.FPS = 30;
-        this.STORAGE_KEY = 'hotspots_done';
-        this.VER_KEY = 'hotspots_schema';
-        this.SCHEMA_VERSION = 2;
+        this.STORAGE_KEY = 'training_progress';
+        this.VER_KEY = 'training_schema';
+        this.SCHEMA_VERSION = 4;
+        this.initialize();
+      }
 
-        // Cache / apply assets
-        this.stage = document.querySelector('.stage');
-        this.innerWindow = document.getElementById('innerWindow');
-        this.viewer = document.getElementById('viewer');
-        this.switchMediaBtn = document.getElementById('switchMedia');
-        this.viewerTitle = document.getElementById('viewerTitle');
-        this.audio = document.getElementById('vo');
-
-        this.stage.style.backgroundImage = `url('${this.config.backgroundImage}')`;
-        this.audio.src = this.config.audioFile;
-
+      initialize() {
         this.initializeStorage();
+        this.setupDOM();
         this.createHotspots();
         this.setupEventListeners();
-        this.applyStates();
-
-        this.seg = {start:0, end:0, active:false, rafId:null, currentId:null};
-        this.currentMediaIndex = 0;
+        this.applyStatesLinear();
+        this.seg = {start:0, end:0, active:false, rafId:null, currentId:null, currentVideo:null};
+        this.realLifeIndex = 0;
       }
 
       initializeStorage() {
         const currentVer = parseInt(localStorage.getItem(this.VER_KEY) || '0', 10);
         if (currentVer !== this.SCHEMA_VERSION) {
-          localStorage.removeItem(this.STORAGE_KEY);
+          Object.keys(localStorage).forEach(k => {
+            if (k.endsWith('_done')) localStorage.removeItem(k);
+          });
           localStorage.setItem(this.VER_KEY, this.SCHEMA_VERSION);
         }
-        this.done = new Set(JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]'));
+        const moduleKey = `${this.config.id || 'default'}_done`;
+        this.done = new Set(JSON.parse(localStorage.getItem(moduleKey) || '[]'));
+        this.moduleKey = moduleKey;
+      }
+
+      setupDOM() {
+        document.title = this.config.title;
+        document.getElementById('moduleTitle').textContent = this.config.title;
+        
+        this.stage = document.getElementById('stage');
+        this.innerWindow = document.getElementById('innerWindow');
+        this.viewer = document.getElementById('viewer');
+        this.viewerTitle = document.getElementById('viewerTitle');
+        this.audio = document.getElementById('vo');
+        this.closeViewerBtn = document.getElementById('closeViewer');
+
+        this.stage.style.backgroundImage = `url('${this.config.backgroundImage}')`;
+        this.audio.src = this.config.audioFile;
+
+        this.closeViewerBtn.addEventListener('click', () => this.closeViewer());
       }
 
       createHotspots() {
-        const stage = this.stage;
+        const W = this.config.canvasDimensions.width;
+        const H = this.config.canvasDimensions.height;
 
-        this.config.hotspots.forEach(hotspot => {
+        this.linearOrder = [];
+        let visualIndex = 0;
+
+        this.config.hotspots.forEach((hotspot, idx) => {
           const button = document.createElement('button');
           button.id = hotspot.id;
-          button.className = `hotspot ${hotspot.type}`;
           button.dataset.id = hotspot.id;
           button.dataset.tcStart = hotspot.tcStart;
           button.dataset.tcEnd = hotspot.tcEnd;
-          button.dataset.order = hotspot.order;
+          button.dataset.order = hotspot.order || '';
 
-          if (hotspot.type === 'pill') {
-            button.textContent = hotspot.text || 'Done';
-            button.style.cssText = 'right:3%;bottom:5%;';
+          const isFirst = idx === 0;
+          const isDone = (hotspot.order || '').toLowerCase() === 'done';
+          const isPill = isFirst || hotspot.type === 'pill' || isDone;
+
+          visualIndex += 1;
+          button.dataset.number = visualIndex;
+
+          if (isPill) {
+            button.className = 'hotspot pill';
+
+            const label = isFirst
+              ? 'Start'
+              : (hotspot.label ?? (isDone ? 'Done' : (hotspot.text || 'Action')));
+            button.textContent = label;
+            button.setAttribute('aria-label', label);
+
+            if (isFirst) {
+              button.style.cssText = 'left:3%; bottom:5%; right:auto; top:auto; transform:none;';
+            } else if (isDone) {
+              button.style.cssText = 'right:3%; bottom:5%; left:auto; top:auto; transform:none;';
+            } else {
+              const dock = (hotspot.dock || 'right').toLowerCase();
+              button.style.cssText =
+                (dock === 'left')
+                  ? 'left:3%; bottom:5%; right:auto; top:auto; transform:none;'
+                  : 'right:3%; bottom:5%; left:auto; top:auto; transform:none;';
+            }
+
           } else {
-            button.textContent = hotspot.id.replace('b', ''); /* hidden by CSS */
-            const leftPercent = (hotspot.centerX / this.config.canvasDimensions.width) * 100;
-            const topPercent = (hotspot.centerY / this.config.canvasDimensions.height) * 100;
-            const widthPercent = (hotspot.width / this.config.canvasDimensions.width) * 100;
-            const heightPercent = (hotspot.height / this.config.canvasDimensions.height) * 100;
-            button.style.cssText = `left:${leftPercent}%;top:${topPercent}%;width:${widthPercent}%;height:${heightPercent}%;`;
+            button.className = `hotspot ${hotspot.type}`;
+
+            const leftPercent   = (hotspot.centerX / W) * 100;
+            const topPercent    = (hotspot.centerY / H) * 100;
+            const widthPercent  = (hotspot.width   / W) * 100;
+            const heightPercent = (hotspot.height  / H) * 100;
+
+            button.style.cssText =
+              `left:${leftPercent}%;top:${topPercent}%;` +
+              `width:${widthPercent}%;height:${heightPercent}%;`;
           }
 
-          stage.appendChild(button);
+          this.stage.appendChild(button);
+          this.linearOrder.push(hotspot.id);
         });
 
         this.buttons = {};
         this.config.hotspots.forEach(h => {
           this.buttons[h.id] = document.getElementById(h.id);
         });
-
-        this.order = {
-          first: this.config.hotspots.find(h => h.order === 'first')?.id,
-          second: this.config.hotspots.find(h => h.order === 'second')?.id,
-          mids: this.config.hotspots.filter(h => h.order === 'mid').map(h => h.id),
-          final: this.config.hotspots.find(h => h.order === 'final')?.id,
-          doneBtn: this.config.hotspots.find(h => h.order === 'done')?.id
-        };
       }
 
       setupEventListeners() {
-        // Click opens the viewer (no navigation here)
         this.config.hotspots.forEach(hotspot => {
           const button = document.getElementById(hotspot.id);
           button.addEventListener('click', () => {
@@ -233,7 +580,7 @@ To summarize: keep your utilities functioning, safe, and reliable. Manage altern
       }
 
       saveDone() {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify([...this.done]));
+        localStorage.setItem(this.moduleKey, JSON.stringify([...this.done]));
       }
 
       setState(el, state) {
@@ -242,41 +589,18 @@ To summarize: keep your utilities functioning, safe, and reliable. Manage altern
         el.setAttribute('aria-disabled', state === 'locked' ? 'true' : 'false');
       }
 
-      applyStates() {
-        this.config.hotspots.forEach(h => this.setState(this.buttons[h.id], 'locked'));
+      applyStatesLinear() {
+        this.linearOrder.forEach(id => this.setState(this.buttons[id], 'locked'));
 
-        if (!this.done.has(this.order.first)) {
-          this.setState(this.buttons[this.order.first], 'clickable');
-          return;
-        }
-        this.setState(this.buttons[this.order.first], 'done');
-
-        if (!this.done.has(this.order.second)) {
-          this.setState(this.buttons[this.order.second], 'clickable');
-          return;
-        }
-        this.setState(this.buttons[this.order.second], 'done');
-
-        let midsDone = true;
-        this.order.mids.forEach(id => {
+        let unlockedOne = false;
+        this.linearOrder.forEach((id) => {
           if (this.done.has(id)) {
             this.setState(this.buttons[id], 'done');
-          } else {
+          } else if (!unlockedOne) {
             this.setState(this.buttons[id], 'clickable');
-            midsDone = false;
+            unlockedOne = true;
           }
         });
-
-        if (this.done.has(this.order.final)) {
-          this.setState(this.buttons[this.order.final], 'done');
-          this.setState(this.buttons[this.order.doneBtn], 'clickable');
-        } else if (midsDone) {
-          this.setState(this.buttons[this.order.final], 'clickable');
-          this.setState(this.buttons[this.order.doneBtn], 'locked');
-        } else {
-          this.setState(this.buttons[this.order.final], 'locked');
-          this.setState(this.buttons[this.order.doneBtn], 'locked');
-        }
       }
 
       buildAudioUI(total) {
@@ -290,47 +614,125 @@ To summarize: keep your utilities functioning, safe, and reliable. Manage altern
           <div class="bar"><div class="fill" id="fill"></div></div>
           <div class="row">
             <div class="controls">
-              <button class="btn" id="playPause">Play</button>
-              <button class="btn" id="replay">Replay</button>
+              <button class="btn" id="playPause" title="Play/Pause">▶</button>
+              <button class="btn" id="replay" title="Replay">⟳</button>
             </div>
-            <div class="time" id="status">Ready</div>
+            <div class="viewer-actions">
+              <span class="time" id="status">Ready</span>
+              <button class="close-btn" id="closeBtn">Close</button>
+              <button class="next-btn" id="nextBtn" style="display:none">Next</button>
+            </div>
           </div>`;
         return ui;
       }
 
-      closeViewerAuto() {
+      closeViewer() {
         this.innerWindow.classList.remove('active');
         this.viewer.innerHTML = '';
+        if (this.seg.currentVideo) {
+          this.seg.currentVideo.pause();
+          this.seg.currentVideo = null;
+        }
         if (!this.audio.paused) this.audio.pause();
         this.seg.active = false;
         cancelAnimationFrame(this.seg.rafId);
+        this.closeRealLifePopup();
+        this.resetHeaderActions();
+      }
+
+      showChapterCompleteDialog() {
+        const overlay = document.createElement('div');
+        overlay.className = 'chapter-complete-overlay';
+        overlay.innerHTML = `
+          <div class="chapter-complete-dialog">
+            <h2>Chapter Complete!</h2>
+            <p>You've finished this chapter of the training module. Would you like to continue to the next chapter?</p>
+            <div class="actions">
+              <button class="btn" id="stayBtn">Stay Here</button>
+              <button class="btn primary" id="continueBtn">Continue to Next Chapter</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        document.getElementById('stayBtn').onclick = () => {
+          overlay.remove();
+          this.closeViewer();
+        };
+        
+        document.getElementById('continueBtn').onclick = () => {
+          overlay.remove();
+          this.loadNextModule();
+        };
+      }
+
+      loadNextModule() {
+        const nextIndex = this.currentModuleIndex + 1;
+        if (nextIndex < MODULE_SEQUENCE.length) {
+          const nextModulePath = MODULE_SEQUENCE[nextIndex];
+          fetch(nextModulePath)
+            .then(r => { 
+              if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); 
+              return r.json(); 
+            })
+            .then(config => {
+              // Clear current interface
+              this.stage.innerHTML = '';
+              
+              // Initialize new module
+              new ModularTrainingSystem(config, nextIndex);
+            })
+            .catch(err => {
+              console.error('Failed to load next module:', err);
+              alert('Failed to load the next chapter. Please refresh the page.');
+            });
+        } else {
+          // All modules complete
+          alert('Congratulations! You have completed all training modules.');
+        }
       }
 
       onSegmentComplete(id) {
         if (!this.done.has(id)) {
           this.done.add(id);
           this.saveDone();
-          this.applyStates();
+          this.applyStatesLinear();
         }
-
-        // Navigate ONLY after the Done segment's narration finishes
-        if (id === this.order.doneBtn && this.config.nextPage) {
-          window.location.assign(this.config.nextPage);
-          return;
+        
+        const hotspot = this.config.hotspots.find(h => h.id === id);
+        const isDone = (hotspot?.order || '').toLowerCase() === 'done';
+        
+        const nextBtn = document.getElementById('nextBtn');
+        if (nextBtn) {
+          nextBtn.style.display = 'block';
+          nextBtn.onclick = () => {
+            if (isDone) {
+              // Check if this is the last module
+              const isLastModule = this.currentModuleIndex === MODULE_SEQUENCE.length - 1;
+              if (isLastModule) {
+                alert('Congratulations! You have completed all training modules.');
+                this.closeViewer();
+              } else {
+                this.showChapterCompleteDialog();
+              }
+            } else {
+              this.closeViewer();
+            }
+          };
         }
-
-        this.closeViewerAuto();
       }
 
       wireAudioSegment(startSec, endSec, id) {
         const total = endSec - startSec;
-        this.seg = { start: startSec, end: endSec, active: true, currentId: id };
+        this.seg = { start: startSec, end: endSec, active: true, currentId: id, currentVideo: this.seg.currentVideo };
 
         const fill = document.getElementById('fill');
         const playPause = document.getElementById('playPause');
         const replay = document.getElementById('replay');
         const status = document.getElementById('status');
         const tcur = document.getElementById('tcur');
+        const closeBtn = document.getElementById('closeBtn');
 
         const syncUI = () => {
           if (!this.seg.active) return;
@@ -340,7 +742,8 @@ To summarize: keep your utilities functioning, safe, and reliable. Manage altern
           tcur.textContent = this.fmt(elapsed);
           if (now >= this.seg.end - 0.02) {
             this.audio.pause();
-            playPause.textContent = 'Play';
+            if (this.seg.currentVideo) this.seg.currentVideo.pause();
+            playPause.textContent = '▶';
             status.textContent = 'Finished';
             cancelAnimationFrame(this.seg.rafId);
             this.onSegmentComplete(id);
@@ -352,7 +755,10 @@ To summarize: keep your utilities functioning, safe, and reliable. Manage altern
         const startSeg = () => {
           this.audio.currentTime = this.seg.start;
           this.audio.play().then(() => {
-            playPause.textContent = 'Pause';
+            if (this.seg.currentVideo) {
+              this.seg.currentVideo.play().catch(console.error);
+            }
+            playPause.textContent = '❚❚';
             status.textContent = 'Playing';
             cancelAnimationFrame(this.seg.rafId);
             this.seg.rafId = requestAnimationFrame(syncUI);
@@ -373,7 +779,8 @@ To summarize: keep your utilities functioning, safe, and reliable. Manage altern
               startSeg();
             } else {
               this.audio.play().then(() => {
-                playPause.textContent = 'Pause';
+                if (this.seg.currentVideo) this.seg.currentVideo.play().catch(console.error);
+                playPause.textContent = '❚❚';
                 status.textContent = 'Playing';
                 cancelAnimationFrame(this.seg.rafId);
                 this.seg.rafId = requestAnimationFrame(syncUI);
@@ -381,91 +788,264 @@ To summarize: keep your utilities functioning, safe, and reliable. Manage altern
             }
           } else {
             this.audio.pause();
-            playPause.textContent = 'Play';
+            if (this.seg.currentVideo) this.seg.currentVideo.pause();
+            playPause.textContent = '▶';
             status.textContent = 'Paused';
           }
         };
 
         replay.onclick = () => startSeg();
+        closeBtn.onclick = () => this.closeViewer();
+        
         startSeg();
       }
 
-      // Split [Title] from body
       getTitleAndBody(text) {
         const m = (text || '').match(/^\s*\[([^\]]+)\]\s*\n?([\s\S]*)$/);
         return m ? { title: m[1], body: (m[2] || '').trimStart() } : { title: 'Narration', body: text || '' };
       }
 
+      showRealLifePopup(examples) {
+        this.closeRealLifePopup();
+        
+        const popup = document.createElement('div');
+        popup.id = 'realLifePopup';
+        popup.className = 'real-life-popup';
+        
+        popup.innerHTML = `
+          <header>
+            <span>Real Life Example</span>
+            <button class="close-btn">×</button>
+          </header>
+          <div class="content">
+            <img id="realLifeImg" src="${examples[0]}" alt="Real life example" />
+          </div>
+          <div class="nav" ${examples.length <= 1 ? 'style="display:none"' : ''}>
+            <button id="prevBtn">‹ Previous</button>
+            <span>${this.realLifeIndex + 1} of ${examples.length}</span>
+            <button id="nextImgBtn">Next ›</button>
+          </div>
+        `;
+
+        document.body.appendChild(popup);
+
+        popup.querySelector('.close-btn').onclick = () => this.closeRealLifePopup();
+        
+        if (examples.length > 1) {
+          const prevBtn = popup.querySelector('#prevBtn');
+          const nextBtn = popup.querySelector('#nextImgBtn');
+          const img = popup.querySelector('#realLifeImg');
+          const counter = popup.querySelector('.nav span');
+
+          const updateImage = () => {
+            img.src = examples[this.realLifeIndex];
+            counter.textContent = `${this.realLifeIndex + 1} of ${examples.length}`;
+            prevBtn.disabled = this.realLifeIndex === 0;
+            nextBtn.disabled = this.realLifeIndex === examples.length - 1;
+          };
+
+          prevBtn.onclick = () => {
+            if (this.realLifeIndex > 0) {
+              this.realLifeIndex--;
+              updateImage();
+            }
+          };
+
+          nextBtn.onclick = () => {
+            if (this.realLifeIndex < examples.length - 1) {
+              this.realLifeIndex++;
+              updateImage();
+            }
+          };
+
+          updateImage();
+        }
+
+        if (!this.audio.paused) {
+          this.audio.pause();
+          if (this.seg.currentVideo) this.seg.currentVideo.pause();
+          const playPause = document.getElementById('playPause');
+          const status = document.getElementById('status');
+          if (playPause) playPause.textContent = '▶';
+          if (status) status.textContent = 'Paused';
+        }
+      }
+
+      closeRealLifePopup() {
+        const existing = document.getElementById('realLifePopup');
+        if (existing) existing.remove();
+        this.realLifeIndex = 0;
+      }
+
+      resetHeaderActions() {
+        const right = this.innerWindow.querySelector('header .right');
+        if (!right) return;
+        right.querySelectorAll('.header-real-life-btn').forEach(btn => btn.remove());
+      }
+
       openFor(button) {
+        this.resetHeaderActions();
+        this.closeRealLifePopup();
+
         const id = button.id;
+        const hotspot = this.config.hotspots.find(h => h.id === id);
         const s = this.tcToSeconds(button.dataset.tcStart);
         const e = this.tcToSeconds(button.dataset.tcEnd);
 
-        const subsRaw = this.config.subtitles[id] || '';
-        const { title, body } = this.getTitleAndBody(subsRaw);
-
-        const hasMedia = Array.isArray(this.config.media?.[id]);
-        const mediaList = hasMedia ? this.config.media[id] : [];
+        const textContent = hotspot.content || hotspot.text || '';
+        const { title, body } = this.getTitleAndBody(textContent);
+        const hasVideo = hotspot.video;
+        const hasRealLife = hotspot.realLifeExamples && hotspot.realLifeExamples.length > 0;
 
         this.innerWindow.classList.remove('small', 'large');
         this.viewer.innerHTML = '';
-
         this.viewerTitle.textContent = title || 'Narration';
-        this.switchMediaBtn.style.display = hasMedia && mediaList.length > 1 ? '' : 'none';
 
-        if (hasMedia) {
+        if (hasVideo) {
+          this.innerWindow.classList.add('large');
           const mediaArea = document.createElement('div');
           mediaArea.className = 'mediaArea';
+
+          const video = document.createElement('video');
+          video.src = hotspot.video;
+          video.autoplay = true;
+          video.muted = true;
+          video.playsInline = true;
+          video.loop = true;
+          video.controls = false;
+          mediaArea.appendChild(video);
+          this.seg.currentVideo = video;
+
+          video.addEventListener('loadedmetadata', () => {
+            video.play().catch(()=>{ /* ignore autoplay block */ });
+          });
 
           const caption = document.createElement('div');
           caption.className = 'caption';
           caption.textContent = body;
           mediaArea.appendChild(caption);
 
-          this.currentMediaIndex = (mediaList.findIndex(n => /\.(mp4|mov|webm|m4v)$/i.test(n)) + mediaList.length) % mediaList.length;
-
-          const mountMedia = () => {
-            const file = mediaList[this.currentMediaIndex] || '';
-            [...mediaArea.children].forEach(ch => { if (ch !== caption) ch.remove(); });
-            if (/\.(mp4|mov|webm|m4v)$/i.test(file)) {
-              const v = document.createElement('video');
-              v.src = file; v.controls = true; v.autoplay = true;
-              mediaArea.appendChild(v);
-            } else {
-              const img = document.createElement('img');
-              img.src = file; img.alt = 'Visual';
-              mediaArea.appendChild(img);
-            }
-          };
-          mountMedia();
-
           this.viewer.appendChild(mediaArea);
-          this.viewer.appendChild(this.buildAudioUI(e - s));
-          this.innerWindow.classList.add('active');
-          this.wireAudioSegment(s, e, id);
 
-          this.switchMediaBtn.onclick = () => {
-            this.currentMediaIndex = (this.currentMediaIndex + 1) % mediaList.length;
-            mountMedia();
-          };
-          this.innerWindow.classList.add('large');
+          if (hasRealLife) {
+            const rightSection = this.innerWindow.querySelector('header .right');
+            const realLifeBtn = document.createElement('button');
+            realLifeBtn.className = 'header-real-life-btn';
+            realLifeBtn.textContent = 'Real Life Example';
+            realLifeBtn.onclick = () => this.showRealLifePopup(hotspot.realLifeExamples);
+            rightSection.insertBefore(realLifeBtn, rightSection.firstChild);
+          }
         } else {
+          this.innerWindow.classList.add('small');
           const wrap = document.createElement('div');
           wrap.className = 'subs-only';
           const text = document.createElement('div');
           text.className = 'subs-text';
           text.textContent = body;
-          wrap.appendChild(text);
-          wrap.appendChild(this.buildAudioUI(e - s));
           this.viewer.appendChild(wrap);
-          this.innerWindow.classList.add('active', 'small');
-          this.wireAudioSegment(s, e, id);
+          wrap.appendChild(text);
         }
+
+        this.viewer.appendChild(this.buildAudioUI(e - s));
+        this.innerWindow.classList.add('active');
+        this.wireAudioSegment(s, e, id);
       }
     }
 
-    // Initialize the training system
-    new ModularTrainingSystem(CONFIG);
+    (function boot(){
+      const title = document.getElementById('moduleTitle');
+      const startup = document.getElementById('startup');
+      
+      if (LocalDebugMode) {
+        // Show debug interface
+        title.textContent = 'Select your utilities_config.json…';
+        startup.style.display = 'grid';
+        
+        const picker = document.getElementById('configPicker');
+        const pickBtn = document.getElementById('pickBtn');
+        const drop = document.getElementById('drop');
+        const hint = document.getElementById('hint');
+
+        const parseAndInit = (cfg, label='') => {
+          try {
+            if (typeof cfg === 'string') cfg = JSON.parse(cfg);
+            startup.remove();
+            new ModularTrainingSystem(cfg, 0);
+          } catch (e) {
+            console.error(e);
+            hint.textContent = 'Invalid JSON: ' + (e?.message || e);
+          }
+        };
+
+        const readFile = (file) => new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = () => reject(r.error || new Error('Failed to read file'));
+          r.readAsText(file, 'utf-8');
+        });
+
+        pickBtn.addEventListener('click', () => {
+          picker.value = '';
+          picker.click();
+        });
+
+        picker.addEventListener('change', async () => {
+          const f = picker.files && picker.files[0];
+          if (!f) return;
+          try {
+            const text = await readFile(f);
+            parseAndInit(text, f.name);
+          } catch (e) {
+            hint.textContent = 'Failed to read file: ' + (e?.message || e);
+          }
+        });
+
+        ['dragenter','dragover'].forEach(ev => {
+          drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); });
+        });
+        ['dragleave','drop'].forEach(ev => {
+          drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); });
+        });
+        drop.addEventListener('drop', async (e) => {
+          const file = e.dataTransfer.files && e.dataTransfer.files[0];
+          if (!file) return;
+          try {
+            const text = await readFile(file);
+            parseAndInit(text, file.name);
+          } catch (err) {
+            hint.textContent = 'Failed to read dropped file: ' + (err?.message || err);
+          }
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const configURL = urlParams.get('config');
+        if (configURL) {
+          hint.textContent = 'Loading config from URL…';
+          fetch(configURL)
+            .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
+            .then(text => parseAndInit(text, configURL))
+            .catch(err => { hint.textContent = 'Failed to load ?config: ' + (err?.message || err); });
+        }
+      } else {
+        // Production mode - automatically load first module
+        title.textContent = 'Loading Training Module...';
+        const firstModulePath = MODULE_SEQUENCE[0];
+        
+        fetch(firstModulePath)
+          .then(r => { 
+            if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); 
+            return r.json(); 
+          })
+          .then(config => {
+            new ModularTrainingSystem(config, 0);
+          })
+          .catch(err => {
+            console.error('Failed to load module:', err);
+            title.textContent = 'Failed to load training module';
+            alert('Failed to load the training module. Please check that all files are available and refresh the page.');
+          });
+      }
+    })();
   </script>
 </body>
 </html>
