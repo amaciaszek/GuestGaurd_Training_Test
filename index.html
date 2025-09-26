@@ -11,6 +11,8 @@
       --active:#f8fafc; 
       --completed:#0b242c; 
       --locked:#4a4a4a;
+      --badge-offset: 2px;
+      --badge-size: 20px;
     }
     *{box-sizing:border-box}
     body{ margin:0;min-height:100svh;display:grid;place-items:center;
@@ -43,11 +45,6 @@
     .hotspot.done{ pointer-events:auto; background:rgba(11,36,44,0.3); border-color:#fff; color:#fff;
       box-shadow:0 0 0 3px rgba(11,36,44,.5); }
     .hotspot.pill.done{ background:var(--completed); }
-
-    :root{
-      --badge-offset: 2px;
-      --badge-size: 20px;
-    }
 
     .hotspot::before{
       content: attr(data-number);
@@ -126,11 +123,9 @@
       left:12px;
       right:auto;
       bottom:12px;
-
       display:inline-block;
       width:fit-content;
       max-width:calc(100% - 24px);
-
       background:rgba(0,0,0,.65);
       color:#fff;
       padding:10px 12px;
@@ -139,7 +134,6 @@
       line-height:1.35;
       pointer-events:none;
       z-index:2;
-
       white-space:pre-wrap;
       overflow-wrap:anywhere;
     }
@@ -499,15 +493,11 @@
         const cacheBuster = '?v=' + Date.now();
         const imageUrl = imagePath + cacheBuster;
         
-        // Test if image loads before setting it
         const testImage = new Image();
         testImage.onload = () => {
-          console.log('Background image loaded successfully:', imagePath);
           this.stage.style.backgroundImage = `url('${imageUrl}')`;
         };
         testImage.onerror = () => {
-          console.warn('Failed to load background image:', imagePath, 'trying without cache buster');
-          // Fallback: try without cache buster
           this.stage.style.backgroundImage = `url('${imagePath}')`;
         };
         testImage.src = imageUrl;
@@ -699,7 +689,6 @@
             .then(config => {
               // Clear current interface
               this.stage.innerHTML = '';
-              
               // Initialize new module
               new ModularTrainingSystem(config, nextIndex);
             })
@@ -708,7 +697,6 @@
               alert('Failed to load the next chapter. Please refresh the page.');
             });
         } else {
-          // All modules complete
           alert('Congratulations! You have completed all training modules.');
         }
       }
@@ -728,7 +716,6 @@
           nextBtn.style.display = 'block';
           nextBtn.onclick = () => {
             if (isDone) {
-              // Check if this is the last module
               const isLastModule = this.currentModuleIndex === MODULE_SEQUENCE.length - 1;
               if (isLastModule) {
                 alert('Congratulations! You have completed all training modules.');
@@ -976,20 +963,6 @@
       const title = document.getElementById('moduleTitle');
       const startup = document.getElementById('startup');
       
-      if (LocalDebugMode) {
-        // Show debug interface
-        title.textContent = 'Select your utilities_config.json…';
-        startup.style.display = 'grid';
-        
-        const picker = document.getElementById('configPicker');
-        const pickBtn = document.getElementById('pickBtn');
-        const drop = document.getElementById('drop');
-        const hint = document.getElementById('hint');
-
-    (function boot(){
-      const title = document.getElementById('moduleTitle');
-      const startup = document.getElementById('startup');
-      
       console.log('LocalDebugMode:', LocalDebugMode);
       
       if (LocalDebugMode) {
@@ -1011,10 +984,8 @@
         }
 
         const parseAndInit = (cfg, label='') => {
-          console.log('parseAndInit called with:', label);
           try {
             if (typeof cfg === 'string') cfg = JSON.parse(cfg);
-            console.log('Config parsed successfully');
             startup.remove();
             new ModularTrainingSystem(cfg, 0);
           } catch (e) {
@@ -1031,29 +1002,23 @@
         });
 
         pickBtn.addEventListener('click', () => {
-          console.log('Pick button clicked');
           picker.value = '';
           picker.click();
         });
 
         picker.addEventListener('change', async () => {
-          console.log('File picker changed');
           const f = picker.files && picker.files[0];
           if (!f) return;
-          console.log('Selected file:', f.name);
           try {
             const text = await readFile(f);
-            console.log('File read successfully');
             parseAndInit(text, f.name);
           } catch (e) {
-            console.error('File read error:', e);
             hint.textContent = 'Failed to read file: ' + (e?.message || e);
           }
         });
 
         ['dragenter','dragover'].forEach(ev => {
           drop.addEventListener(ev, (e) => { 
-            console.log('Drag event:', ev);
             e.preventDefault(); 
             e.stopPropagation(); 
             drop.classList.add('dragover'); 
@@ -1062,7 +1027,6 @@
         
         ['dragleave','drop'].forEach(ev => {
           drop.addEventListener(ev, (e) => { 
-            console.log('Drop event:', ev);
             e.preventDefault(); 
             e.stopPropagation(); 
             drop.classList.remove('dragover'); 
@@ -1070,19 +1034,12 @@
         });
 
         drop.addEventListener('drop', async (e) => {
-          console.log('File dropped');
           const file = e.dataTransfer.files && e.dataTransfer.files[0];
-          if (!file) {
-            console.log('No file in drop');
-            return;
-          }
-          console.log('Dropped file:', file.name);
+          if (!file) return;
           try {
             const text = await readFile(file);
-            console.log('Dropped file read successfully');
             parseAndInit(text, file.name);
           } catch (err) {
-            console.error('Dropped file read error:', err);
             hint.textContent = 'Failed to read dropped file: ' + (err?.message || err);
           }
         });
@@ -1090,7 +1047,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const configURL = urlParams.get('config');
         if (configURL) {
-          console.log('Loading config from URL:', configURL);
           hint.textContent = 'Loading config from URL…';
           fetch(configURL)
             .then(r => { 
@@ -1099,15 +1055,11 @@
             })
             .then(text => parseAndInit(text, configURL))
             .catch(err => { 
-              console.error('URL config load error:', err);
               hint.textContent = 'Failed to load ?config: ' + (err?.message || err); 
             });
         } else {
           hint.textContent = 'Debug mode: Select a JSON config file to continue';
         }
-        
-        console.log('Debug mode setup complete - waiting for user input');
-        
       } else {
         // Production mode - automatically load first module
         title.textContent = 'Loading Training Module...';
