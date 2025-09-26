@@ -329,29 +329,11 @@
       background: #22c55e;
     }
 
-    @media (max-width: 768px) {
-      .real-life-popup {
-        max-width:95vw;
-        max-height:95vh;
-      }
-      .inner-window.large {
-        top:4%;
-        left:4%;
-        width:92%;
-        height:92%;
-      }
-      .inner-window.small {
-        right:2%;
-        bottom:4%;
-        width:min(520px, 94%);
-        max-height:70%;
-      }
-    }
-
+    /* IMPORTANT: hidden by default, shown only in debug mode */
     .startup {
       position: fixed;
       inset: 0;
-      display: grid;
+      display: none;           /* HIDE BY DEFAULT */
       place-items: center;
       background: rgba(0,0,0,.7);
       backdrop-filter: blur(2px);
@@ -365,11 +347,7 @@
       width: min(520px, 92vw);
       box-shadow: 0 20px 60px rgba(0,0,0,.6);
     }
-    .startup h1 {
-      margin: 0 0 8px 0;
-      font-size: 18px;
-      letter-spacing: .2px;
-    }
+    .startup h1 { margin: 0 0 8px 0; font-size: 18px; letter-spacing: .2px; }
     .startup p { margin: 0 0 14px 0; color:#cfd7e3; font-size:14px; }
     .startup .actions { display:flex; gap:10px; flex-wrap:wrap; }
     .startup .actions .btn {
@@ -412,7 +390,7 @@
   <!-- Hidden file input for JSON (debug mode only) -->
   <input id="configPicker" type="file" accept=".json,application/json" style="display:none" />
 
-  <!-- Startup overlay (removed after config loads) -->
+  <!-- Startup overlay (debug only) -->
   <div id="startup" class="startup" aria-modal="true" role="dialog">
     <div class="panel" id="panel">
       <h1>Select your utilities_config.json</h1>
@@ -481,7 +459,6 @@
         this.audio = document.getElementById('vo');
         this.closeViewerBtn = document.getElementById('closeViewer');
 
-        // Add cache-busting and image verification for background
         this.setBackgroundImage(this.config.backgroundImage);
         this.audio.src = this.config.audioFile;
 
@@ -489,17 +466,11 @@
       }
 
       setBackgroundImage(imagePath) {
-        // Add cache-busting parameter and verify image loads
         const cacheBuster = '?v=' + Date.now();
         const imageUrl = imagePath + cacheBuster;
-        
         const testImage = new Image();
-        testImage.onload = () => {
-          this.stage.style.backgroundImage = `url('${imageUrl}')`;
-        };
-        testImage.onerror = () => {
-          this.stage.style.backgroundImage = `url('${imagePath}')`;
-        };
+        testImage.onload = () => { this.stage.style.backgroundImage = `url('${imageUrl}')`; };
+        testImage.onerror = () => { this.stage.style.backgroundImage = `url('${imagePath}')`; };
         testImage.src = imageUrl;
       }
 
@@ -527,13 +498,9 @@
 
           if (isPill) {
             button.className = 'hotspot pill';
-
-            const label = isFirst
-              ? 'Start'
-              : (hotspot.label ?? (isDone ? 'Done' : (hotspot.text || 'Action')));
+            const label = isFirst ? 'Start' : (hotspot.label ?? (isDone ? 'Done' : (hotspot.text || 'Action')));
             button.textContent = label;
             button.setAttribute('aria-label', label);
-
             if (isFirst) {
               button.style.cssText = 'left:3%; bottom:5%; right:auto; top:auto; transform:none;';
             } else if (isDone) {
@@ -545,15 +512,12 @@
                   ? 'left:3%; bottom:5%; right:auto; top:auto; transform:none;'
                   : 'right:3%; bottom:5%; left:auto; top:auto; transform:none;';
             }
-
           } else {
             button.className = `hotspot ${hotspot.type}`;
-
             const leftPercent   = (hotspot.centerX / W) * 100;
             const topPercent    = (hotspot.centerY / H) * 100;
             const widthPercent  = (hotspot.width   / W) * 100;
             const heightPercent = (hotspot.height  / H) * 100;
-
             button.style.cssText =
               `left:${leftPercent}%;top:${topPercent}%;` +
               `width:${widthPercent}%;height:${heightPercent}%;`;
@@ -601,15 +565,10 @@
 
       applyStatesLinear() {
         this.linearOrder.forEach(id => this.setState(this.buttons[id], 'locked'));
-
         let unlockedOne = false;
         this.linearOrder.forEach((id) => {
-          if (this.done.has(id)) {
-            this.setState(this.buttons[id], 'done');
-          } else if (!unlockedOne) {
-            this.setState(this.buttons[id], 'clickable');
-            unlockedOne = true;
-          }
+          if (this.done.has(id)) this.setState(this.buttons[id], 'done');
+          else if (!unlockedOne) { this.setState(this.buttons[id], 'clickable'); unlockedOne = true; }
         });
       }
 
@@ -639,10 +598,7 @@
       closeViewer() {
         this.innerWindow.classList.remove('active');
         this.viewer.innerHTML = '';
-        if (this.seg.currentVideo) {
-          this.seg.currentVideo.pause();
-          this.seg.currentVideo = null;
-        }
+        if (this.seg.currentVideo) { this.seg.currentVideo.pause(); this.seg.currentVideo = null; }
         if (!this.audio.paused) this.audio.pause();
         this.seg.active = false;
         cancelAnimationFrame(this.seg.rafId);
@@ -661,20 +617,10 @@
               <button class="btn" id="stayBtn">Stay Here</button>
               <button class="btn primary" id="continueBtn">Continue to Next Chapter</button>
             </div>
-          </div>
-        `;
-        
+          </div>`;
         document.body.appendChild(overlay);
-        
-        document.getElementById('stayBtn').onclick = () => {
-          overlay.remove();
-          this.closeViewer();
-        };
-        
-        document.getElementById('continueBtn').onclick = () => {
-          overlay.remove();
-          this.loadNextModule();
-        };
+        document.getElementById('stayBtn').onclick = () => { overlay.remove(); this.closeViewer(); };
+        document.getElementById('continueBtn').onclick = () => { overlay.remove(); this.loadNextModule(); };
       }
 
       loadNextModule() {
@@ -682,14 +628,9 @@
         if (nextIndex < MODULE_SEQUENCE.length) {
           const nextModulePath = MODULE_SEQUENCE[nextIndex];
           fetch(nextModulePath)
-            .then(r => { 
-              if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); 
-              return r.json(); 
-            })
+            .then(r => { if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
             .then(config => {
-              // Clear current interface
               this.stage.innerHTML = '';
-              // Initialize new module
               new ModularTrainingSystem(config, nextIndex);
             })
             .catch(err => {
@@ -702,30 +643,18 @@
       }
 
       onSegmentComplete(id) {
-        if (!this.done.has(id)) {
-          this.done.add(id);
-          this.saveDone();
-          this.applyStatesLinear();
-        }
-        
+        if (!this.done.has(id)) { this.done.add(id); this.saveDone(); this.applyStatesLinear(); }
         const hotspot = this.config.hotspots.find(h => h.id === id);
         const isDone = (hotspot?.order || '').toLowerCase() === 'done';
-        
         const nextBtn = document.getElementById('nextBtn');
         if (nextBtn) {
           nextBtn.style.display = 'block';
           nextBtn.onclick = () => {
             if (isDone) {
               const isLastModule = this.currentModuleIndex === MODULE_SEQUENCE.length - 1;
-              if (isLastModule) {
-                alert('Congratulations! You have completed all training modules.');
-                this.closeViewer();
-              } else {
-                this.showChapterCompleteDialog();
-              }
-            } else {
-              this.closeViewer();
-            }
+              if (isLastModule) { alert('Congratulations! You have completed all training modules.'); this.closeViewer(); }
+              else { this.showChapterCompleteDialog(); }
+            } else { this.closeViewer(); }
           };
         }
       }
@@ -762,16 +691,12 @@
         const startSeg = () => {
           this.audio.currentTime = this.seg.start;
           this.audio.play().then(() => {
-            if (this.seg.currentVideo) {
-              this.seg.currentVideo.play().catch(console.error);
-            }
+            if (this.seg.currentVideo) this.seg.currentVideo.play().catch(console.error);
             playPause.textContent = '❚❚';
             status.textContent = 'Playing';
             cancelAnimationFrame(this.seg.rafId);
             this.seg.rafId = requestAnimationFrame(syncUI);
-          }).catch(() => {
-            status.textContent = 'Tap Play to start audio';
-          });
+          }).catch(() => { status.textContent = 'Tap Play to start audio'; });
         };
 
         this.audio.ontimeupdate = () => {
@@ -782,9 +707,8 @@
 
         playPause.onclick = () => {
           if (this.audio.paused) {
-            if (this.audio.currentTime <= this.seg.start || this.audio.currentTime >= this.seg.end) {
-              startSeg();
-            } else {
+            if (this.audio.currentTime <= this.seg.start || this.audio.currentTime >= this.seg.end) startSeg();
+            else {
               this.audio.play().then(() => {
                 if (this.seg.currentVideo) this.seg.currentVideo.play().catch(console.error);
                 playPause.textContent = '❚❚';
@@ -814,11 +738,9 @@
 
       showRealLifePopup(examples) {
         this.closeRealLifePopup();
-        
         const popup = document.createElement('div');
         popup.id = 'realLifePopup';
         popup.className = 'real-life-popup';
-        
         popup.innerHTML = `
           <header>
             <span>Real Life Example</span>
@@ -831,13 +753,10 @@
             <button id="prevBtn">‹ Previous</button>
             <span>${this.realLifeIndex + 1} of ${examples.length}</span>
             <button id="nextImgBtn">Next ›</button>
-          </div>
-        `;
-
+          </div>`;
         document.body.appendChild(popup);
 
         popup.querySelector('.close-btn').onclick = () => this.closeRealLifePopup();
-        
         if (examples.length > 1) {
           const prevBtn = popup.querySelector('#prevBtn');
           const nextBtn = popup.querySelector('#nextImgBtn');
@@ -850,21 +769,8 @@
             prevBtn.disabled = this.realLifeIndex === 0;
             nextBtn.disabled = this.realLifeIndex === examples.length - 1;
           };
-
-          prevBtn.onclick = () => {
-            if (this.realLifeIndex > 0) {
-              this.realLifeIndex--;
-              updateImage();
-            }
-          };
-
-          nextBtn.onclick = () => {
-            if (this.realLifeIndex < examples.length - 1) {
-              this.realLifeIndex++;
-              updateImage();
-            }
-          };
-
+          prevBtn.onclick = () => { if (this.realLifeIndex > 0) { this.realLifeIndex--; updateImage(); } };
+          nextBtn.onclick = () => { if (this.realLifeIndex < examples.length - 1) { this.realLifeIndex++; updateImage(); } };
           updateImage();
         }
 
@@ -923,9 +829,7 @@
           mediaArea.appendChild(video);
           this.seg.currentVideo = video;
 
-          video.addEventListener('loadedmetadata', () => {
-            video.play().catch(()=>{ /* ignore autoplay block */ });
-          });
+          video.addEventListener('loadedmetadata', () => { video.play().catch(()=>{}); });
 
           const caption = document.createElement('div');
           caption.className = 'caption';
@@ -962,34 +866,23 @@
     (function boot(){
       const title = document.getElementById('moduleTitle');
       const startup = document.getElementById('startup');
-      
-      console.log('LocalDebugMode:', LocalDebugMode);
-      
+
       if (LocalDebugMode) {
-        // Show debug interface
+        // DEBUG: show overlay
         title.textContent = 'Select your utilities_config.json…';
         startup.style.display = 'grid';
-        
+
         const picker = document.getElementById('configPicker');
         const pickBtn = document.getElementById('pickBtn');
         const drop = document.getElementById('drop');
         const hint = document.getElementById('hint');
 
-        console.log('Debug mode enabled - setting up file handlers');
-        console.log('Elements found:', {picker, pickBtn, drop, hint});
-
-        if (!pickBtn || !picker || !drop || !hint) {
-          console.error('Missing debug UI elements');
-          return;
-        }
-
         const parseAndInit = (cfg, label='') => {
           try {
             if (typeof cfg === 'string') cfg = JSON.parse(cfg);
-            startup.remove();
+            startup.remove();                        // hide overlay after parse
             new ModularTrainingSystem(cfg, 0);
           } catch (e) {
-            console.error('Parse error:', e);
             if (hint) hint.textContent = 'Invalid JSON: ' + (e?.message || e);
           }
         };
@@ -1001,47 +894,25 @@
           r.readAsText(file, 'utf-8');
         });
 
-        pickBtn.addEventListener('click', () => {
-          picker.value = '';
-          picker.click();
-        });
-
-        picker.addEventListener('change', async () => {
+        pickBtn?.addEventListener('click', () => { picker.value = ''; picker.click(); });
+        picker?.addEventListener('change', async () => {
           const f = picker.files && picker.files[0];
           if (!f) return;
-          try {
-            const text = await readFile(f);
-            parseAndInit(text, f.name);
-          } catch (e) {
-            hint.textContent = 'Failed to read file: ' + (e?.message || e);
-          }
+          try { parseAndInit(await readFile(f), f.name); }
+          catch (e) { hint.textContent = 'Failed to read file: ' + (e?.message || e); }
         });
 
         ['dragenter','dragover'].forEach(ev => {
-          drop.addEventListener(ev, (e) => { 
-            e.preventDefault(); 
-            e.stopPropagation(); 
-            drop.classList.add('dragover'); 
-          });
+          drop?.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); });
         });
-        
         ['dragleave','drop'].forEach(ev => {
-          drop.addEventListener(ev, (e) => { 
-            e.preventDefault(); 
-            e.stopPropagation(); 
-            drop.classList.remove('dragover'); 
-          });
+          drop?.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); });
         });
-
-        drop.addEventListener('drop', async (e) => {
+        drop?.addEventListener('drop', async (e) => {
           const file = e.dataTransfer.files && e.dataTransfer.files[0];
           if (!file) return;
-          try {
-            const text = await readFile(file);
-            parseAndInit(text, file.name);
-          } catch (err) {
-            hint.textContent = 'Failed to read dropped file: ' + (err?.message || err);
-          }
+          try { parseAndInit(await readFile(file), file.name); }
+          catch (err) { hint.textContent = 'Failed to read dropped file: ' + (err?.message || err); }
         });
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -1049,28 +920,23 @@
         if (configURL) {
           hint.textContent = 'Loading config from URL…';
           fetch(configURL)
-            .then(r => { 
-              if (!r.ok) throw new Error(r.status + ' ' + r.statusText); 
-              return r.text(); 
-            })
+            .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
             .then(text => parseAndInit(text, configURL))
-            .catch(err => { 
-              hint.textContent = 'Failed to load ?config: ' + (err?.message || err); 
-            });
+            .catch(err => { hint.textContent = 'Failed to load ?config: ' + (err?.message || err); });
         } else {
           hint.textContent = 'Debug mode: Select a JSON config file to continue';
         }
+
       } else {
-        // Production mode - automatically load first module
+        // PRODUCTION: hide overlay and auto-load first module
+        startup.style.display = 'none';               // ensure hidden
         title.textContent = 'Loading Training Module...';
         const firstModulePath = MODULE_SEQUENCE[0];
-        
+
         fetch(firstModulePath)
-          .then(r => { 
-            if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); 
-            return r.json(); 
-          })
+          .then(r => { if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
           .then(config => {
+            startup.remove?.();                       // remove overlay if still in DOM
             new ModularTrainingSystem(config, 0);
           })
           .catch(err => {
