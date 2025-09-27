@@ -16,7 +16,8 @@
       "tcStart": "00;00;00;00",
       "tcEnd": "00;00;14;16",
       "order": "first",
-      "text": "[Intro]\nBBeyond utilities and hazards, there are other important considerations every host should keep in mind. \nThese include creating safe spaces for emergencies, and managing noise levels for both guests and neighbors"
+      "text": "[Intro]\nBBeyond utilities and hazards, there are other important considerations every host should keep in mind. \nThese include creating safe spaces for emergencies, and managing noise levels for both guests and neighbors",
+      "realLifeExamples": []
     },
     {
       "id": "b2",
@@ -28,7 +29,11 @@
       "tcStart": "00;00;14;16",
       "tcEnd": "00;00;42;06",
       "text": "[Safe Spaces in the Home]\nA safe space in a home is an area where guests can remain during certain emergencies. \nThis might be a lower-level room during severe weather, or a clearly marked gathering spot outside the home during a fire evacuation. \nHosts should identify these spaces in advance and communicate them to guests. \nProviding this information builds confidence — and ensures guests know exactly where to go if danger arises.",
-      "video": "Home Evacuation (Shutterstock).mov"
+      "contentMedia": {
+        "type": "video",
+        "src": "Home Evacuation (Shutterstock).mov"
+      },
+      "realLifeExamples": []
     },
     {
       "id": "b3",
@@ -40,7 +45,11 @@
       "tcStart": "00;00;42;06",
       "tcEnd": "00;01;30;05",
       "text": "[Noise Levels & Standards]\nNoise is another critical consideration. \nExcessive ambient noise not only disturbs neighbors — it can ruin the experience for your guests as well. \nSo, what’s unacceptable? \nExamples include loud ambient noise in your area and outside your home (such as construction, outside parties, traffic, et cetera), or constant disturbances like heavy machinery running nearby. \nWe aren’t trying to punish hosts for living in a louder noise environment – we test for ambient noise levels so guests know what to expect before they book their stay. \nIt’s also important to make your guests aware of their own noise levels. This will ensure a peaceful, enjoyable experience for everyone on the property including the host, guests from other parties, and neighbors.",
-      "realLifeExamples": ["Noise Testing (Shutterstock).jpg"]
+      "contentMedia": {
+        "type": "image",
+        "src": "Noise Testing (Shutterstock).jpg"
+      },
+      "realLifeExamples": []
     },
     {
       "id": "b4",
@@ -51,7 +60,8 @@
       "height": 940,
       "tcStart": "00;01;30;05",
       "tcEnd": "00;01;56;12",
-      "text": "[Hypothetical Example]\nPicture a stormy evening. \nYour guests know exactly which room to go to for shelter, because you’ve marked it as the safe space in your manual. \nLater that night, they enjoy a quiet stay without being disturbed by outside noise — because you’ve tested for acceptable noise levels and managed them properly. \nThe result is a calm, secure environment that puts both guests and neighbors at ease."
+      "text": "[Hypothetical Example]\nPicture a stormy evening. \nYour guests know exactly which room to go to for shelter, because you’ve marked it as the safe space in your manual. \nLater that night, they enjoy a quiet stay without being disturbed by outside noise — because you’ve tested for acceptable noise levels and managed them properly. \nThe result is a calm, secure environment that puts both guests and neighbors at ease.",
+      "realLifeExamples": []
     },
     {
       "id": "b9",
@@ -60,7 +70,8 @@
       "tcStart": "00;01;56;12",
       "tcEnd": "00;02;12;23",
       "order": "done",
-      "content": "[Closing]\nTo summarize: every host should provide designated safe spaces for emergencies, and actively manage noise levels to avoid disruptions. \nBy doing both, you’ll create a safer, calmer, and more enjoyable experience for everyone involved."
+      "content": "[Closing]\nTo summarize: every host should provide designated safe spaces for emergencies, and actively manage noise levels to avoid disruptions. \nBy doing both, you’ll create a safer, calmer, and more enjoyable experience for everyone involved.",
+      "realLifeExamples": []
     }
   ]
 }

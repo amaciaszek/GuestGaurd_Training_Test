@@ -110,6 +110,26 @@
     .chapter-complete-dialog .btn.primary{ background:#00e0ff; color:#000; }
     .chapter-complete-dialog .btn:hover{ background:#3a3a3a; }
     .chapter-complete-dialog .btn.primary:hover{ background:#22c55e; }
+
+    /* Debug overlay (only shown if LocalDebugMode = true) */
+    .startup {
+      position: fixed; inset: 0; display:none; place-items: center;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(2px); z-index: 9999;
+    }
+    .startup .panel {
+      background: #0f1216; border: 1px solid rgba(255,255,255,.15); border-radius: 16px;
+      padding: 20px; width: min(520px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    .startup h1 { margin: 0 0 8px 0; font-size: 18px; letter-spacing: .2px; }
+    .startup p { margin: 0 0 14px 0; color:#cfd7e3; font-size:14px; }
+    .startup .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .startup .actions .btn { background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2);
+      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600; }
+    .startup .hint { font-size:12px; opacity:.85; margin-top:10px; color:#99a3b3; }
+    .startup .drop { margin-top:12px; padding:14px; border:1px dashed rgba(255,255,255,.25); border-radius:12px;
+      text-align:center; color:#cfd7e3; font-size:13px; }
+    .startup .drop.dragover { background: rgba(255,255,255,.06); }
+    input[type="file"]#configPicker { display:none; }
   </style>
 </head>
 <body>
@@ -127,11 +147,25 @@
     </section>
   </main>
 
+  <!-- Debug UI -->
+  <div id="startup" class="startup" aria-modal="true" role="dialog">
+    <div class="panel" id="panel">
+      <h1>Select a module JSON</h1>
+      <p>Choose a config file, drag & drop, or load via <code>?config=URL</code>.</p>
+      <div class="actions">
+        <button id="pickBtn" class="btn">Choose config JSON</button>
+      </div>
+      <div id="drop" class="drop" aria-label="Drop JSON here">Drop JSON here</div>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
+  <input id="configPicker" type="file" accept=".json,application/json" />
+
   <script>
   "use strict";
 
   // ------- CONFIG -------
-  const LocalDebugMode = false;   // prod = false
+  const LocalDebugMode = true;   // set true for debug picker
   const MODULE_SEQUENCE = ['2-1.json','2-2.json','2-3.json'];
 
   // ------- UTIL -------
@@ -156,9 +190,10 @@
     });
     return n;
   }
+  const isAbsoluteUrl = (p)=>/^([a-z]+:)?\/\//i.test(p) || p.startsWith('/');
 
   class ModularTrainingSystem {
-    constructor(config, currentModuleIndex=0){
+    constructor(config, currentModuleIndex=0, modulePath=null){
       this.config = config;
       this.currentModuleIndex = currentModuleIndex;
       this.FPS = 30;
@@ -166,7 +201,19 @@
       this.SCHEMA_VERSION = 4;
       this.seg = {start:0,end:0,active:false,rafId:null,currentId:null,currentVideo:null};
       this.realLifeIndex = 0;
+
+      // Base URL for this module (used to resolve relative assets)
+      this.moduleUrl = modulePath ? new URL(modulePath, window.location.href) : new URL(window.location.href);
+      this.moduleBase = new URL('.', this.moduleUrl).href; // directory of JSON
+
       this.init();
+    }
+
+    resolveAsset(p){
+      if (!p) return '';
+      if (isAbsoluteUrl(p)) return p;
+      // resolve relative to the JSON's folder
+      return new URL(p, this.moduleBase).href;
     }
 
     init(){
@@ -203,14 +250,25 @@
     applyConfigBasics(){
       document.title = this.config.title || 'Training Module';
       this.title.textContent = this.config.title || 'Training Module';
-      if (this.config.backgroundImage){
+
+      const bg = this.resolveAsset(this.config.backgroundImage || '');
+      if (bg){
         const img = new Image();
-        const withBust = this.config.backgroundImage + '?v=' + Date.now();
+        const withBust = bg + (bg.includes('?') ? '&' : '?') + 'v=' + Date.now();
         img.onload = ()=>{ this.stage.style.backgroundImage = `url('${withBust}')`; };
-        img.onerror = ()=>{ this.stage.style.backgroundImage = `url('${this.config.backgroundImage}')`; };
+        img.onerror = ()=>{ this.stage.style.backgroundImage = `url('${bg}')`; };
         img.src = withBust;
+      } else {
+        this.stage.style.backgroundImage = '';
       }
-      if (this.config.audioFile) this.audio.src = this.config.audioFile;
+
+      const audioSrc = this.resolveAsset(this.config.audioFile || '');
+      if (audioSrc) {
+        this.audio.src = audioSrc;
+        this.audio.addEventListener('error', (e) => console.error('Audio error:', e, this.audio.error));
+      } else {
+        this.audio.removeAttribute('src');
+      }
     }
 
     createHotspots(){
@@ -338,26 +396,7 @@
         alert('Congratulations! You have completed all training modules.');
         return;
       }
-      fetch(MODULE_SEQUENCE[nextIndex])
-        .then(r=>{ if(!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
-        .then(cfg=>{
-          // reset stage inner content to the base viewer/audio
-          this.stage.replaceChildren(
-            el('div',{id:'innerWindow',class:'inner-window','aria-modal':'true',role:'dialog','aria-label':'Content viewer'},[
-              el('header',{},[
-                el('span',{id:'viewerTitle'},'Narration'),
-                el('div',{class:'right'}, el('button',{id:'closeViewer',class:'btn',title:'Close'},'×'))
-              ]),
-              el('div',{id:'viewer',class:'viewer'})
-            ]),
-            el('audio',{id:'vo',preload:'metadata'})
-          );
-          new ModularTrainingSystem(cfg, nextIndex);
-        })
-        .catch(err=>{
-          console.error('Failed to load next module:', err);
-          alert('Failed to load the next chapter. Please refresh the page.');
-        });
+      loadModule(MODULE_SEQUENCE[nextIndex], nextIndex);
     }
 
     onSegmentComplete(id){
@@ -382,6 +421,7 @@
     wireAudioSegment(startSec,endSec,id){
       const total = Math.max(0.01, endSec-startSec);
       this.seg = {start:startSec,end:endSec,active:true,currentId:id,currentVideo:this.seg.currentVideo,rafId:null};
+      
       const fill = document.getElementById('fill');
       const playPause = document.getElementById('playPause');
       const replay = document.getElementById('replay');
@@ -408,14 +448,18 @@
       };
 
       const startSeg = ()=>{
-        this.audio.currentTime = this.seg.start;
+        this.audio.currentTime = startSec;
         this.audio.play().then(()=>{
-          if (this.seg.currentVideo){ this.seg.currentVideo.play().catch(()=>{}); }
+          if (this.seg.currentVideo){ 
+            this.seg.currentVideo.play().catch(()=>{}); 
+          }
           if (playPause) playPause.textContent='❚❚';
           if (status) status.textContent='Playing';
           cancelAnimationFrame(this.seg.rafId);
           this.seg.rafId = requestAnimationFrame(syncUI);
-        }).catch(()=>{ if (status) status.textContent='Tap Play to start audio'; });
+        }).catch(()=>{
+          if (status) status.textContent='Tap Play to start audio';
+        });
       };
 
       this.audio.ontimeupdate = ()=>{
@@ -427,8 +471,9 @@
       if (playPause){
         playPause.onclick = ()=>{
           if (this.audio.paused){
-            if (this.audio.currentTime <= this.seg.start || this.audio.currentTime >= this.seg.end){ startSeg(); }
-            else {
+            if (this.audio.currentTime <= this.seg.start || this.audio.currentTime >= this.seg.end){ 
+              startSeg(); 
+            } else {
               this.audio.play().then(()=>{
                 if (this.seg.currentVideo) this.seg.currentVideo.play().catch(()=>{});
                 playPause.textContent='❚❚';
@@ -445,7 +490,7 @@
           }
         };
       }
-      if (replay) replay.onclick = ()=>startSeg();
+      if (replay) replay.onclick = ()=> startSeg();
       if (closeBtn) closeBtn.onclick = ()=>this.closeViewer();
       startSeg();
     }
@@ -458,8 +503,8 @@
     openFor(button){
       const id = button.id;
       const h = (this.config.hotspots||[]).find(x=>x.id===id) || {};
-      const s = tcToSeconds(button.dataset.tcStart, this.FPS);
-      const e = tcToSeconds(button.dataset.tcEnd, this.FPS);
+      const s = tcToSeconds(h.tcStart, this.FPS);
+      const e = tcToSeconds(h.tcEnd, this.FPS);
       const {title, body} = this.getTitleAndBody(h.content || h.text || '');
 
       // Reset viewer
@@ -467,16 +512,29 @@
       this.viewerTitle.textContent = title || 'Narration';
       this.innerWindow.classList.remove('small','large');
 
-      if (h.video){
+      // Media
+      const hasVideo = h.video || (h.contentMedia && h.contentMedia.type === 'video');
+      const hasImage = h.contentMedia && h.contentMedia.type === 'image';
+      
+      if (hasVideo || hasImage){
         this.innerWindow.classList.add('large');
         const media = el('div',{class:'mediaArea'});
-        const vid = el('video',{src:h.video});
-        vid.autoplay = true; vid.muted = true; vid.playsInline = true; vid.loop = true; vid.controls = false;
-        vid.addEventListener('loadedmetadata',()=>{ vid.play().catch(()=>{}); });
-        media.appendChild(vid);
+        
+        if (hasVideo) {
+          const videoSrc = h.video ? this.resolveAsset(h.video) : this.resolveAsset(h.contentMedia.src);
+          const vid = el('video',{src:videoSrc});
+          vid.autoplay = true; vid.muted = true; vid.playsInline = true; vid.loop = true; vid.controls = false;
+          vid.addEventListener('loadedmetadata',()=>{ vid.play().catch(()=>{}); });
+          media.appendChild(vid);
+          this.seg.currentVideo = vid;
+        } else if (hasImage) {
+          const imgSrc = this.resolveAsset(h.contentMedia.src);
+          const img = el('img',{src:imgSrc, alt: h.contentMedia.alt || 'Content image'});
+          media.appendChild(img);
+        }
+        
         media.appendChild(el('div',{class:'caption'},body));
         this.viewer.appendChild(media);
-        this.seg.currentVideo = vid;
       } else {
         this.innerWindow.classList.add('small');
         const wrap = el('div',{class:'subs-only'});
@@ -484,28 +542,242 @@
         this.viewer.appendChild(wrap);
       }
 
+      // Real life examples button (if present)
+      const right = this.innerWindow.querySelector('header .right');
+      right.querySelectorAll('.header-real-life-btn').forEach(btn => btn.remove());
+      if (Array.isArray(h.realLifeExamples) && h.realLifeExamples.length){
+        const btn = el('button',{class:'header-real-life-btn'},'Real Life Example');
+        const imgs = h.realLifeExamples.map(p=>this.resolveAsset(p));
+        btn.onclick = ()=>this.showRealLifePopup(imgs);
+        right.insertBefore(btn, right.firstChild);
+      }
+
+      // Audio UI + wiring
       this.viewer.appendChild(this.buildAudioUI(Math.max(0.01, e - s)));
       this.innerWindow.classList.add('active');
       this.wireAudioSegment(s, e, id);
     }
+
+showRealLifePopup(examples){
+  // Normalize
+  const imgs = Array.isArray(examples) ? examples.slice() : [];
+  if (!imgs.length) return;
+
+  // Remove any existing popup
+  const existing = document.getElementById('realLifePopup');
+  if (existing) existing.remove();
+
+  // State
+  let idx = 0;
+
+  // Elements
+  const overlay = el('div', {
+    id:'realLifePopup',
+    style:[
+      'position:fixed','inset:0','display:grid','place-items:center',
+      'background:rgba(0,0,0,.7)','z-index:9999'
+    ].join(';')
+  });
+
+  const shell = el('div', {
+    style:[
+      'position:relative',
+      'background:#0f1216','border:1px solid rgba(255,255,255,.2)','border-radius:12px',
+      'max-width:min(90vw,800px)','max-height:min(90vh,600px)',
+      'width:clamp(320px,80vw,800px)','height:clamp(240px,70vh,600px)',
+      'display:flex','flex-direction:column','overflow:hidden'
+    ].join(';')
+  });
+
+  // Floating close (always visible & clickable)
+  const floatClose = el('button', {
+    'aria-label':'Close',
+    style:[
+      'position:absolute','top:8px','right:8px','z-index:3',
+      'background:#ff4444','color:#fff','border:none',
+      'padding:6px 10px','border-radius:10px','cursor:pointer',
+      'font-weight:800','font-size:16px','line-height:1'
+    ].join(';')
+  }, '✕');
+
+  const header = el('header', {
+    style:'background:#1a1a1a;color:#fff;padding:10px 12px;display:flex;justify-content:center;align-items:center;font-weight:700'
+  }, 'Real Life Example');
+
+  const stage = el('div', {
+    style:'flex:1;display:flex;align-items:center;justify-content:center;padding:12px;background:#000;min-height:0'
+  });
+
+  const img = el('img', {
+    id:'realLifeImg',
+    alt:'Real life example',
+    style:'max-width:100%;max-height:100%;object-fit:contain'
+  });
+
+  const footer = el('div', {
+    style:'display:flex;gap:12px;justify-content:space-between;align-items:center;padding:10px 12px;background:#0f1216;border-top:1px solid rgba(255,255,255,.12)'
+  });
+
+  const prevBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, '‹ Previous');
+  const counter = el('span', { id:'counter', style:'color:#e9eef5' });
+  const nextBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, 'Next ›');
+
+  // Compose
+  stage.appendChild(img);
+  footer.appendChild(prevBtn);
+  footer.appendChild(counter);
+  footer.appendChild(nextBtn);
+  shell.appendChild(floatClose);
+  shell.appendChild(header);
+  shell.appendChild(stage);
+  if (imgs.length > 1) shell.appendChild(footer); // hide controls if only one
+  overlay.appendChild(shell);
+  document.body.appendChild(overlay);
+
+  // Helpers
+  const setDisabled = (el, on)=>{ el.disabled = !!on; el.style.opacity = on ? '.5' : '1'; };
+
+  const render = ()=>{
+    img.src = imgs[idx];
+    counter.textContent = `${idx+1} of ${imgs.length}`;
+    if (imgs.length > 1){
+      // disable at ends (no wrap). Switch to wrap by removing these two lines.
+      setDisabled(prevBtn, idx === 0);
+      setDisabled(nextBtn, idx === imgs.length - 1);
+    }
+  };
+
+  const goPrev = ()=>{ if (idx > 0){ idx--; render(); } };
+  const goNext = ()=>{ if (idx < imgs.length - 1){ idx++; render(); } };
+
+  // Wire
+  floatClose.onclick = ()=> overlay.remove();
+  overlay.onclick = (e)=>{ if (e.target === overlay) overlay.remove(); }; // click backdrop to close
+  if (imgs.length > 1){
+    prevBtn.onclick = goPrev;
+    nextBtn.onclick = goNext;
+  }
+
+  // Keyboard: Esc/←/→
+  const onKey = (e)=>{
+    if (e.key === 'Escape'){ overlay.remove(); }
+    else if (e.key === 'ArrowLeft' && imgs.length > 1){ goPrev(); }
+    else if (e.key === 'ArrowRight' && imgs.length > 1){ goNext(); }
+  };
+  document.addEventListener('keydown', onKey);
+
+  // Clean up listener on close
+  const mo = new MutationObserver(()=>{
+    if (!document.getElementById('realLifePopup')) document.removeEventListener('keydown', onKey);
+  });
+  mo.observe(document.body, { childList:true });
+
+  // First paint
+  render();
+}
+  } // END class ModularTrainingSystem
+
+  // ------- Loader that passes modulePath to the class -------
+  function resetStageShell(){
+    const stage = document.getElementById('stage');
+    stage.replaceChildren(
+      el('div',{id:'innerWindow',class:'inner-window','aria-modal':'true',role:'dialog','aria-label':'Content viewer'},[
+        el('header',{},[
+          el('span',{id:'viewerTitle'},'Narration'),
+          el('div',{class:'right'}, el('button',{id:'closeViewer',class:'btn',title:'Close'},'×'))
+        ]),
+        el('div',{id:'viewer',class:'viewer'})
+      ]),
+      el('audio',{id:'vo',preload:'metadata'})
+    );
+  }
+
+  function loadModule(path, idx){
+    document.getElementById('moduleTitle').textContent = 'Loading…';
+    fetch(path)
+      .then(r=>{ if(!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
+      .then(cfg=>{
+        resetStageShell();
+        new ModularTrainingSystem(cfg, idx, path);
+      })
+      .catch(err=>{
+        console.error('Failed to load module:', err);
+        alert('Failed to load module: '+ (err?.message || err));
+      });
   }
 
   // ------- BOOT -------
   (function boot(){
     const title = document.getElementById('moduleTitle');
+
     if (LocalDebugMode){
-      title.textContent = 'Debug mode is disabled in this build.';
-      return;
-    }
-    title.textContent = 'Loading Training Module...';
-    fetch(MODULE_SEQUENCE[0])
-      .then(r=>{ if(!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
-      .then(cfg=>{ new ModularTrainingSystem(cfg, 0); })
-      .catch(err=>{
-        console.error('Failed to load module:', err);
-        title.textContent = 'Failed to load training module';
-        alert('Failed to load the training module. Check files and refresh.');
+      // Show debug picker UI
+      const startup = document.getElementById('startup');
+      const picker = document.getElementById('configPicker');
+      const pickBtn = document.getElementById('pickBtn');
+      const drop = document.getElementById('drop');
+      const hint = document.getElementById('hint');
+
+      startup.style.display = 'grid';
+      title.textContent = 'Select a module JSON…';
+
+      const parseAndInit = (textOrObj, label='') => {
+        try{
+          const cfg = (typeof textOrObj==='string') ? JSON.parse(textOrObj) : textOrObj;
+          startup.remove();
+          resetStageShell();
+          // For debug-loaded files, we don't know a file path; use window location as base
+          new ModularTrainingSystem(cfg, 0, window.location.href);
+        }catch(e){
+          hint.textContent = 'Invalid JSON: ' + (e?.message || e);
+        }
+      };
+
+      const readFile = (file)=> new Promise((resolve,reject)=>{
+        const r = new FileReader();
+        r.onload = ()=>resolve(String(r.result));
+        r.onerror = ()=>reject(r.error || new Error('Failed to read file'));
+        r.readAsText(file, 'utf-8');
       });
+
+      pickBtn.addEventListener('click', ()=>{ picker.value=''; picker.click(); });
+      picker.addEventListener('change', async ()=>{
+        const f = picker.files && picker.files[0];
+        if (!f) return;
+        try { parseAndInit(await readFile(f), f.name); }
+        catch(e){ hint.textContent = 'Failed to read file: ' + (e?.message || e); }
+      });
+
+      ['dragenter','dragover'].forEach(ev=>{
+        drop.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); });
+      });
+      ['dragleave','drop'].forEach(ev=>{
+        drop.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); });
+      });
+      drop.addEventListener('drop', async (e)=>{
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!f) return;
+        try { parseAndInit(await readFile(f), f.name); }
+        catch(err){ hint.textContent = 'Failed to read dropped file: ' + (err?.message || err); }
+      });
+
+      // ?config=URL support
+      const params = new URLSearchParams(window.location.search);
+      const cfgURL = params.get('config');
+      if (cfgURL){
+        hint.textContent = 'Loading config from URL…';
+        fetch(cfgURL)
+          .then(r=>{ if(!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
+          .then(text=>parseAndInit(text, cfgURL))
+          .catch(err=>{ hint.textContent = 'Failed to load ?config: ' + (err?.message || err); });
+      } else {
+        hint.textContent = 'Pick a JSON file to begin.';
+      }
+
+    } else {
+      // Production: auto-load first module and preserve JSON-relative assets
+      loadModule(MODULE_SEQUENCE[0], 0);
+    }
   })();
   </script>
 </body>
