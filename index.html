@@ -111,7 +111,6 @@
     .chapter-complete-dialog .btn:hover{ background:#3a3a3a; }
     .chapter-complete-dialog .btn.primary:hover{ background:#22c55e; }
 
-    /* Debug overlay (only shown if LocalDebugMode = true) */
     .startup {
       position: fixed; inset: 0; display:none; place-items: center;
       background: rgba(0,0,0,.7); backdrop-filter: blur(2px); z-index: 9999;
@@ -147,7 +146,6 @@
     </section>
   </main>
 
-  <!-- Debug UI -->
   <div id="startup" class="startup" aria-modal="true" role="dialog">
     <div class="panel" id="panel">
       <h1>Select a module JSON</h1>
@@ -164,11 +162,9 @@
   <script>
   "use strict";
 
-  // ------- CONFIG -------
-  const LocalDebugMode = false;   // set true for debug picker
+  const LocalDebugMode = false;
   const MODULE_SEQUENCE = ['2-1.json','2-2.json','2-3.json'];
 
-  // ------- UTIL -------
   const fmt = (t)=>`${Math.floor(t/60)}:${Math.floor(t%60).toString().padStart(2,'0')}`;
   const tcToSeconds = (tc, FPS=30)=>{
     const parts = String(tc||'0:0:0:0').split(/[;:]/).map(n=>parseInt(n,10)||0);
@@ -202,9 +198,8 @@
       this.seg = {start:0,end:0,active:false,rafId:null,currentId:null,currentVideo:null};
       this.realLifeIndex = 0;
 
-      // Base URL for this module (used to resolve relative assets)
       this.moduleUrl = modulePath ? new URL(modulePath, window.location.href) : new URL(window.location.href);
-      this.moduleBase = new URL('.', this.moduleUrl).href; // directory of JSON
+      this.moduleBase = new URL('.', this.moduleUrl).href;
 
       this.init();
     }
@@ -212,7 +207,6 @@
     resolveAsset(p){
       if (!p) return '';
       if (isAbsoluteUrl(p)) return p;
-      // resolve relative to the JSON's folder
       return new URL(p, this.moduleBase).href;
     }
 
@@ -364,6 +358,15 @@
       return ui;
     }
 
+    pauseViewer(){
+      if (this.seg.currentVideo) this.seg.currentVideo.pause();
+      if (!this.audio.paused) this.audio.pause();
+      const playPause = document.getElementById('playPause');
+      const status = document.getElementById('status');
+      if (playPause) playPause.textContent='▶';
+      if (status) status.textContent='Paused';
+    }
+
     closeViewer(){
       this.innerWindow.classList.remove('active');
       this.viewer.replaceChildren();
@@ -507,12 +510,10 @@
       const e = tcToSeconds(h.tcEnd, this.FPS);
       const {title, body} = this.getTitleAndBody(h.content || h.text || '');
 
-      // Reset viewer
       this.viewer.replaceChildren();
       this.viewerTitle.textContent = title || 'Narration';
       this.innerWindow.classList.remove('small','large');
 
-      // Media
       const hasVideo = h.video || (h.contentMedia && h.contentMedia.type === 'video');
       const hasImage = h.contentMedia && h.contentMedia.type === 'image';
       
@@ -542,7 +543,6 @@
         this.viewer.appendChild(wrap);
       }
 
-      // Real life examples button (if present)
       const right = this.innerWindow.querySelector('header .right');
       right.querySelectorAll('.header-real-life-btn').forEach(btn => btn.remove());
       if (Array.isArray(h.realLifeExamples) && h.realLifeExamples.length){
@@ -552,132 +552,122 @@
         right.insertBefore(btn, right.firstChild);
       }
 
-      // Audio UI + wiring
       this.viewer.appendChild(this.buildAudioUI(Math.max(0.01, e - s)));
       this.innerWindow.classList.add('active');
       this.wireAudioSegment(s, e, id);
+
+      this.stage.onclick = (ev)=>{
+        if (ev.target === this.stage) this.pauseViewer();
+      };
     }
 
-showRealLifePopup(examples){
-  // Normalize
-  const imgs = Array.isArray(examples) ? examples.slice() : [];
-  if (!imgs.length) return;
+    showRealLifePopup(examples){
+      const imgs = Array.isArray(examples) ? examples.slice() : [];
+      if (!imgs.length) return;
 
-  // Remove any existing popup
-  const existing = document.getElementById('realLifePopup');
-  if (existing) existing.remove();
+      const existing = document.getElementById('realLifePopup');
+      if (existing) existing.remove();
 
-  // State
-  let idx = 0;
+      let idx = 0;
 
-  // Elements
-  const overlay = el('div', {
-    id:'realLifePopup',
-    style:[
-      'position:fixed','inset:0','display:grid','place-items:center',
-      'background:rgba(0,0,0,.7)','z-index:9999'
-    ].join(';')
-  });
+      const overlay = el('div', {
+        id:'realLifePopup',
+        style:[
+          'position:fixed','inset:0','display:grid','place-items:center',
+          'background:rgba(0,0,0,.7)','z-index:9999'
+        ].join(';')
+      });
 
-  const shell = el('div', {
-    style:[
-      'position:relative',
-      'background:#0f1216','border:1px solid rgba(255,255,255,.2)','border-radius:12px',
-      'max-width:min(90vw,800px)','max-height:min(90vh,600px)',
-      'width:clamp(320px,80vw,800px)','height:clamp(240px,70vh,600px)',
-      'display:flex','flex-direction:column','overflow:hidden'
-    ].join(';')
-  });
+      const shell = el('div', {
+        style:[
+          'position:relative',
+          'background:#0f1216','border:1px solid rgba(255,255,255,.2)','border-radius:12px',
+          'max-width:min(90vw,800px)','max-height:min(90vh,600px)',
+          'width:clamp(320px,80vw,800px)','height:clamp(240px,70vh,600px)',
+          'display:flex','flex-direction:column','overflow:hidden'
+        ].join(';')
+      });
 
-  // Floating close (always visible & clickable)
-  const floatClose = el('button', {
-    'aria-label':'Close',
-    style:[
-      'position:absolute','top:8px','right:8px','z-index:3',
-      'background:#ff4444','color:#fff','border:none',
-      'padding:6px 10px','border-radius:10px','cursor:pointer',
-      'font-weight:800','font-size:16px','line-height:1'
-    ].join(';')
-  }, '✕');
+      const floatClose = el('button', {
+        'aria-label':'Close',
+        style:[
+          'position:absolute','top:8px','right:8px','z-index:3',
+          'background:#ff4444','color:#fff','border:none',
+          'padding:6px 10px','border-radius:10px','cursor:pointer',
+          'font-weight:800','font-size:16px','line-height:1'
+        ].join(';')
+      }, '✕');
 
-  const header = el('header', {
-    style:'background:#1a1a1a;color:#fff;padding:10px 12px;display:flex;justify-content:center;align-items:center;font-weight:700'
-  }, 'Real Life Example');
+      const header = el('header', {
+        style:'background:#1a1a1a;color:#fff;padding:10px 12px;display:flex;justify-content:center;align-items:center;font-weight:700'
+      }, 'Real Life Example');
 
-  const stage = el('div', {
-    style:'flex:1;display:flex;align-items:center;justify-content:center;padding:12px;background:#000;min-height:0'
-  });
+      const stage = el('div', {
+        style:'flex:1;display:flex;align-items:center;justify-content:center;padding:12px;background:#000;min-height:0'
+      });
 
-  const img = el('img', {
-    id:'realLifeImg',
-    alt:'Real life example',
-    style:'max-width:100%;max-height:100%;object-fit:contain'
-  });
+      const img = el('img', {
+        id:'realLifeImg',
+        alt:'Real life example',
+        style:'max-width:100%;max-height:100%;object-fit:contain'
+      });
 
-  const footer = el('div', {
-    style:'display:flex;gap:12px;justify-content:space-between;align-items:center;padding:10px 12px;background:#0f1216;border-top:1px solid rgba(255,255,255,.12)'
-  });
+      const footer = el('div', {
+        style:'display:flex;gap:12px;justify-content:space-between;align-items:center;padding:10px 12px;background:#0f1216;border-top:1px solid rgba(255,255,255,.12)'
+      });
 
-  const prevBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, '‹ Previous');
-  const counter = el('span', { id:'counter', style:'color:#e9eef5' });
-  const nextBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, 'Next ›');
+      const prevBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, '‹ Previous');
+      const counter = el('span', { id:'counter', style:'color:#e9eef5' });
+      const nextBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, 'Next ›');
 
-  // Compose
-  stage.appendChild(img);
-  footer.appendChild(prevBtn);
-  footer.appendChild(counter);
-  footer.appendChild(nextBtn);
-  shell.appendChild(floatClose);
-  shell.appendChild(header);
-  shell.appendChild(stage);
-  if (imgs.length > 1) shell.appendChild(footer); // hide controls if only one
-  overlay.appendChild(shell);
-  document.body.appendChild(overlay);
+      stage.appendChild(img);
+      footer.appendChild(prevBtn);
+      footer.appendChild(counter);
+      footer.appendChild(nextBtn);
+      shell.appendChild(floatClose);
+      shell.appendChild(header);
+      shell.appendChild(stage);
+      if (imgs.length > 1) shell.appendChild(footer);
+      overlay.appendChild(shell);
+      document.body.appendChild(overlay);
 
-  // Helpers
-  const setDisabled = (el, on)=>{ el.disabled = !!on; el.style.opacity = on ? '.5' : '1'; };
+      const setDisabled = (el, on)=>{ el.disabled = !!on; el.style.opacity = on ? '.5' : '1'; };
 
-  const render = ()=>{
-    img.src = imgs[idx];
-    counter.textContent = `${idx+1} of ${imgs.length}`;
-    if (imgs.length > 1){
-      // disable at ends (no wrap). Switch to wrap by removing these two lines.
-      setDisabled(prevBtn, idx === 0);
-      setDisabled(nextBtn, idx === imgs.length - 1);
+      const render = ()=>{
+        img.src = imgs[idx];
+        counter.textContent = `${idx+1} of ${imgs.length}`;
+        if (imgs.length > 1){
+          setDisabled(prevBtn, idx === 0);
+          setDisabled(nextBtn, idx === imgs.length - 1);
+        }
+      };
+
+      const goPrev = ()=>{ if (idx > 0){ idx--; render(); } };
+      const goNext = ()=>{ if (idx < imgs.length - 1){ idx++; render(); } };
+
+      floatClose.onclick = ()=> overlay.remove();
+      overlay.onclick = (e)=>{ if (e.target === overlay) overlay.remove(); };
+      if (imgs.length > 1){
+        prevBtn.onclick = goPrev;
+        nextBtn.onclick = goNext;
+      }
+
+      const onKey = (e)=>{
+        if (e.key === 'Escape'){ overlay.remove(); }
+        else if (e.key === 'ArrowLeft' && imgs.length > 1){ goPrev(); }
+        else if (e.key === 'ArrowRight' && imgs.length > 1){ goNext(); }
+      };
+      document.addEventListener('keydown', onKey);
+
+      const mo = new MutationObserver(()=>{
+        if (!document.getElementById('realLifePopup')) document.removeEventListener('keydown', onKey);
+      });
+      mo.observe(document.body, { childList:true });
+
+      render();
     }
-  };
-
-  const goPrev = ()=>{ if (idx > 0){ idx--; render(); } };
-  const goNext = ()=>{ if (idx < imgs.length - 1){ idx++; render(); } };
-
-  // Wire
-  floatClose.onclick = ()=> overlay.remove();
-  overlay.onclick = (e)=>{ if (e.target === overlay) overlay.remove(); }; // click backdrop to close
-  if (imgs.length > 1){
-    prevBtn.onclick = goPrev;
-    nextBtn.onclick = goNext;
   }
 
-  // Keyboard: Esc/←/→
-  const onKey = (e)=>{
-    if (e.key === 'Escape'){ overlay.remove(); }
-    else if (e.key === 'ArrowLeft' && imgs.length > 1){ goPrev(); }
-    else if (e.key === 'ArrowRight' && imgs.length > 1){ goNext(); }
-  };
-  document.addEventListener('keydown', onKey);
-
-  // Clean up listener on close
-  const mo = new MutationObserver(()=>{
-    if (!document.getElementById('realLifePopup')) document.removeEventListener('keydown', onKey);
-  });
-  mo.observe(document.body, { childList:true });
-
-  // First paint
-  render();
-}
-  } // END class ModularTrainingSystem
-
-  // ------- Loader that passes modulePath to the class -------
   function resetStageShell(){
     const stage = document.getElementById('stage');
     stage.replaceChildren(
@@ -706,12 +696,10 @@ showRealLifePopup(examples){
       });
   }
 
-  // ------- BOOT -------
   (function boot(){
     const title = document.getElementById('moduleTitle');
 
     if (LocalDebugMode){
-      // Show debug picker UI
       const startup = document.getElementById('startup');
       const picker = document.getElementById('configPicker');
       const pickBtn = document.getElementById('pickBtn');
@@ -726,7 +714,6 @@ showRealLifePopup(examples){
           const cfg = (typeof textOrObj==='string') ? JSON.parse(textOrObj) : textOrObj;
           startup.remove();
           resetStageShell();
-          // For debug-loaded files, we don't know a file path; use window location as base
           new ModularTrainingSystem(cfg, 0, window.location.href);
         }catch(e){
           hint.textContent = 'Invalid JSON: ' + (e?.message || e);
@@ -761,7 +748,6 @@ showRealLifePopup(examples){
         catch(err){ hint.textContent = 'Failed to read dropped file: ' + (err?.message || err); }
       });
 
-      // ?config=URL support
       const params = new URLSearchParams(window.location.search);
       const cfgURL = params.get('config');
       if (cfgURL){
@@ -775,7 +761,6 @@ showRealLifePopup(examples){
       }
 
     } else {
-      // Production: auto-load first module and preserve JSON-relative assets
       loadModule(MODULE_SEQUENCE[0], 0);
     }
   })();

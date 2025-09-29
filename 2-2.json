@@ -30,6 +30,10 @@
       "tcStart": "00;00;13;11",
       "tcEnd": "00;00;29;05",
       "text": "[Common Hazards in Homes]\nLet’s begin with some of the most common hazards. \nThese include lead paint, mold, foul odors, smoking, and other environmental risks. \nEach of these can create safety concerns — and each one affects the quality of the guest experience.",
+      "contentMedia": {
+        "type": "video",
+        "src": "Common Hazards in Home (1).mov"
+      },
       "realLifeExamples": []
     },
     {
@@ -41,10 +45,10 @@
       "height": 940,
       "tcStart": "00;00;29;05",
       "tcEnd": "00;01;07;23",
-      "text": "[What Hazards Are & How to Identify Them]\nSo, what exactly are these hazards? \nLead paint is old paint that contains lead, often found in homes built before 1978. \nIt can be dangerous when it chips or creates dust. \nMold is a type of fungus that grows in damp areas, such as bathrooms, kitchens, or basements. \nIt often appears as black or green patches on walls, ceilings, or tile grout — and it carries health risks for your guests. \nFoul odors may come from poor ventilation, smoke, or unclean surfaces. \nThese don’t just affect safety — they immediately impact guest satisfaction.",
+      "text": "[What Hazards Are & How to Identify Them]\nSo, what exactly are these hazards? Lead paint is old paint that contains lead, often found in homes built before 1978. It can be dangerous when it chips or creates dust. \nMold is a type of fungus that grows in damp areas, such as bathrooms, kitchens, or basements. It often appears as black or green patches on walls, ceilings, or tile grout — and it carries health risks for your guests. Foul odors may come from poor ventilation, smoke, or unclean surfaces. \nThese don’t just affect safety — they immediately impact guest satisfaction.",
       "contentMedia": {
-        "type": "image",
-        "src": "House Mold (shutterstock).jpg"
+        "type": "video",
+        "src": "Mold (1).mov"
       },
       "realLifeExamples": []
     },
@@ -59,8 +63,8 @@
       "tcEnd": "00;01;22;14",
       "text": "[Segment 3: Weathertight Properties]\nNext, let’s talk about weathertight properties. \nA weathertight property is one without leaks or water intrusion. \nGood sealing prevents mold, prevents pest entry, and ensures guests feel comfortable no matter the weather.",
       "contentMedia": {
-        "type": "image",
-        "src": "Weathertight Home (Shutterstock).jpg"
+        "type": "video",
+        "src": "Weathertight Properties (1).mov"
       },
       "realLifeExamples": []
     },
@@ -75,8 +79,8 @@
       "tcEnd": "00;01;40;04",
       "text": "[Sewer Systems]\nA high-quality, functioning sewer system is also essential. \nThat means drains that flow properly, toilets that flush consistently, and no signs of backups or unpleasant smells. \nPoor sewer systems don’t just create inconvenience — they can pose health hazards.",
       "contentMedia": {
-        "type": "image",
-        "src": "House Sewer System (Shutterstock).jpg"
+        "type": "video",
+        "src": "Sewer Systems (1).mov"
       },
       "realLifeExamples": []
     },
@@ -89,10 +93,10 @@
       "height": 940,
       "tcStart": "00;01;40;04",
       "tcEnd": "00;02;08;26",
-      "text": "[Pests & Pest Programs]\nPests are another common hazard. \nThese might include insects like ants, cockroaches, or bedbugs — or rodents such as mice. \nThey typically appear where food is stored, trash is kept, or moisture is present. \nPests affect guest comfort, reviews, and property cleanliness. \nThat’s why removal is non-negotiable. \nIf you have a pest-control program in place, be prepared to show records of treatments during inspections.",
+      "text": "[Pests & Pest Programs]\nPests are another common hazard. These might include insects like ants, cockroaches, or bedbugs — or rodents such as mice. They typically appear where food is stored, trash is kept, or moisture is present. \nPests affect guest comfort, reviews, and property cleanliness. That’s why removal is non-negotiable. \nIf you have a pest-control program in place, be prepared to show records of treatments during inspections.",
       "contentMedia": {
-        "type": "image",
-        "src": "House Pest Control (Shutterstock).jpg"
+        "type": "video",
+        "src": "Pest and Pest Programs (1).mov"
       },
       "realLifeExamples": []
     },
@@ -107,8 +111,8 @@
       "tcEnd": "00;02;29;11",
       "text": "[Odor & Smoking Policies]\nFinally, let’s talk about odors and smoking. \nEstablishing a clear policy helps protect guests and keep the property welcoming. \nNo-smoking rules prevent odors, reduce fire risk, and maintain air quality. \nHosts should communicate this policy upfront and post reminders in visible areas of the property.",
       "contentMedia": {
-        "type": "image",
-        "src": "House Non-Smoking (Shutterstock).jpg"
+        "type": "video",
+        "src": "Odor and Smoking (1).mov"
       },
       "realLifeExamples": []
     },

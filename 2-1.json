@@ -30,6 +30,10 @@
       "tcStart": "00;00;15;15",
       "tcEnd": "00;00;37;28",
       "text": "[What Utilities Are & Why They Matter]\nUtilities include water, gas, electricity, and internet. \nGuests expect each of these to work flawlessly. \nSafe wiring, clean water, steady gas service, and strong WiFi make your property feel trustworthy and professional. \nIf even one of these fails, the guest experience — and your reviews — will suffer.",
+      "contentMedia": {
+        "type": "video",
+        "src": "Utilities Overview Video (SD) (1).mov"
+      },
       "realLifeExamples": []
     },
     {
@@ -42,6 +46,10 @@
       "tcStart": "00;00;37;28",
       "tcEnd": "00;01;03;04",
       "text": "[Alternative Heating Sources]\nSome homes rely on alternative heating sources like space heaters or oil heaters. \nIf you provide these, safety comes first. \nSpace heaters should never be left running unattended, and they should be placed far from curtains, bedding, or furniture. \nOil heaters must be regularly cleaned and inspected to prevent leaks. \nAlways provide clear instructions for safe use.",
+      "contentMedia": {
+        "type": "video",
+        "src": "Alternative Heating Sources (1).mov"
+      },
       "realLifeExamples": []
     },
     {
@@ -85,7 +93,11 @@
       "height": 940,
       "tcStart": "00;01;45;07",
       "tcEnd": "00;02;36;29",
-      "text": "[WiFi Access & Standards]\nFinally, let's talk about WiFi. \nIn today's world, reliable internet is considered table stakes — every guest expects it. \nIf your property is meant to have WiFi, we want to make sure that it's up to guests' standards. If you have a property, such as a cabin or one in the wilderness that is not meant to have WiFi, this won't apply to you. \nThat's why GuestGuard inspectors check WiFi connectivity speeds during inspections. \nThe minimum standard is 25 megabits per second — enough for streaming, work, and multiple devices. \nMake sure your WiFi is accessible, fast, and easy to connect to. Understanding that some properties, especially those in rural or rustic areas, don't have WiFi, we at GuestGuard want to make sure that if the property is meant to have WiFi, it's working as advertised for guests.",
+      "text": "[WiFi Access & Standards]\nFinally, let's talk about WiFi. In today's world, reliable internet is considered table stakes — every guest expects it. If your property is meant to have WiFi, we want to make sure that it's up to guests' standards. If you have a property, such as a cabin or one in the wilderness that is not meant to have WiFi, this won't apply to you. \nThat's why GuestGuard inspectors check WiFi connectivity speeds during inspections. The minimum standard is 25 megabits per second — enough for streaming, work, and multiple devices. Make sure your WiFi is accessible, fast, and easy to connect to. Understanding that some properties, especially those in rural or rustic areas, don't have WiFi, we at GuestGuard want to make sure that if the property is meant to have WiFi, it's working as advertised for guests.",
+      "contentMedia": {
+        "type": "video",
+        "src": "WiFi Access and Standards (1).mov"
+      },
       "realLifeExamples": []
     },
     {

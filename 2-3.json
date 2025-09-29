@@ -16,7 +16,7 @@
       "tcStart": "00;00;00;00",
       "tcEnd": "00;00;14;16",
       "order": "first",
-      "text": "[Intro]\nBBeyond utilities and hazards, there are other important considerations every host should keep in mind. \nThese include creating safe spaces for emergencies, and managing noise levels for both guests and neighbors",
+      "text": "[Intro]\nBeyond utilities and hazards, there are other important considerations every host should keep in mind. \nThese include creating safe spaces for emergencies, and managing noise levels for both guests and neighbors",
       "realLifeExamples": []
     },
     {
@@ -44,10 +44,10 @@
       "height": 940,
       "tcStart": "00;00;42;06",
       "tcEnd": "00;01;30;05",
-      "text": "[Noise Levels & Standards]\nNoise is another critical consideration. \nExcessive ambient noise not only disturbs neighbors — it can ruin the experience for your guests as well. \nSo, what’s unacceptable? \nExamples include loud ambient noise in your area and outside your home (such as construction, outside parties, traffic, et cetera), or constant disturbances like heavy machinery running nearby. \nWe aren’t trying to punish hosts for living in a louder noise environment – we test for ambient noise levels so guests know what to expect before they book their stay. \nIt’s also important to make your guests aware of their own noise levels. This will ensure a peaceful, enjoyable experience for everyone on the property including the host, guests from other parties, and neighbors.",
+      "text": "[Noise Levels & Standards]\nNoise is another critical consideration. Excessive ambient noise not only disturbs neighbors — it can ruin the experience for your guests as well. So, what’s unacceptable? \nExamples include loud ambient noise in your area and outside your home (such as construction, outside parties, traffic, et cetera), or constant disturbances like heavy machinery running nearby. We aren’t trying to punish hosts for living in a louder noise environment – we test for ambient noise levels so guests know what to expect before they book their stay. \nIt’s also important to make your guests aware of their own noise levels. This will ensure a peaceful, enjoyable experience for everyone on the property including the host, guests from other parties, and neighbors.",
       "contentMedia": {
-        "type": "image",
-        "src": "Noise Testing (Shutterstock).jpg"
+        "type": "video",
+        "src": "Noise Levels and Standards (1).mov"
       },
       "realLifeExamples": []
     },
