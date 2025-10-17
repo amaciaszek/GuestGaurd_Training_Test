@@ -294,7 +294,7 @@
       console.log('Target Module ID:', targetModuleId);
       console.log('Target Chapter ID:', targetChapterId);
 
-      TRAINING_STRUCTURE.forEach((module) => {
+      TRAINING_STRUCTURE.forEach((module, modIdx) => {
         const moduleGroup = el('li', {class: 'module-group'});
         
         const moduleHeader = el('div', {
@@ -307,7 +307,7 @@
         
         const chapterList = el('ul', {class: 'chapter-list'});
         
-        module.chapters.forEach((chapter) => {
+        module.chapters.forEach((chapter, chapIdx) => {
           const chapterGroup = el('li', {class: 'chapter-group'});
           
           const chapterHeader = el('div', {
@@ -332,6 +332,11 @@
                 const match = normalize(name).includes(normalize(segmentName)) || 
                        normalize(segmentName).includes(normalize(name)) ||
                        name === segmentName;
+                
+                if (match) {
+                  console.log(`✓ MATCHED: "${segmentName}" (${module.name} > ${chapter.name}) → "${name}" (hotspot ${h.id})`);
+                }
+                
                 return match;
               });
             }
@@ -414,6 +419,16 @@
           item.classList.add('current');
           foundCurrent = true;
           currentSegmentElement = item;
+          
+          const segmentName = item.querySelector('.segment-name').textContent;
+          const chapterHeader = item.closest('.chapter-group').querySelector('.chapter-header');
+          const chapterName = chapterHeader.querySelector('.chapter-title').textContent;
+          const moduleHeader = item.closest('.module-group').querySelector('.module-header');
+          const moduleName = moduleHeader.querySelector('.module-name').textContent;
+          
+          console.log('🎯 CURRENT SEGMENT:', segmentName);
+          console.log('   └─ Chapter:', chapterName);
+          console.log('   └─ Module:', moduleName);
         } else {
           item.classList.add('locked');
         }
@@ -433,6 +448,8 @@
         if (hasCurrent) {
           header.classList.add('has-current', 'expanded');
           segmentList.classList.add('expanded');
+          const chapterName = header.querySelector('.chapter-title').textContent;
+          console.log('📂 EXPANDING CHAPTER:', chapterName);
         } else if (allCompleted) {
           header.classList.add('all-completed');
         }
@@ -441,6 +458,7 @@
       moduleHeaders.forEach((header) => {
         const chapterList = header.nextElementSibling;
         const chapters = chapterList.querySelectorAll('.chapter-header');
+        
         const hasCurrentChapter = Array.from(chapters).some(ch => ch.classList.contains('has-current'));
         
         header.classList.remove('current-module', 'expanded');
@@ -449,6 +467,8 @@
         if (hasCurrentChapter) {
           header.classList.add('current-module', 'expanded');
           chapterList.classList.add('expanded');
+          const moduleName = header.querySelector('.module-name').textContent;
+          console.log('📦 EXPANDING MODULE:', moduleName);
         }
       });
       
@@ -471,7 +491,9 @@
         console.log('Loaded captions from provided text:', this.captions.length);
         return;
       }
+      
       if (!this.config.transcriptFile) return;
+      
       try {
         const transcriptUrl = this.resolveAsset(this.config.transcriptFile);
         const response = await fetch(transcriptUrl);
@@ -487,18 +509,22 @@
       const captions = [];
       const lines = text.split('\n');
       let i = 0;
+      
       while(i < lines.length){
         const line = lines[i].trim();
+        
         if (line.match(/^\d{2};\d{2};\d{2};\d{2}\s*-\s*\d{2};\d{2};\d{2};\d{2}$/)){
           const [start, end] = line.split('-').map(tc => tcToSeconds(tc.trim(), this.FPS));
           i++;
+          
           let captionText = '';
           while(i < lines.length && !lines[i].match(/^\d{2};\d{2};\d{2};\d{2}\s*-/)){
             if (lines[i].trim()){
-              captionText += (captionText ? ' ' '': '') + lines[i].trim();
+              captionText += (captionText ? ' ' : '') + lines[i].trim();
             }
             i++;
           }
+          
           if (captionText){
             captions.push({ start, end, text: captionText });
           }
@@ -506,6 +532,7 @@
           i++;
         }
       }
+      
       return captions;
     }
 
@@ -515,6 +542,7 @@
 
     updateCaption(time){
       if (!this.currentCaptionElement) return;
+      
       const caption = this.findCaptionForTime(time);
       if (caption){
         this.currentCaptionElement.textContent = caption.text;
@@ -675,6 +703,7 @@
 
     closeViewer(){
       this.innerWindow.style.opacity = '0';
+      
       setTimeout(() => {
         this.innerWindow.classList.remove('active', 'animating');
         this.viewer.replaceChildren();
@@ -682,11 +711,13 @@
         if (!this.audio.paused) this.audio.pause();
         this.seg.active=false; cancelAnimationFrame(this.seg.rafId);
         this.currentCaptionElement = null;
+        
         this.innerWindow.style.top = '';
         this.innerWindow.style.left = '';
         this.innerWindow.style.width = '';
         this.innerWindow.style.height = '';
         this.innerWindow.style.opacity = '';
+        
         const header = this.innerWindow.querySelector('header');
         const viewer = this.innerWindow.querySelector('#viewer');
         if (header) {
@@ -749,6 +780,7 @@
     wireAudioSegment(startSec,endSec,id){
       const total = Math.max(0.01, endSec-startSec);
       this.seg = {start:startSec,end:endSec,active:true,currentId:id,currentVideo:this.seg.currentVideo,rafId:null};
+      
       const fill = document.getElementById('fill');
       const playPause = document.getElementById('playPause');
       const replay = document.getElementById('replay');
@@ -762,7 +794,9 @@
         const elapsed = now - this.seg.start;
         if (fill) fill.style.width = `${(elapsed/total)*100}%`;
         if (tcur) tcur.textContent = fmt(elapsed);
+        
         this.updateCaption(now);
+        
         if (now >= this.seg.end - 0.02){
           this.audio.pause();
           if (this.seg.currentVideo) this.seg.currentVideo.pause();
@@ -778,7 +812,9 @@
       const startSeg = ()=>{
         this.audio.currentTime = startSec;
         this.audio.play().then(()=>{
-          if (this.seg.currentVideo){ this.seg.currentVideo.play().catch(()=>{}); }
+          if (this.seg.currentVideo){ 
+            this.seg.currentVideo.play().catch(()=>{}); 
+          }
           if (playPause) playPause.textContent='⏸';
           if (status) status.textContent='Playing';
           cancelAnimationFrame(this.seg.rafId);
@@ -833,6 +869,9 @@
       const e = tcToSeconds(h.tcEnd, this.FPS);
       const {title, body} = this.getTitleAndBody(h.content || h.text || '');
 
+      console.log('=== ANIMATION DEBUG START ===');
+      console.log('Button clicked:', button.id);
+
       this.viewer.replaceChildren();
       this.viewerTitle.textContent = title || 'Narration';
       this.innerWindow.classList.remove('small','large','animating');
@@ -842,9 +881,11 @@
       const hasCaptions = this.captions.length > 0;
       
       const sizeClass = (hasVideo || hasImage) ? 'large' : 'small';
+      console.log('Window size class:', sizeClass);
       
       if (hasVideo || hasImage){
         const media = el('div',{class:'mediaArea'});
+        
         if (hasVideo) {
           const videoSrc = h.video ? this.resolveAsset(h.video) : this.resolveAsset(h.contentMedia.src);
           const vid = el('video',{src:videoSrc});
@@ -857,6 +898,7 @@
           const img = el('img',{src:imgSrc, alt: h.contentMedia.alt || 'Content image'});
           media.appendChild(img);
         }
+        
         if (hasCaptions) {
           const captionEl = el('div',{class:'caption'}, '');
           this.currentCaptionElement = captionEl;
@@ -865,6 +907,7 @@
         this.viewer.appendChild(media);
       } else {
         const wrap = el('div',{class:'subs-only', style:'flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative'});
+        
         if (hasCaptions) {
           const captionEl = el('div',{class:'caption', style:'position:static;max-width:100%;font-size:20px;line-height:1.6'}, '');
           this.currentCaptionElement = captionEl;
@@ -888,9 +931,27 @@
       
       const buttonRect = button.getBoundingClientRect();
       const stageRect = this.stage.getBoundingClientRect();
+      
+      console.log('Button rect:', {
+        left: buttonRect.left,
+        top: buttonRect.top,
+        width: buttonRect.width,
+        height: buttonRect.height
+      });
+      console.log('Stage rect:', {
+        left: stageRect.left,
+        top: stageRect.top,
+        width: stageRect.width,
+        height: stageRect.height
+      });
+      
       const buttonCenterX = buttonRect.left + buttonRect.width / 2 - stageRect.left;
       const buttonCenterY = buttonRect.top + buttonRect.height / 2 - stageRect.top;
+      
+      console.log('Button center relative to stage:', {x: buttonCenterX, y: buttonCenterY});
+      
       let finalWidth, finalHeight, finalTop, finalLeft;
+      
       if (sizeClass === 'large') {
         finalWidth = stageRect.width * 0.84;
         finalHeight = stageRect.height * 0.84;
@@ -902,34 +963,83 @@
         finalTop = stageRect.height * 0.34;
         finalLeft = stageRect.width * 0.51;
       }
+      
+      console.log('Calculated final dimensions:', {
+        width: finalWidth + 'px',
+        height: finalHeight + 'px',
+        top: finalTop + 'px',
+        left: finalLeft + 'px'
+      });
+      
       this.innerWindow.classList.add('active', sizeClass);
+      
       const initialTop = `${buttonCenterY - 5}px`;
       const initialLeft = `${buttonCenterX - 5}px`;
+      
+      console.log('Initial position (10px at button):', {
+        top: initialTop,
+        left: initialLeft,
+        width: '10px',
+        height: '10px'
+      });
+      
       this.innerWindow.style.top = initialTop;
       this.innerWindow.style.left = initialLeft;
       this.innerWindow.style.width = '10px';
       this.innerWindow.style.height = '10px';
       this.innerWindow.style.opacity = '0';
+      
       const header = this.innerWindow.querySelector('header');
       const viewer = this.innerWindow.querySelector('#viewer');
-      if (header) { header.style.transform = 'scale(0.01)'; header.style.opacity = '0'; }
-      if (viewer) { viewer.style.transform = 'scale(0.01)'; viewer.style.opacity = '0'; }
+      if (header) {
+        header.style.transform = 'scale(0.01)';
+        header.style.opacity = '0';
+      }
+      if (viewer) {
+        viewer.style.transform = 'scale(0.01)';
+        viewer.style.opacity = '0';
+      }
+      
       this.innerWindow.offsetHeight;
+      
+      console.log('Starting LINEAR animation in 100ms...');
+      console.log('Window AND content should grow from 10px to full size');
+      
       setTimeout(() => {
+        console.log('Animating to final position:', {
+          top: finalTop + 'px',
+          left: finalLeft + 'px',
+          width: finalWidth + 'px',
+          height: finalHeight + 'px'
+        });
+        
         this.innerWindow.style.top = finalTop + 'px';
         this.innerWindow.style.left = finalLeft + 'px';
         this.innerWindow.style.width = finalWidth + 'px';
         this.innerWindow.style.height = finalHeight + 'px';
         this.innerWindow.style.opacity = '1';
         this.innerWindow.classList.add('animating');
+        
         const header = this.innerWindow.querySelector('header');
         const viewer = this.innerWindow.querySelector('#viewer');
-        if (header) { header.style.transform = 'scale(1)'; header.style.opacity = '1'; }
-        if (viewer) { viewer.style.transform = 'scale(1)'; viewer.style.opacity = '1'; }
+        if (header) {
+          header.style.transform = 'scale(1)';
+          header.style.opacity = '1';
+        }
+        if (viewer) {
+          viewer.style.transform = 'scale(1)';
+          viewer.style.opacity = '1';
+        }
+        
+        console.log('LINEAR Animation triggered!');
+        
         setTimeout(() => {
+          console.log('Animation complete! Starting audio/video now...');
           this.wireAudioSegment(s, e, id);
         }, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000);
       }, 100);
+      
+      console.log('=== ANIMATION DEBUG END ===');
 
       this.stage.onclick = (ev)=>{
         if (ev.target === this.stage) this.pauseViewer();
@@ -939,9 +1049,12 @@
     showRealLifePopup(examples){
       const imgs = Array.isArray(examples) ? examples.slice() : [];
       if (!imgs.length) return;
+
       const existing = document.getElementById('realLifePopup');
       if (existing) existing.remove();
+
       let idx = 0;
+
       const overlay = el('div', {
         id:'realLifePopup',
         style:[
@@ -949,6 +1062,7 @@
           'background:rgba(0,0,0,.7)','z-index:9999'
         ].join(';')
       });
+
       const shell = el('div', {
         style:[
           'position:relative',
@@ -958,6 +1072,7 @@
           'display:flex','flex-direction:column','overflow:hidden'
         ].join(';')
       });
+
       const floatClose = el('button', {
         'aria-label':'Close',
         style:[
@@ -967,23 +1082,29 @@
           'font-weight:800','font-size:16px','line-height:1'
         ].join(';')
       }, '✕');
+
       const header = el('header', {
         style:'background:#1a1a1a;color:#fff;padding:10px 12px;display:flex;justify-content:center;align-items:center;font-weight:700'
       }, 'Real Life Example');
+
       const stage = el('div', {
         style:'flex:1;display:flex;align-items:center;justify-content:center;padding:12px;background:#000;min-height:0'
       });
+
       const img = el('img', {
         id:'realLifeImg',
         alt:'Real life example',
         style:'max-width:100%;max-height:100%;object-fit:contain'
       });
+
       const footer = el('div', {
         style:'display:flex;gap:12px;justify-content:space-between;align-items:center;padding:10px 12px;background:#0f1216;border-top:1px solid rgba(255,255,255,.12)'
       });
+
       const prevBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, '‹ Previous');
       const counter = el('span', { id:'counter', style:'color:#e9eef5' });
       const nextBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, 'Next ›');
+
       stage.appendChild(img);
       footer.appendChild(prevBtn);
       footer.appendChild(counter);
@@ -1005,6 +1126,7 @@
           setDisabled(nextBtn, idx === imgs.length - 1);
         }
       };
+
       const goPrev = ()=>{ if (idx > 0){ idx--; render(); } };
       const goNext = ()=>{ if (idx < imgs.length - 1){ idx++; render(); } };
 
@@ -1021,6 +1143,7 @@
         else if (e.key === 'ArrowRight' && imgs.length > 1){ goNext(); }
       };
       document.addEventListener('keydown', onKey);
+
       const mo = new MutationObserver(()=>{
         if (!document.getElementById('realLifePopup')) document.removeEventListener('keydown', onKey);
       });
