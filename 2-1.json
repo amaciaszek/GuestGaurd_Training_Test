@@ -72,8 +72,8 @@
     {
       "id": "b5",
       "type": "circle",
-      "centerX": 4308,
-      "centerY": 664,
+      "centerX": 4314,
+      "centerY": 665,
       "width": 940,
       "height": 940,
       "tcStart": "00;01;24;23",
@@ -88,8 +88,8 @@
     {
       "id": "b6",
       "type": "circle",
-      "centerX": 5108,
-      "centerY": 603,
+      "centerX": 5121,
+      "centerY": 1600,
       "width": 940,
       "height": 940,
       "tcStart": "00;01;45;07",
@@ -104,8 +104,8 @@
     {
       "id": "b7",
       "type": "circle",
-      "centerX": 4821,
-      "centerY": 2753,
+      "centerX": 4815,
+      "centerY": 2761,
       "width": 940,
       "height": 940,
       "tcStart": "00;02;36;29",
