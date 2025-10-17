@@ -4,136 +4,18 @@
   <meta charset="utf-8" />
   <title>Training Module</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root{
-      --stage-max-width:1200px;
-      --bg:#0e0e12; 
-      --active:#f8fafc; 
-      --completed:#0b242c; 
-      --locked:#4a4a4a;
-      --badge-offset: 2px;
-      --badge-size: 20px;
-    }
-    *{box-sizing:border-box}
-    body{ margin:0;min-height:100svh;display:grid;place-items:center;
-      background:var(--bg);color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
-    .frame{ width:min(95vw,var(--stage-max-width)); border-radius:28px;border:2px solid rgba(255,255,255,.12);
-      box-shadow:0 20px 60px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04); overflow:hidden;background:#11151a; }
-    .titlebar{ padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08); font-weight:600;letter-spacing:.2px;
-      background:linear-gradient(180deg,rgba(255,255,255,.05),transparent); }
-    .stage{ position:relative;width:100%;aspect-ratio:6000/4000; background:center / 100% 100% no-repeat; }
-
-    .hotspot{ position:absolute;display:grid;place-items:center; transform:translate(-50%,-50%);cursor:pointer;
-      font-weight:800;color:#333;font-size:14px;letter-spacing:.6px; border:3px solid transparent;
-      transition:transform .2s ease, opacity .2s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease; }
-    .hotspot.circle{ border-radius:50%; } 
-    .hotspot.oval{ border-radius:9999px; padding:6px 16px; }
-    .hotspot.pill{ position:absolute; transform:none; border-radius:9999px; padding:10px 18px; font-size:16px; }
-    .hotspot:not(.pill){font-size:0; line-height:0;}
-    .hotspot.locked{ pointer-events:none; opacity:0.3; background:rgba(74,74,74,0.3); border-color:var(--locked); }
-    .hotspot.clickable{ pointer-events:auto; background:rgba(248,250,252,0.2); border-color:#333; animation:megaPulse 1.1s ease-in-out infinite; }
-    .hotspot.clickable:hover{ transform:translate(-50%,-50%) scale(1.05); }
-    .hotspot.pill.clickable{ background:var(--active); }
-    .hotspot.pill.clickable:hover{ transform:none; }
-    .hotspot.done{ pointer-events:auto; background:rgba(11,36,44,0.3); border-color:#fff; color:#fff; box-shadow:0 0 0 3px rgba(11,36,44,.5); }
-    .hotspot.pill.done{ background:var(--completed); }
-
-    .hotspot::before{
-      content: attr(data-number);
-      position: absolute;
-      top: var(--badge-offset);
-      left: var(--badge-offset);
-      width: var(--badge-size);
-      height: var(--badge-size);
-      display: grid;
-      place-items: center;
-      background:#333; color:#fff; border-radius:50%;
-      font-size:12px; font-weight:700; z-index:2; pointer-events:none;
-    }
-    .hotspot.done::after{
-      content: '✓';
-      position: absolute;
-      top: var(--badge-offset); right: var(--badge-offset);
-      width: var(--badge-size); height: var(--badge-size);
-      display: grid; place-items:center;
-      background:#22c55e; color:#fff; border-radius:50%;
-      font-size:12px; font-weight:700; z-index:2; pointer-events:none;
-    }
-    .hotspot.pill::before{ top:-2px; left:-2px }
-    .hotspot.pill.done::after{ top:-2px; right:-2px }
-
-    @keyframes megaPulse{ 
-      0%{box-shadow:0 0 0 0 rgba(248,250,252,.8), 0 0 20px 4px rgba(248,250,252,.6)}
-      50%{box-shadow:0 0 0 12px rgba(248,250,252,0), 0 0 35px 12px rgba(248,250,252,.9)}
-      100%{box-shadow:0 0 0 0 rgba(248,250,252,0), 0 0 20px 4px rgba(248,250,252,.6)} 
-    }
-
-    .inner-window{ position:absolute;display:none;flex-direction:column;z-index:20;background:#000;border-radius:16px;
-      box-shadow:0 0 40px rgba(0,0,0,.8);overflow:hidden; }
-    .inner-window.active{display:flex}
-    .inner-window.large{ top:8%; left:8%; width:84%; height:84%; }
-    .inner-window.small{ right:3%; bottom:6%; width:min(520px, 46%); max-height:60%; }
-
-    .inner-window header{ background:#1a1a1a;color:#fff;padding:10px 12px;font-weight:700;
-      display:flex;justify-content:space-between;align-items:center;gap:8px; }
-    .inner-window header .right{display:flex;gap:8px;align-items:center}
-    .header-real-life-btn{ background:rgba(0,0,0,.8); color:#fff; border:2px solid #00e0ff; border-radius:8px; padding:8px 12px; font-size:14px; cursor:pointer; transition:all .2s ease; }
-    .header-real-life-btn:hover{ background:rgba(0,224,255,.2); }
-
-    .viewer{ flex:1; display:flex; flex-direction:column; gap:12px; align-items:stretch; padding:12px; background:#000; height:100%; min-height:0; }
-    .mediaArea{ position:relative; flex:1; min-height:0; display:grid; place-items:center; overflow:hidden; border-radius:10px; background:#000; }
-    .mediaArea video, .mediaArea img{ max-width:100%; max-height:100%; width:100%; height:100%; object-fit:contain; border-radius:8px; }
-    .caption{ position:absolute; left:12px; right:auto; bottom:12px; display:inline-block; width:fit-content; max-width:calc(100% - 24px); background:rgba(0,0,0,.65); color:#fff; padding:10px 12px; border-radius:10px; font-size:16px; line-height:1.35; pointer-events:none; z-index:2; white-space:pre-wrap; overflow-wrap:anywhere; }
-
-    .audio-ui{ flex:0 0 auto; width:100%; display:grid; gap:10px; }
-    .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
-    .biglabel{font-weight:700}
-    .controls{display:flex;gap:10px;flex-wrap:wrap}
-    .btn{ background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2); padding:8px 12px;border-radius:8px;cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; min-width:40px; }
-    .btn[disabled]{opacity:.5;cursor:not-allowed}
-    .btn[title]:hover::after{ content:attr(title); position:absolute; bottom:120%; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:12px; white-space:nowrap; z-index:100; }
-    .bar{ position:relative;height:14px;border-radius:9999px;overflow:hidden; background:linear-gradient(90deg, rgba(255,255,255,.12), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.2); pointer-events:none; }
-    .fill{ position:absolute;inset:0 auto 0 0;width:0%; background:linear-gradient(90deg, #00e0ff, #22c55e); box-shadow:0 0 10px rgba(0,224,255,.9); }
-    .time{font-variant-numeric:tabular-nums}
-
-    .viewer-actions{ display:flex; gap:12px; align-items:center; justify-content:flex-end; padding-top:12px; }
-    .next-btn{ background:#00e0ff; color:#000; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer; transition:all .2s ease; }
-    .next-btn:hover{ background:#22c55e; }
-    .close-btn{ background:#666; color:#fff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; }
-
-    .chapter-complete-overlay{ position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.8); backdrop-filter:blur(4px); z-index:9998; }
-    .chapter-complete-dialog{ background:#0f1216; border:1px solid rgba(255,255,255,.15); border-radius:16px; padding:24px; width:min(480px,90vw); box-shadow:0 20px 60px rgba(0,0,0,.7); text-align:center; }
-    .chapter-complete-dialog h2{ margin:0 0 16px 0; font-size:24px; color:#22c55e; }
-    .chapter-complete-dialog p{ margin:0 0 20px 0; color:#cfd7e3; line-height:1.5; }
-    .chapter-complete-dialog .actions{ display:flex; gap:12px; justify-content:center; }
-    .chapter-complete-dialog .btn{ background:#2a2a2a; color:#fff; border:1px solid rgba(255,255,255,.2); padding:12px 20px; border-radius:10px; cursor:pointer; font-weight:600; transition:background .2s ease; }
-    .chapter-complete-dialog .btn.primary{ background:#00e0ff; color:#000; }
-    .chapter-complete-dialog .btn:hover{ background:#3a3a3a; }
-    .chapter-complete-dialog .btn.primary:hover{ background:#22c55e; }
-
-    .startup {
-      position: fixed; inset: 0; display:none; place-items: center;
-      background: rgba(0,0,0,.7); backdrop-filter: blur(2px); z-index: 9999;
-    }
-    .startup .panel {
-      background: #0f1216; border: 1px solid rgba(255,255,255,.15); border-radius: 16px;
-      padding: 20px; width: min(520px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.6);
-    }
-    .startup h1 { margin: 0 0 8px 0; font-size: 18px; letter-spacing: .2px; }
-    .startup p { margin: 0 0 14px 0; color:#cfd7e3; font-size:14px; }
-    .startup .actions { display:flex; gap:10px; flex-wrap:wrap; }
-    .startup .actions .btn { background:#2a2a2a;color:#fff;border:1px solid rgba(255,255,255,.2);
-      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600; }
-    .startup .hint { font-size:12px; opacity:.85; margin-top:10px; color:#99a3b3; }
-    .startup .drop { margin-top:12px; padding:14px; border:1px dashed rgba(255,255,255,.25); border-radius:12px;
-      text-align:center; color:#cfd7e3; font-size:13px; }
-    .startup .drop.dragover { background: rgba(255,255,255,.06); }
-    input[type="file"]#configPicker { display:none; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="frame" role="main" aria-label="Training Module">
-    <div class="titlebar" id="moduleTitle">Loading…</div>
+    <div class="titlebar">
+      <img src="favicon.ico" alt="Logo" class="logo" onerror="this.style.display='none'">
+      <span class="title-text" id="moduleTitle">Loading…</span>
+    </div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">Training Modules</div>
+      <ul class="module-list" id="moduleList"></ul>
+    </aside>
     <section class="stage" aria-label="Main visual with hotspots" id="stage">
       <div id="innerWindow" class="inner-window" aria-modal="true" role="dialog" aria-label="Content viewer">
         <header>
@@ -147,23 +29,163 @@
   </main>
 
   <div id="startup" class="startup" aria-modal="true" role="dialog">
-    <div class="panel" id="panel">
-      <h1>Select a module JSON</h1>
-      <p>Choose a config file, drag & drop, or load via <code>?config=URL</code>.</p>
-      <div class="actions">
-        <button id="pickBtn" class="btn">Choose config JSON</button>
+    <div class="panel">
+      <h1>Select Module Files</h1>
+      <p>Upload your JSON config and transcript file to begin.</p>
+      
+      <div style="display:grid;gap:12px;margin:16px 0">
+        <div class="file-upload-box">
+          <div class="file-label">1. Module JSON (Required)</div>
+          <button id="pickJsonBtn" class="btn" style="width:100%">Choose JSON File</button>
+          <div id="jsonStatus" class="file-status">No file selected</div>
+        </div>
+        
+        <div class="file-upload-box">
+          <div class="file-label">2. Transcript TXT (Optional)</div>
+          <button id="pickTxtBtn" class="btn" style="width:100%">Choose Transcript File</button>
+          <div id="txtStatus" class="file-status">No file selected</div>
+        </div>
       </div>
-      <div id="drop" class="drop" aria-label="Drop JSON here">Drop JSON here</div>
-      <div class="hint" id="hint"></div>
+      
+      <button id="loadBtn" class="btn" style="width:100%;background:#00e0ff;color:#000;font-weight:700;padding:12px" disabled>Load Module</button>
+      
+      <div id="drop" class="drop" aria-label="Or drop JSON here" style="margin-top:16px">Or drag & drop JSON here</div>
+      <div class="hint" id="hint" style="margin-top:12px"></div>
     </div>
   </div>
+  
   <input id="configPicker" type="file" accept=".json,application/json" />
+  <input id="transcriptPicker" type="file" accept=".txt,text/plain" />
 
   <script>
   "use strict";
 
-  const LocalDebugMode = false;
+  const LocalDebugMode = true;
   const MODULE_SEQUENCE = ['2-1.json','2-2.json','2-3.json'];
+
+  const TRAINING_STRUCTURE = [
+    {
+      id: 'module-1',
+      name: 'Module 1: Fire Safety',
+      chapters: [
+        {
+          id: 'chapter-1-1',
+          name: 'Chapter 1: Emergency Evacuation',
+          segments: ['Intro', 'Evacuation Basics', 'Host & Guest Plan', 'Exit Signage', 'Emergency Manual', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-1-2',
+          name: 'Chapter 2: Emergency Egress',
+          segments: ['Intro', 'Keeping Exit Paths Clear', 'Fire Ladders', 'Exit Signage', 'Flashlights', 'Lighting the Property', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-1-3',
+          name: 'Chapter 3: Fire Extinguishers',
+          segments: ['Intro', 'Accessibility & Placement', 'Compliance, Tagging & Condition', 'Types of Extinguishers', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-1-4',
+          name: 'Chapter 4: Fire Alarm Systems',
+          segments: ['Intro', 'What They Look Like & Where to Place Them', 'Local vs. Interconnected Systems', 'Common Brands', 'Testing & Monitoring Requirements', 'Showing Detectors to Inspectors', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-1-5',
+          name: 'Chapter 5: General Safety & Maintenance',
+          segments: ['Intro', 'Electrical Systems & Breaker Boxes', 'Outlets', 'Heating Types in the Home', 'Standards for Open Flames', 'Certification & Training', 'Flammable Gas Storage', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-2',
+      name: 'Module 2: Facility Planning',
+      chapters: [
+        {
+          id: 'chapter-2-1',
+          name: 'Chapter 1: Utilities',
+          segments: ['Intro', 'What Utilities Are & Why They Matter', 'Alternative Heating Sources', 'Air Conditioning Units', 'Water Availability', 'WiFi Access & Standards', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-2-2',
+          name: 'Chapter 2: Hazards',
+          segments: ['Intro', 'Common Hazards in Homes', 'What Hazards Are & How to Identify Them', 'Weathertight Properties', 'Sewer Systems', 'Pests & Pest Programs', 'Odor & Smoking Policies', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-2-3',
+          name: 'Chapter 3: Other Considerations',
+          segments: ['Intro', 'Safe Spaces in the Home', 'Noise Levels & Standards', 'Hypothetical Example', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-3',
+      name: 'Module 3: First Aid, Hazard Awareness',
+      chapters: [
+        {
+          id: 'chapter-3-1',
+          name: 'Chapter 1: First Aid Training',
+          segments: ['Intro', 'First Aid Kits', 'The GuestGuard First Aid Logbook', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-3-2',
+          name: 'Chapter 2: General Considerations',
+          segments: ['Intro', 'Understanding General Hazards', 'Walkways & Pathways', 'Landscaping & Security Risks', 'Hypothetical Example', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-4',
+      name: 'Module 4: Personal Safety',
+      chapters: [
+        {
+          id: 'chapter-4-1',
+          name: 'Chapter 1: Property Entry',
+          segments: ['Intro', 'Types of Locks', 'Guest Safes', 'Exterior Considerations', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-4-2',
+          name: 'Chapter 2: Other Considerations',
+          segments: ['Intro', 'Privacy & Facilities', 'Deeper', 'Hypothetical Example', 'Party Rules', 'Closing']
+        },
+        {
+          id: 'chapter-4-3',
+          name: 'Chapter 3: Weapons',
+          segments: ['Intro', 'Optional Opt-In for Hosts', 'The GuestGuard Process', 'Benefits of Opting In', 'Hypothetical Example', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-5',
+      name: 'Module 5: Amenities, Pets, Cleanliness, Appliances',
+      chapters: [
+        {
+          id: 'chapter-5-1',
+          name: 'Chapter 1: Amenities',
+          segments: ['Intro', 'Why Amenities Matter', 'Specific Amenities for Hosts to Consider', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-5-2',
+          name: 'Chapter 2: Pets',
+          segments: ['Intro', 'Benefits of Allowing Pets', 'What to Communicate', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-5-3',
+          name: 'Chapter 3: General Appliances',
+          segments: ['Intro', 'Key Appliances in a Property', 'Furnace and Boiler Systems', 'Safety & Utilities Reminder', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-6',
+      name: 'Module 6: Universal Accessibility',
+      chapters: [
+        {
+          id: 'chapter-6-1',
+          name: 'Chapter 1: Accessibility Accommodations',
+          segments: ['Intro', 'Measurements', 'Accessible Bathroom', 'Accessible Bedroom', 'Accessible Common Spaces', 'Parking Considerations', 'Host Access', 'Additional Items', 'Closing']
+        }
+      ]
+    }
+  ];
 
   const fmt = (t)=>`${Math.floor(t/60)}:${Math.floor(t%60).toString().padStart(2,'0')}`;
   const tcToSeconds = (tc, FPS=30)=>{
@@ -189,7 +211,7 @@
   const isAbsoluteUrl = (p)=>/^([a-z]+:)?\/\//i.test(p) || p.startsWith('/');
 
   class ModularTrainingSystem {
-    constructor(config, currentModuleIndex=0, modulePath=null){
+    constructor(config, currentModuleIndex=0, modulePath=null, transcriptText=null){
       this.config = config;
       this.currentModuleIndex = currentModuleIndex;
       this.FPS = 30;
@@ -197,11 +219,38 @@
       this.SCHEMA_VERSION = 4;
       this.seg = {start:0,end:0,active:false,rafId:null,currentId:null,currentVideo:null};
       this.realLifeIndex = 0;
+      this.captions = [];
+      this.currentCaptionElement = null;
+      this.transcriptText = transcriptText;
 
-      this.moduleUrl = modulePath ? new URL(modulePath, window.location.href) : new URL(window.location.href);
-      this.moduleBase = new URL('.', this.moduleUrl).href;
+      if (modulePath && modulePath.includes('/')) {
+        this.moduleUrl = new URL(modulePath, window.location.href);
+        this.moduleFilename = this.moduleUrl.pathname.split('/').pop();
+        this.moduleBase = new URL('.', this.moduleUrl).href;
+      } else if (modulePath) {
+        this.moduleFilename = modulePath;
+        this.moduleUrl = new URL(window.location.href);
+        this.moduleBase = new URL('.', this.moduleUrl).href;
+      } else {
+        this.moduleUrl = new URL(window.location.href);
+        this.moduleFilename = this.moduleUrl.pathname.split('/').pop();
+        this.moduleBase = new URL('.', this.moduleUrl).href;
+      }
+
+      console.log('📄 Module filename:', this.moduleFilename);
 
       this.init();
+      this.setupVisibilityHandler();
+    }
+
+    setupVisibilityHandler(){
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          if (this.seg.active && !this.audio.paused) {
+            this.pauseViewer();
+          }
+        }
+      });
     }
 
     resolveAsset(p){
@@ -210,13 +259,298 @@
       return new URL(p, this.moduleBase).href;
     }
 
-    init(){
+    async init(){
       this.initStorage();
       this.cacheDOM();
+      await this.loadTranscript();
       this.applyConfigBasics();
       this.createHotspots();
+      this.buildChapterList();
       this.wireHotspotClicks();
       this.applyStatesLinear();
+    }
+
+    buildChapterList(){
+      const moduleList = document.getElementById('moduleList');
+      moduleList.replaceChildren();
+
+      console.log('=== BUILDING CHAPTER LIST ===');
+      console.log('Module Filename:', this.moduleFilename);
+      
+      const match = this.moduleFilename.match(/(\d+)-(\d+)\.json/);
+      let targetModuleNum = null;
+      let targetChapterNum = null;
+      
+      if (match) {
+        targetModuleNum = parseInt(match[1], 10);
+        targetChapterNum = parseInt(match[2], 10);
+        console.log('🎯 DETECTED FROM FILENAME: Module', targetModuleNum, 'Chapter', targetChapterNum);
+      } else {
+        console.warn('⚠️ Could not parse module/chapter from filename:', this.moduleFilename);
+      }
+      
+      const targetModuleId = targetModuleNum ? `module-${targetModuleNum}` : null;
+      const targetChapterId = (targetModuleNum && targetChapterNum) ? `chapter-${targetModuleNum}-${targetChapterNum}` : null;
+      
+      console.log('Target Module ID:', targetModuleId);
+      console.log('Target Chapter ID:', targetChapterId);
+
+      TRAINING_STRUCTURE.forEach((module, modIdx) => {
+        const moduleGroup = el('li', {class: 'module-group'});
+        
+        const moduleHeader = el('div', {
+          class: 'module-header',
+          'data-module-id': module.id
+        }, [
+          el('div', {class: 'module-expand-icon'}, '▶'),
+          el('div', {class: 'module-name'}, module.name)
+        ]);
+        
+        const chapterList = el('ul', {class: 'chapter-list'});
+        
+        module.chapters.forEach((chapter, chapIdx) => {
+          const chapterGroup = el('li', {class: 'chapter-group'});
+          
+          const chapterHeader = el('div', {
+            class: 'chapter-header',
+            'data-chapter-id': chapter.id
+          }, [
+            el('div', {class: 'chapter-expand-icon'}, '▶'),
+            el('div', {class: 'chapter-title'}, chapter.name)
+          ]);
+          
+          const segmentList = el('ul', {class: 'segment-list'});
+          
+          chapter.segments.forEach((segmentName, segIdx) => {
+            const isTargetChapter = (module.id === targetModuleId && chapter.id === targetChapterId);
+            
+            let hotspot = null;
+            if (isTargetChapter) {
+              hotspot = (this.config.hotspots || []).find(h => {
+                const {title} = this.getTitleAndBody(h.content || h.text || '');
+                const name = title || h.label || '';
+                const normalize = (s) => s.toLowerCase().trim().replace(/[^\w\s]/g, '');
+                const match = normalize(name).includes(normalize(segmentName)) || 
+                       normalize(segmentName).includes(normalize(name)) ||
+                       name === segmentName;
+                
+                if (match) {
+                  console.log(`✓ MATCHED: "${segmentName}" (${module.name} > ${chapter.name}) → "${name}" (hotspot ${h.id})`);
+                }
+                
+                return match;
+              });
+            }
+            
+            const segmentId = hotspot ? hotspot.id : `${chapter.id}-seg-${segIdx}`;
+            
+            const segmentItem = el('li', {
+              class: 'segment-item' + (hotspot ? '' : ' not-loaded'),
+              'data-id': segmentId,
+              'data-has-hotspot': hotspot ? 'true' : 'false'
+            }, [
+              el('div', {class: 'segment-badge'}, String(segIdx + 1)),
+              el('div', {class: 'segment-name'}, segmentName)
+            ]);
+            
+            if (hotspot) {
+              segmentItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!segmentItem.classList.contains('locked')) {
+                  const button = this.buttons[hotspot.id];
+                  if (button) this.openFor(button);
+                }
+              });
+            } else {
+              segmentItem.classList.add('locked');
+              segmentItem.style.opacity = '0.3';
+            }
+            
+            segmentList.appendChild(segmentItem);
+          });
+          
+          chapterHeader.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isExpanded = chapterHeader.classList.toggle('expanded');
+            segmentList.classList.toggle('expanded', isExpanded);
+          });
+          
+          chapterGroup.appendChild(chapterHeader);
+          chapterGroup.appendChild(segmentList);
+          chapterList.appendChild(chapterGroup);
+        });
+        
+        moduleHeader.addEventListener('click', () => {
+          const isExpanded = moduleHeader.classList.toggle('expanded');
+          chapterList.classList.toggle('expanded', isExpanded);
+        });
+        
+        moduleGroup.appendChild(moduleHeader);
+        moduleGroup.appendChild(chapterList);
+        moduleList.appendChild(moduleGroup);
+      });
+
+      this.updateChapterList();
+    }
+
+    updateChapterList(){
+      const moduleList = document.getElementById('moduleList');
+      const segmentItems = moduleList.querySelectorAll('.segment-item');
+      const chapterHeaders = moduleList.querySelectorAll('.chapter-header');
+      const moduleHeaders = moduleList.querySelectorAll('.module-header');
+      
+      console.log('=== UPDATE CHAPTER LIST ===');
+      console.log('Total segments in sidebar:', segmentItems.length);
+      console.log('Completed segments:', Array.from(this.done));
+      
+      let foundCurrent = false;
+      let currentSegmentElement = null;
+      
+      segmentItems.forEach((item) => {
+        const hasHotspot = item.getAttribute('data-has-hotspot') === 'true';
+        if (!hasHotspot) return;
+        
+        const id = item.getAttribute('data-id');
+        item.classList.remove('locked', 'current', 'completed');
+        item.style.opacity = '';
+        
+        if (this.done.has(id)) {
+          item.classList.add('completed');
+        } else if (!foundCurrent) {
+          item.classList.add('current');
+          foundCurrent = true;
+          currentSegmentElement = item;
+          
+          const segmentName = item.querySelector('.segment-name').textContent;
+          const chapterHeader = item.closest('.chapter-group').querySelector('.chapter-header');
+          const chapterName = chapterHeader.querySelector('.chapter-title').textContent;
+          const moduleHeader = item.closest('.module-group').querySelector('.module-header');
+          const moduleName = moduleHeader.querySelector('.module-name').textContent;
+          
+          console.log('🎯 CURRENT SEGMENT:', segmentName);
+          console.log('   └─ Chapter:', chapterName);
+          console.log('   └─ Module:', moduleName);
+        } else {
+          item.classList.add('locked');
+        }
+      });
+      
+      chapterHeaders.forEach((header) => {
+        const segmentList = header.nextElementSibling;
+        const segments = Array.from(segmentList.querySelectorAll('.segment-item'))
+          .filter(seg => seg.getAttribute('data-has-hotspot') === 'true');
+        
+        const allCompleted = segments.length > 0 && segments.every(seg => seg.classList.contains('completed'));
+        const hasCurrent = segments.some(seg => seg.classList.contains('current'));
+        
+        header.classList.remove('has-current', 'all-completed', 'expanded');
+        segmentList.classList.remove('expanded');
+        
+        if (hasCurrent) {
+          header.classList.add('has-current', 'expanded');
+          segmentList.classList.add('expanded');
+          const chapterName = header.querySelector('.chapter-title').textContent;
+          console.log('📂 EXPANDING CHAPTER:', chapterName);
+        } else if (allCompleted) {
+          header.classList.add('all-completed');
+        }
+      });
+      
+      moduleHeaders.forEach((header) => {
+        const chapterList = header.nextElementSibling;
+        const chapters = chapterList.querySelectorAll('.chapter-header');
+        
+        const hasCurrentChapter = Array.from(chapters).some(ch => ch.classList.contains('has-current'));
+        
+        header.classList.remove('current-module', 'expanded');
+        chapterList.classList.remove('expanded');
+        
+        if (hasCurrentChapter) {
+          header.classList.add('current-module', 'expanded');
+          chapterList.classList.add('expanded');
+          const moduleName = header.querySelector('.module-name').textContent;
+          console.log('📦 EXPANDING MODULE:', moduleName);
+        }
+      });
+      
+      if (currentSegmentElement) {
+        setTimeout(() => {
+          const sidebar = document.getElementById('sidebar');
+          if (sidebar) {
+            const itemRect = currentSegmentElement.getBoundingClientRect();
+            const sidebarRect = sidebar.getBoundingClientRect();
+            const scrollTop = currentSegmentElement.offsetTop - sidebar.offsetTop - (sidebarRect.height / 2) + (itemRect.height / 2);
+            sidebar.scrollTo({ top: scrollTop, behavior: 'smooth' });
+          }
+        }, 100);
+      }
+    }
+
+    async loadTranscript(){
+      if (this.transcriptText) {
+        this.captions = this.parseTranscript(this.transcriptText);
+        console.log('Loaded captions from provided text:', this.captions.length);
+        return;
+      }
+      
+      if (!this.config.transcriptFile) return;
+      
+      try {
+        const transcriptUrl = this.resolveAsset(this.config.transcriptFile);
+        const response = await fetch(transcriptUrl);
+        const text = await response.text();
+        this.captions = this.parseTranscript(text);
+        console.log('Loaded captions from file:', this.captions.length);
+      } catch(e) {
+        console.warn('Failed to load transcript:', e.message);
+      }
+    }
+
+    parseTranscript(text){
+      const captions = [];
+      const lines = text.split('\n');
+      let i = 0;
+      
+      while(i < lines.length){
+        const line = lines[i].trim();
+        
+        if (line.match(/^\d{2};\d{2};\d{2};\d{2}\s*-\s*\d{2};\d{2};\d{2};\d{2}$/)){
+          const [start, end] = line.split('-').map(tc => tcToSeconds(tc.trim(), this.FPS));
+          i++;
+          
+          let captionText = '';
+          while(i < lines.length && !lines[i].match(/^\d{2};\d{2};\d{2};\d{2}\s*-/)){
+            if (lines[i].trim()){
+              captionText += (captionText ? ' ' : '') + lines[i].trim();
+            }
+            i++;
+          }
+          
+          if (captionText){
+            captions.push({ start, end, text: captionText });
+          }
+        } else {
+          i++;
+        }
+      }
+      
+      return captions;
+    }
+
+    findCaptionForTime(time){
+      return this.captions.find(cap => time >= cap.start && time < cap.end);
+    }
+
+    updateCaption(time){
+      if (!this.currentCaptionElement) return;
+      
+      const caption = this.findCaptionForTime(time);
+      if (caption){
+        this.currentCaptionElement.textContent = caption.text;
+        this.currentCaptionElement.style.display = 'inline-block';
+      } else {
+        this.currentCaptionElement.style.display = 'none';
+      }
     }
 
     initStorage(){
@@ -332,6 +666,7 @@
         if (this.done.has(id)) this.setState(this.buttons[id],'done');
         else if (!unlockedOne){ this.setState(this.buttons[id],'clickable'); unlockedOne=true; }
       });
+      this.updateChapterList();
     }
 
     buildAudioUI(total){
@@ -368,11 +703,33 @@
     }
 
     closeViewer(){
-      this.innerWindow.classList.remove('active');
-      this.viewer.replaceChildren();
-      if (this.seg.currentVideo){ this.seg.currentVideo.pause(); this.seg.currentVideo=null; }
-      if (!this.audio.paused) this.audio.pause();
-      this.seg.active=false; cancelAnimationFrame(this.seg.rafId);
+      this.innerWindow.style.opacity = '0';
+      
+      setTimeout(() => {
+        this.innerWindow.classList.remove('active', 'animating');
+        this.viewer.replaceChildren();
+        if (this.seg.currentVideo){ this.seg.currentVideo.pause(); this.seg.currentVideo=null; }
+        if (!this.audio.paused) this.audio.pause();
+        this.seg.active=false; cancelAnimationFrame(this.seg.rafId);
+        this.currentCaptionElement = null;
+        
+        this.innerWindow.style.top = '';
+        this.innerWindow.style.left = '';
+        this.innerWindow.style.width = '';
+        this.innerWindow.style.height = '';
+        this.innerWindow.style.opacity = '';
+        
+        const header = this.innerWindow.querySelector('header');
+        const viewer = this.innerWindow.querySelector('#viewer');
+        if (header) {
+          header.style.transform = '';
+          header.style.opacity = '';
+        }
+        if (viewer) {
+          viewer.style.transform = '';
+          viewer.style.opacity = '';
+        }
+      }, 300);
     }
 
     showChapterCompleteDialog(){
@@ -438,6 +795,9 @@
         const elapsed = now - this.seg.start;
         if (fill) fill.style.width = `${(elapsed/total)*100}%`;
         if (tcur) tcur.textContent = fmt(elapsed);
+        
+        this.updateCaption(now);
+        
         if (now >= this.seg.end - 0.02){
           this.audio.pause();
           if (this.seg.currentVideo) this.seg.currentVideo.pause();
@@ -456,7 +816,7 @@
           if (this.seg.currentVideo){ 
             this.seg.currentVideo.play().catch(()=>{}); 
           }
-          if (playPause) playPause.textContent='❚❚';
+          if (playPause) playPause.textContent='⏸';
           if (status) status.textContent='Playing';
           cancelAnimationFrame(this.seg.rafId);
           this.seg.rafId = requestAnimationFrame(syncUI);
@@ -479,7 +839,7 @@
             } else {
               this.audio.play().then(()=>{
                 if (this.seg.currentVideo) this.seg.currentVideo.play().catch(()=>{});
-                playPause.textContent='❚❚';
+                playPause.textContent='⏸';
                 if (status) status.textContent='Playing';
                 cancelAnimationFrame(this.seg.rafId);
                 this.seg.rafId = requestAnimationFrame(syncUI);
@@ -510,15 +870,21 @@
       const e = tcToSeconds(h.tcEnd, this.FPS);
       const {title, body} = this.getTitleAndBody(h.content || h.text || '');
 
+      console.log('=== ANIMATION DEBUG START ===');
+      console.log('Button clicked:', button.id);
+
       this.viewer.replaceChildren();
       this.viewerTitle.textContent = title || 'Narration';
-      this.innerWindow.classList.remove('small','large');
+      this.innerWindow.classList.remove('small','large','animating');
 
       const hasVideo = h.video || (h.contentMedia && h.contentMedia.type === 'video');
       const hasImage = h.contentMedia && h.contentMedia.type === 'image';
+      const hasCaptions = this.captions.length > 0;
+      
+      const sizeClass = (hasVideo || hasImage) ? 'large' : 'small';
+      console.log('Window size class:', sizeClass);
       
       if (hasVideo || hasImage){
-        this.innerWindow.classList.add('large');
         const media = el('div',{class:'mediaArea'});
         
         if (hasVideo) {
@@ -534,12 +900,22 @@
           media.appendChild(img);
         }
         
-        media.appendChild(el('div',{class:'caption'},body));
+        if (hasCaptions) {
+          const captionEl = el('div',{class:'caption'}, '');
+          this.currentCaptionElement = captionEl;
+          media.appendChild(captionEl);
+        }
         this.viewer.appendChild(media);
       } else {
-        this.innerWindow.classList.add('small');
-        const wrap = el('div',{class:'subs-only'});
-        wrap.appendChild(el('div',{class:'subs-text'}, body));
+        const wrap = el('div',{class:'subs-only', style:'flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative'});
+        
+        if (hasCaptions) {
+          const captionEl = el('div',{class:'caption', style:'position:static;max-width:100%;font-size:20px;line-height:1.6'}, '');
+          this.currentCaptionElement = captionEl;
+          wrap.appendChild(captionEl);
+        } else {
+          wrap.appendChild(el('div',{class:'subs-text', style:'text-align:center;font-size:18px;line-height:1.6;color:#e9eef5'}, body));
+        }
         this.viewer.appendChild(wrap);
       }
 
@@ -553,8 +929,118 @@
       }
 
       this.viewer.appendChild(this.buildAudioUI(Math.max(0.01, e - s)));
-      this.innerWindow.classList.add('active');
-      this.wireAudioSegment(s, e, id);
+      
+      const buttonRect = button.getBoundingClientRect();
+      const stageRect = this.stage.getBoundingClientRect();
+      
+      console.log('Button rect:', {
+        left: buttonRect.left,
+        top: buttonRect.top,
+        width: buttonRect.width,
+        height: buttonRect.height
+      });
+      console.log('Stage rect:', {
+        left: stageRect.left,
+        top: stageRect.top,
+        width: stageRect.width,
+        height: stageRect.height
+      });
+      
+      const buttonCenterX = buttonRect.left + buttonRect.width / 2 - stageRect.left;
+      const buttonCenterY = buttonRect.top + buttonRect.height / 2 - stageRect.top;
+      
+      console.log('Button center relative to stage:', {x: buttonCenterX, y: buttonCenterY});
+      
+      let finalWidth, finalHeight, finalTop, finalLeft;
+      
+      if (sizeClass === 'large') {
+        finalWidth = stageRect.width * 0.84;
+        finalHeight = stageRect.height * 0.84;
+        finalTop = stageRect.height * 0.08;
+        finalLeft = stageRect.width * 0.08;
+      } else {
+        finalWidth = Math.min(520, stageRect.width * 0.46);
+        finalHeight = stageRect.height * 0.60;
+        finalTop = stageRect.height * 0.34;
+        finalLeft = stageRect.width * 0.51;
+      }
+      
+      console.log('Calculated final dimensions:', {
+        width: finalWidth + 'px',
+        height: finalHeight + 'px',
+        top: finalTop + 'px',
+        left: finalLeft + 'px'
+      });
+      
+      this.innerWindow.classList.add('active', sizeClass);
+      
+      const initialTop = `${buttonCenterY - 5}px`;
+      const initialLeft = `${buttonCenterX - 5}px`;
+      
+      console.log('Initial position (10px at button):', {
+        top: initialTop,
+        left: initialLeft,
+        width: '10px',
+        height: '10px'
+      });
+      
+      this.innerWindow.style.top = initialTop;
+      this.innerWindow.style.left = initialLeft;
+      this.innerWindow.style.width = '10px';
+      this.innerWindow.style.height = '10px';
+      this.innerWindow.style.opacity = '0';
+      
+      const header = this.innerWindow.querySelector('header');
+      const viewer = this.innerWindow.querySelector('#viewer');
+      if (header) {
+        header.style.transform = 'scale(0.01)';
+        header.style.opacity = '0';
+      }
+      if (viewer) {
+        viewer.style.transform = 'scale(0.01)';
+        viewer.style.opacity = '0';
+      }
+      
+      this.innerWindow.offsetHeight;
+      
+      console.log('Starting LINEAR animation in 100ms...');
+      console.log('Window AND content should grow from 10px to full size');
+      
+      setTimeout(() => {
+        console.log('Animating to final position:', {
+          top: finalTop + 'px',
+          left: finalLeft + 'px',
+          width: finalWidth + 'px',
+          height: finalHeight + 'px'
+        });
+        
+        this.innerWindow.style.top = finalTop + 'px';
+        this.innerWindow.style.left = finalLeft + 'px';
+        this.innerWindow.style.width = finalWidth + 'px';
+        this.innerWindow.style.height = finalHeight + 'px';
+        this.innerWindow.style.opacity = '1';
+        this.innerWindow.classList.add('animating');
+        
+        const header = this.innerWindow.querySelector('header');
+        const viewer = this.innerWindow.querySelector('#viewer');
+        if (header) {
+          header.style.transform = 'scale(1)';
+          header.style.opacity = '1';
+        }
+        if (viewer) {
+          viewer.style.transform = 'scale(1)';
+          viewer.style.opacity = '1';
+        }
+        
+        console.log('LINEAR Animation triggered!');
+        
+        setTimeout(() => {
+          console.log('Animation complete! Starting audio/video now...');
+          this.wireAudioSegment(s, e, id);
+        }, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000);
+      }, 100);
+      
+      console.log('=== ANIMATION DEBUG END ===');
 
       this.stage.onclick = (ev)=>{
         if (ev.target === this.stage) this.pauseViewer();
@@ -646,7 +1132,7 @@
       const goNext = ()=>{ if (idx < imgs.length - 1){ idx++; render(); } };
 
       floatClose.onclick = ()=> overlay.remove();
-      overlay.onclick = (e)=>{ if (e.target === overlay) overlay.remove(); };
+      overlay.onclick = (e)=>{ if (e.target === overlay) overlay.remove();  };
       if (imgs.length > 1){
         prevBtn.onclick = goPrev;
         nextBtn.onclick = goNext;
@@ -682,13 +1168,13 @@
     );
   }
 
-  function loadModule(path, idx){
+  function loadModule(path, idx, transcriptText=null){
     document.getElementById('moduleTitle').textContent = 'Loading…';
     fetch(path)
       .then(r=>{ if(!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
       .then(cfg=>{
         resetStageShell();
-        new ModularTrainingSystem(cfg, idx, path);
+        new ModularTrainingSystem(cfg, idx, path, transcriptText);
       })
       .catch(err=>{
         console.error('Failed to load module:', err);
@@ -701,24 +1187,22 @@
 
     if (LocalDebugMode){
       const startup = document.getElementById('startup');
-      const picker = document.getElementById('configPicker');
-      const pickBtn = document.getElementById('pickBtn');
+      const configPicker = document.getElementById('configPicker');
+      const transcriptPicker = document.getElementById('transcriptPicker');
+      const pickJsonBtn = document.getElementById('pickJsonBtn');
+      const pickTxtBtn = document.getElementById('pickTxtBtn');
+      const loadBtn = document.getElementById('loadBtn');
       const drop = document.getElementById('drop');
       const hint = document.getElementById('hint');
+      const jsonStatus = document.getElementById('jsonStatus');
+      const txtStatus = document.getElementById('txtStatus');
 
       startup.style.display = 'grid';
-      title.textContent = 'Select a module JSON…';
+      title.textContent = 'Select module files…';
 
-      const parseAndInit = (textOrObj, label='') => {
-        try{
-          const cfg = (typeof textOrObj==='string') ? JSON.parse(textOrObj) : textOrObj;
-          startup.remove();
-          resetStageShell();
-          new ModularTrainingSystem(cfg, 0, window.location.href);
-        }catch(e){
-          hint.textContent = 'Invalid JSON: ' + (e?.message || e);
-        }
-      };
+      let jsonConfig = null;
+      let jsonFilename = null;
+      let transcriptText = null;
 
       const readFile = (file)=> new Promise((resolve,reject)=>{
         const r = new FileReader();
@@ -727,12 +1211,59 @@
         r.readAsText(file, 'utf-8');
       });
 
-      pickBtn.addEventListener('click', ()=>{ picker.value=''; picker.click(); });
-      picker.addEventListener('change', async ()=>{
-        const f = picker.files && picker.files[0];
+      const updateLoadButton = () => {
+        loadBtn.disabled = !jsonConfig;
+        if (jsonConfig && transcriptText) {
+          loadBtn.textContent = 'Load Module (with captions)';
+        } else if (jsonConfig) {
+          loadBtn.textContent = 'Load Module (no captions)';
+        } else {
+          loadBtn.textContent = 'Load Module';
+        }
+      };
+
+      pickJsonBtn.addEventListener('click', ()=>{ configPicker.value=''; configPicker.click(); });
+      configPicker.addEventListener('change', async ()=>{
+        const f = configPicker.files && configPicker.files[0];
         if (!f) return;
-        try { parseAndInit(await readFile(f), f.name); }
-        catch(e){ hint.textContent = 'Failed to read file: ' + (e?.message || e); }
+        try { 
+          const text = await readFile(f);
+          jsonConfig = JSON.parse(text);
+          jsonFilename = f.name;
+          console.log('📁 Loaded JSON file:', jsonFilename);
+          jsonStatus.textContent = `✓ ${f.name}`;
+          jsonStatus.classList.add('success');
+          hint.textContent = '';
+          updateLoadButton();
+        }
+        catch(e){ 
+          jsonStatus.textContent = '✗ Invalid JSON';
+          jsonStatus.classList.remove('success');
+          hint.textContent = 'Error: ' + (e?.message || e); 
+        }
+      });
+
+      pickTxtBtn.addEventListener('click', ()=>{ transcriptPicker.value=''; transcriptPicker.click(); });
+      transcriptPicker.addEventListener('change', async ()=>{
+        const f = transcriptPicker.files && transcriptPicker.files[0];
+        if (!f) return;
+        try { 
+          transcriptText = await readFile(f);
+          txtStatus.textContent = `✓ ${f.name}`;
+          txtStatus.classList.add('success');
+          updateLoadButton();
+        }
+        catch(e){ 
+          txtStatus.textContent = '✗ Failed to read';
+          txtStatus.classList.remove('success');
+        }
+      });
+
+      loadBtn.addEventListener('click', ()=>{
+        if (!jsonConfig) return;
+        startup.remove();
+        resetStageShell();
+        new ModularTrainingSystem(jsonConfig, 0, jsonFilename, transcriptText);
       });
 
       ['dragenter','dragover'].forEach(ev=>{
@@ -744,20 +1275,40 @@
       drop.addEventListener('drop', async (e)=>{
         const f = e.dataTransfer.files && e.dataTransfer.files[0];
         if (!f) return;
-        try { parseAndInit(await readFile(f), f.name); }
-        catch(err){ hint.textContent = 'Failed to read dropped file: ' + (err?.message || err); }
+        try { 
+          const text = await readFile(f);
+          jsonConfig = JSON.parse(text);
+          jsonFilename = f.name;
+          console.log('📁 Loaded JSON file (drag & drop):', jsonFilename);
+          jsonStatus.textContent = `✓ ${f.name}`;
+          jsonStatus.classList.add('success');
+          hint.textContent = '';
+          updateLoadButton();
+        }
+        catch(err){ 
+          hint.textContent = 'Failed to read dropped file: ' + (err?.message || err); 
+        }
       });
 
       const params = new URLSearchParams(window.location.search);
       const cfgURL = params.get('config');
       if (cfgURL){
         hint.textContent = 'Loading config from URL…';
+        const urlFilename = cfgURL.split('/').pop();
         fetch(cfgURL)
-          .then(r=>{ if(!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
-          .then(text=>parseAndInit(text, cfgURL))
+          .then(r=>{ if(!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.json(); })
+          .then(cfg=>{ 
+            jsonConfig = cfg;
+            jsonFilename = urlFilename;
+            console.log('📁 Loaded JSON from URL:', jsonFilename);
+            jsonStatus.textContent = '✓ Loaded from URL';
+            jsonStatus.classList.add('success');
+            hint.textContent = 'Config loaded! Add transcript or click Load.';
+            updateLoadButton();
+          })
           .catch(err=>{ hint.textContent = 'Failed to load ?config: ' + (err?.message || err); });
       } else {
-        hint.textContent = 'Pick a JSON file to begin.';
+        hint.textContent = 'Select your JSON and transcript files above.';
       }
 
     } else {
