@@ -195,6 +195,7 @@
     if (autoToken) {
       document.getElementById('tempTokenInput').value = autoToken;
       log('✅ Auto-detected temp_token from URL', 'success');
+      log(`Token: ${autoToken.substring(0, 8)}...${autoToken.substring(autoToken.length - 8)}`, 'info');
     }
     
     function log(message, type = 'info') {
@@ -205,22 +206,40 @@
       logBox.scrollTop = logBox.scrollHeight;
     }
     
+    function extractToken(input) {
+      // If it's a full URL, extract the temp_token parameter
+      if (input.includes('temp_token=')) {
+        const urlParams = new URLSearchParams(input.split('?')[1]);
+        return urlParams.get('temp_token');
+      }
+      // Otherwise return as-is (assuming it's just the token)
+      return input.trim();
+    }
+    
     function showResponse(title, data) {
       const box = document.getElementById('responseDetails');
       box.innerHTML = `<div class="info">${title}</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
     }
     
     async function runFullDiagnostics() {
-      const tempToken = document.getElementById('tempTokenInput').value.trim();
+      const input = document.getElementById('tempTokenInput').value.trim();
+      
+      if (!input) {
+        log('❌ Please enter a temp_token first!', 'error');
+        return;
+      }
+      
+      const tempToken = extractToken(input);
       
       if (!tempToken) {
-        log('❌ Please enter a temp_token first!', 'error');
+        log('❌ Could not extract token from input!', 'error');
         return;
       }
       
       document.getElementById('diagnosticLog').innerHTML = '';
       log('🚀 Starting full diagnostic sequence...', 'info');
       log('═════════════════════════════════════════', 'info');
+      log(`Using token: ${tempToken.substring(0, 8)}...${tempToken.substring(tempToken.length - 8)}`, 'info');
       
       // Test 1: Basic connectivity
       log('', 'info');
@@ -386,14 +405,22 @@
     }
     
     async function testTokenExchange() {
-      const tempToken = document.getElementById('tempTokenInput').value.trim();
+      const input = document.getElementById('tempTokenInput').value.trim();
       
-      if (!tempToken) {
+      if (!input) {
         log('❌ Please enter a temp_token first!', 'error');
         return;
       }
       
+      const tempToken = extractToken(input);
+      
+      if (!tempToken) {
+        log('❌ Could not extract token from input!', 'error');
+        return;
+      }
+      
       document.getElementById('diagnosticLog').innerHTML = '';
+      log(`Using token: ${tempToken.substring(0, 8)}...${tempToken.substring(tempToken.length - 8)}`, 'info');
       await testTokenExchangeDetailed(tempToken);
     }
     
