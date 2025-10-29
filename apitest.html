@@ -3,449 +3,427 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GuestGuard API Diagnostics</title>
+  <title>GuestGuard API Diagnostics (Enhanced)</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'Courier New', monospace;
-      background: #1a1a1a;
-      color: #00ff00;
-      padding: 20px;
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    h1 {
-      color: #00ffff;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #00ffff;
-      padding-bottom: 10px;
-    }
-    
-    h2 {
-      color: #ffff00;
-      margin: 30px 0 15px 0;
-      font-size: 18px;
-    }
-    
-    .test-section {
-      background: #0a0a0a;
-      border: 1px solid #333;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 5px;
-    }
-    
-    .input-group {
-      margin-bottom: 15px;
-    }
-    
-    .input-group label {
-      display: block;
-      color: #888;
-      margin-bottom: 5px;
-      font-size: 12px;
-    }
-    
-    .input-group input {
-      width: 100%;
-      background: #000;
-      border: 1px solid #333;
-      color: #00ff00;
-      padding: 8px;
-      font-family: 'Courier New', monospace;
-    }
-    
-    button {
-      background: #003300;
-      border: 1px solid #00ff00;
-      color: #00ff00;
-      padding: 10px 20px;
-      margin: 5px 5px 5px 0;
-      cursor: pointer;
-      font-family: 'Courier New', monospace;
-      font-weight: bold;
-    }
-    
-    button:hover {
-      background: #004400;
-    }
-    
-    button:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-    
-    .success {
-      color: #00ff00;
-    }
-    
-    .error {
-      color: #ff0000;
-    }
-    
-    .warning {
-      color: #ffff00;
-    }
-    
-    .info {
-      color: #00ffff;
-    }
-    
-    .result-box {
-      background: #000;
-      border: 1px solid #333;
-      padding: 10px;
-      margin: 10px 0;
-      max-height: 400px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      font-size: 11px;
-    }
-    
-    .log-line {
-      margin-bottom: 5px;
-    }
-    
-    .timestamp {
-      color: #666;
-      margin-right: 10px;
-    }
-    
-    pre {
-      margin: 10px 0;
-      padding: 10px;
-      background: #000;
-      border-left: 3px solid #00ff00;
-      overflow-x: auto;
-    }
-    
-    .status-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 3px;
-      margin-left: 10px;
-      font-size: 11px;
-    }
-    
-    .status-200 { background: #003300; color: #00ff00; }
-    .status-400 { background: #333300; color: #ffff00; }
-    .status-401 { background: #330000; color: #ff6666; }
-    .status-500 { background: #330000; color: #ff0000; }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Courier New',monospace;background:#1a1a1a;color:#00ff00;padding:20px;line-height:1.6}
+    .container{max-width:1200px;margin:0 auto}
+    h1{color:#00ffff;margin-bottom:20px;border-bottom:2px solid #00ffff;padding-bottom:10px}
+    h2{color:#ffff00;margin:30px 0 15px 0;font-size:18px}
+    .test-section{background:#0a0a0a;border:1px solid #333;padding:15px;margin-bottom:20px;border-radius:5px}
+    .input-group{margin-bottom:15px}
+    .input-group label{display:block;color:#888;margin-bottom:5px;font-size:12px}
+    .input-group input,.input-group textarea{width:100%;background:#000;border:1px solid #333;color:#00ff00;padding:8px;font-family:'Courier New',monospace}
+    .input-group textarea{min-height:70px;resize:vertical}
+    button{background:#003300;border:1px solid #00ff00;color:#00ff00;padding:10px 20px;margin:5px 5px 5px 0;cursor:pointer;font-family:'Courier New',monospace;font-weight:bold}
+    button:hover{background:#004400}
+    button:disabled{opacity:.3;cursor:not-allowed}
+    .success{color:#00ff00}.error{color:#ff4444}.warning{color:#ffff00}.info{color:#00ffff}
+    .result-box{background:#000;border:1px solid #333;padding:10px;margin:10px 0;max-height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;font-size:11px}
+    .log-line{margin-bottom:5px}
+    .timestamp{color:#666;margin-right:10px}
+    pre{margin:10px 0;padding:10px;background:#000;border-left:3px solid #00ff00;overflow-x:auto}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row > div{flex:1 1 300px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:3px;margin-left:8px;font-size:11px;border:1px solid #333}
+    .ok{background:#003300}.bad{background:#330000}.meh{background:#333300}
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔬 GuestGuard API Diagnostics Tool</h1>
-    
-    <div class="test-section">
-      <h2>📍 Current Environment</h2>
+<div class="container">
+  <h1>🔬 GuestGuard API Diagnostics Tool (Enhanced)</h1>
+
+  <div class="test-section">
+    <h2>📍 Current Environment</h2>
+    <div class="row">
       <div class="result-box">
         <div>Your Origin: <span class="info" id="currentOrigin"></span></div>
         <div>Your Full URL: <span class="info" id="currentURL"></span></div>
         <div>Protocol: <span class="info" id="currentProtocol"></span></div>
-        <div>Target API: <span class="warning">https://guestguard-platform.vercel.app</span></div>
+        <div>Referrer: <span class="info" id="currentReferrer"></span></div>
+        <div>User Agent: <span class="info" id="ua"></span></div>
+        <div>Target API: <span class="warning" id="targetApi"></span></div>
+        <div>Same-Origin With API?: <span id="sameOriginBadge" class="badge meh">checking…</span></div>
       </div>
-    </div>
-    
-    <div class="test-section">
-      <h2>🔑 Token Input</h2>
-      <div class="input-group">
-        <label>Paste your temp_token here:</label>
-        <input type="text" id="tempTokenInput" placeholder="4bb63e6e-3ecd-4989-9c43-c32886d7607c">
-      </div>
-      <button onclick="runFullDiagnostics()">🚀 Run Full Diagnostics</button>
-      <button onclick="testTokenExchange()">🔄 Test Token Exchange Only</button>
-    </div>
-    
-    <div class="test-section">
-      <h2>📊 Diagnostic Results</h2>
-      <div class="result-box" id="diagnosticLog"></div>
-    </div>
-    
-    <div class="test-section">
-      <h2>📦 Last Response Details</h2>
-      <div class="result-box" id="responseDetails"></div>
+      <div class="result-box" id="envHints"></div>
     </div>
   </div>
 
-  <script>
-    const API_BASE = 'https://guestguard-platform.vercel.app';
-    const SUPABASE_URL = 'https://wdjxrewqsltxfntccpda.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkanhyZXdxc2x0eGZudGNjcGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUzMzc4MjMsImV4cCI6MjA1MDkxMzgyM30.iCuZFMf7rRRwsZGSFx95DxUB9YT0fFGg3gQvVVJKJJw';
-    
-    // Initialize
+  <div class="test-section">
+    <h2>🔑 Token Input</h2>
+    <div class="input-group">
+      <label>Paste your <code>temp_token</code> or a full URL that contains it (query or <code>#fragment</code>). You can also paste a raw log line.</label>
+      <textarea id="tempTokenInput" placeholder="temp_token=4bb63e6e-... OR https://...?...&temp_token=4bb63e6e-...#temp_token=..."></textarea>
+    </div>
+    <div class="row">
+      <div>
+        <button onclick="runFullDiagnostics()">🚀 Run Full Diagnostics</button>
+        <button onclick="testTokenExchange()">🔄 Test Token Exchange Only</button>
+      </div>
+      <div>
+        <button onclick="testPreflightReal()">🧪 Trigger Real Preflight (POST + custom header)</button>
+        <button onclick="testSupabaseDirectly()">🔷 Supabase Health</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>🧪 Controls</h2>
+    <div class="row">
+      <div class="result-box">
+        <div><label><input type="checkbox" id="useCredentials"> Send credentials (cookies) <span class="badge meh">credentials: 'include'</span></label></div>
+        <div><label><input type="checkbox" id="forceCorsMode" checked> Force mode: 'cors'</label></div>
+        <div><label><input type="checkbox" id="opaqueAttempt"> Also try mode: 'no-cors' (will produce opaque response)</label></div>
+      </div>
+      <div class="result-box">
+        <div>Request Header Toggle for Preflight:</div>
+        <div><label><input type="checkbox" id="addCustomHeader" checked> Add X-Debug-Trigger: 1</label></div>
+        <div><label><input type="checkbox" id="usePostForPreflight" checked> Use POST with JSON body (common preflight)</label></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>📊 Diagnostic Results</h2>
+    <div class="result-box" id="diagnosticLog"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>📦 Last Response Details</h2>
+    <div class="result-box" id="responseDetails"></div>
+  </div>
+</div>
+
+<script>
+  // ==========================
+  // Config
+  // ==========================
+  const API_BASE = 'https://guestguard-platform.vercel.app';  // NEW/UPDATED
+  const TOKEN_ENDPOINT = `${API_BASE}/api/training-auth`;
+
+  // Optional pattern if your token is UUIDv4; set to null to skip strict validation.
+  const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  const SUPABASE_URL = 'https://wdjxrewqsltxfntccpda.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkanhyZXdxc2x0eGZudGNjcGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUzMzc4MjMsImV4cCI6MjA1MDkxMzgyM30.iCuZFMf7rRRwsZGSFx95DxUB9YT0fFGg3gQvVVJKJJw';
+
+  // ==========================
+  // UI / Logging helpers
+  // ==========================
+  const logBox = () => document.getElementById('diagnosticLog');
+  function log(message, type='info'){
+    const ts = new Date().toLocaleTimeString();
+    logBox().innerHTML += `<div class="log-line"><span class="timestamp">[${ts}]</span><span class="${type}">${message}</span></div>`;
+    logBox().scrollTop = logBox().scrollHeight;
+  }
+  function hr(){ log('────────────────────────────────────────', 'info'); }
+  function showResponse(title, data){
+    const box = document.getElementById('responseDetails');
+    box.innerHTML = `<div class="info">${title}</div><pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+  }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function dumpHeaders(h){
+    const out = {};
+    try{ for(const [k,v] of h.entries()) out[k] = v; }catch(e){}
+    return out;
+  }
+
+  // ==========================
+  // Environment init
+  // ==========================
+  (function initEnv(){
     document.getElementById('currentOrigin').textContent = window.location.origin;
     document.getElementById('currentURL').textContent = window.location.href;
     document.getElementById('currentProtocol').textContent = window.location.protocol;
-    
-    // Auto-detect temp_token from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const autoToken = urlParams.get('temp_token');
-    if (autoToken) {
-      document.getElementById('tempTokenInput').value = autoToken;
-      log('✅ Auto-detected temp_token from URL', 'success');
-      log(`Token: ${autoToken.substring(0, 8)}...${autoToken.substring(autoToken.length - 8)}`, 'info');
+    document.getElementById('currentReferrer').textContent = document.referrer || '(none)';
+    document.getElementById('ua').textContent = navigator.userAgent;
+    document.getElementById('targetApi').textContent = API_BASE;
+
+    // Same-origin badge
+    const apiURL = new URL(API_BASE);
+    const same = (apiURL.origin === window.location.origin);
+    const badge = document.getElementById('sameOriginBadge');
+    badge.textContent = same ? 'Yes (same origin)' : 'No (cross origin)';
+    badge.className = 'badge ' + (same ? 'ok' : 'bad');
+
+    // Env Hints
+    const hints = [
+      `location.origin: ${window.location.origin}`,
+      `api.origin: ${apiURL.origin}`,
+      `CORS expected: ${same ? 'No (same-origin)' : 'Yes (cross-origin)'}`,
+      `TLS required: ${apiURL.protocol === 'https:' ? 'Yes' : 'Not required'}`
+    ].join('\n');
+    document.getElementById('envHints').textContent = hints;
+
+    // Auto-detect from current URL or hash
+    const auto = tryExtractTokenFromString(window.location.href) || tryExtractTokenFromString(window.location.hash);
+    if(auto?.token){
+      document.getElementById('tempTokenInput').value = auto.token;
+      log('✅ Auto-detected temp_token from location (query/hash).', 'success');
+      log(`Source: ${auto.source}`, 'info');
+      logTokenPreview(auto.token);
     }
-    
-    function log(message, type = 'info') {
-      const logBox = document.getElementById('diagnosticLog');
-      const timestamp = new Date().toLocaleTimeString();
-      const colorClass = type;
-      logBox.innerHTML += `<div class="log-line"><span class="timestamp">[${timestamp}]</span><span class="${colorClass}">${message}</span></div>`;
-      logBox.scrollTop = logBox.scrollHeight;
-    }
-    
-    function extractToken(input) {
-      // If it's a full URL, extract the temp_token parameter
-      if (input.includes('temp_token=')) {
-        const urlParams = new URLSearchParams(input.split('?')[1]);
-        return urlParams.get('temp_token');
+  })();
+
+  // ==========================
+  // Token Extraction
+  // ==========================
+  function tryExtractTokenFromString(input){
+    if(!input) return null;
+    // 1) Full URL parse (query + fragment)
+    try{
+      const u = new URL(input);
+      const qTok = u.searchParams.get('temp_token');
+      if(qTok) return {token: qTok.trim(), source: 'query(param)'};
+      // Hash form like #temp_token=...
+      if(u.hash){
+        const hashParams = new URLSearchParams(u.hash.replace(/^#/, ''));
+        const hTok = hashParams.get('temp_token');
+        if(hTok) return {token: hTok.trim(), source: 'hash(param)'};
       }
-      // Otherwise return as-is (assuming it's just the token)
-      return input.trim();
+    }catch(_){ /* not a full URL; keep trying */ }
+
+    // 2) Raw queryline or log snippets: find temp_token=VALUE in text anywhere
+    const m = input.match(/temp_token\s*=\s*([A-Za-z0-9._\-]+)/);
+    if(m) return {token: m[1].trim(), source: 'regex(text)'};
+
+    // 3) Maybe the entire string IS the token (uuid-like or just raw)
+    const raw = input.trim();
+    if(raw.length >= 24) return {token: raw, source: 'raw'};
+    return null;
+  }
+
+  function extractTokenFlexible(){
+    const raw = document.getElementById('tempTokenInput').value;
+    const found = tryExtractTokenFromString(raw);
+    if(!found) return null;
+
+    // Optional sanity check for uuid v4 format (adjust if you have different token shape)
+    if(UUID_V4_REGEX && !UUID_V4_REGEX.test(found.token)){
+      log('⚠️ Token does not look like UUID v4. Proceeding anyway.', 'warning');
     }
-    
-    function showResponse(title, data) {
-      const box = document.getElementById('responseDetails');
-      box.innerHTML = `<div class="info">${title}</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+    return found;
+  }
+
+  function logTokenPreview(tok){
+    if(!tok) return;
+    const short = tok.length > 16 ? `${tok.slice(0,8)}...${tok.slice(-8)}` : tok;
+    log(`Using token: ${short}`, 'info');
+  }
+
+  // ==========================
+  // Diagnostics
+  // ==========================
+  async function runFullDiagnostics(){
+    document.getElementById('diagnosticLog').innerHTML = '';
+    const found = extractTokenFlexible();
+    if(!found){
+      log('❌ Please enter a temp_token or a URL containing it.', 'error');
+      return;
     }
-    
-    async function runFullDiagnostics() {
-      const input = document.getElementById('tempTokenInput').value.trim();
-      
-      if (!input) {
-        log('❌ Please enter a temp_token first!', 'error');
-        return;
+    log('🚀 Starting full diagnostic sequence…', 'info'); hr();
+    log(`Token source: ${found.source}`, 'info'); logTokenPreview(found.token); hr();
+
+    await testBasicConnectivity();
+    hr();
+    await testCORSPreflightOPTIONS();
+    hr();
+    await testTokenExchangeDetailed(found.token);
+    hr();
+    log('✅ Diagnostics complete!', 'success');
+  }
+
+  function currentFetchOptsBase(){
+    const useCreds = document.getElementById('useCredentials').checked;
+    const forceCors = document.getElementById('forceCorsMode').checked;
+    return {
+      mode: forceCors ? 'cors' : undefined,
+      credentials: useCreds ? 'include' : 'omit',
+      cache: 'no-store',
+      redirect: 'follow'
+    };
+  }
+
+  async function testBasicConnectivity(){
+    try{
+      log('📡 Testing basic connectivity (GET /)…', 'info');
+      const t0 = performance.now();
+      const resp = await fetch(API_BASE, { ...currentFetchOptsBase(), method:'GET', headers:{'Accept':'application/json'} });
+      const dt = (performance.now()-t0).toFixed(0);
+      log(`Status: ${resp.status} (${resp.statusText}) in ${dt}ms`, resp.ok?'success':'warning');
+      const cors = resp.headers.get('access-control-allow-origin');
+      log(`ACAO: ${cors || '(absent)'}`, cors?'success':'warning');
+      const hdrDump = dumpHeaders(resp.headers);
+      log('Response headers dumped.', 'info'); showResponse('Basic Connectivity - Response Headers', hdrDump);
+      try{
+        const ct = resp.headers.get('content-type') || '';
+        if(ct.includes('json')){ const j = await resp.json(); showResponse('Basic Connectivity - JSON', j); }
+        else{ const txt = await resp.text(); showResponse('Basic Connectivity - Body (text)', {body: txt.slice(0,1000)}); }
+      }catch(_){}
+    }catch(e){
+      log(`❌ Connectivity error: ${e.name}: ${e.message}`, 'error');
+      if(e.message === 'Failed to fetch'){
+        log('Likely CORS/network/TLS/blocked mixed-content issue.', 'warning');
       }
-      
-      const tempToken = extractToken(input);
-      
-      if (!tempToken) {
-        log('❌ Could not extract token from input!', 'error');
-        return;
-      }
-      
-      document.getElementById('diagnosticLog').innerHTML = '';
-      log('🚀 Starting full diagnostic sequence...', 'info');
-      log('═════════════════════════════════════════', 'info');
-      log(`Using token: ${tempToken.substring(0, 8)}...${tempToken.substring(tempToken.length - 8)}`, 'info');
-      
-      // Test 1: Basic connectivity
-      log('', 'info');
-      log('TEST 1: Basic API Connectivity', 'warning');
-      log('─────────────────────────────────────────', 'info');
-      await testBasicConnectivity();
-      
-      // Test 2: CORS preflight
-      log('', 'info');
-      log('TEST 2: CORS Preflight Check', 'warning');
-      log('─────────────────────────────────────────', 'info');
-      await testCORSPreflight();
-      
-      // Test 3: Token exchange
-      log('', 'info');
-      log('TEST 3: Token Exchange Endpoint', 'warning');
-      log('─────────────────────────────────────────', 'info');
-      await testTokenExchangeDetailed(tempToken);
-      
-      log('', 'info');
-      log('═════════════════════════════════════════', 'info');
-      log('✅ Diagnostics complete!', 'success');
     }
-    
-    async function testBasicConnectivity() {
-      try {
-        log('📡 Testing basic connectivity to API...', 'info');
-        log(`Target: ${API_BASE}`, 'info');
-        
-        const response = await fetch(API_BASE, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          }
-        });
-        
-        log(`✅ Connection successful! Status: ${response.status}`, 'success');
-        log(`Response headers available: ${response.headers ? 'Yes' : 'No'}`, 'info');
-        
-        const corsHeader = response.headers.get('Access-Control-Allow-Origin');
-        if (corsHeader) {
-          log(`✅ CORS header present: ${corsHeader}`, 'success');
-        } else {
-          log(`⚠️ No CORS header found in response`, 'warning');
+  }
+
+  async function testCORSPreflightOPTIONS(){
+    try{
+      log('🔍 Testing manual CORS preflight (OPTIONS /api/training-auth)…', 'info');
+      const t0 = performance.now();
+      const resp = await fetch(TOKEN_ENDPOINT, {
+        ...currentFetchOptsBase(),
+        method: 'OPTIONS',
+        headers: {
+          'Origin': window.location.origin,
+          'Access-Control-Request-Method': 'GET',
+          'Access-Control-Request-Headers': 'content-type,x-debug-trigger'
         }
-        
-        return true;
-      } catch (error) {
-        log(`❌ Connection failed: ${error.message}`, 'error');
-        log(`This indicates a network or CORS issue`, 'error');
-        return false;
+      });
+      const dt = (performance.now()-t0).toFixed(0);
+      log(`OPTIONS Status: ${resp.status} (${resp.statusText}) in ${dt}ms`, resp.ok?'success':'warning');
+      const hdrDump = dumpHeaders(resp.headers);
+      showResponse('OPTIONS /api/training-auth - Response Headers', hdrDump);
+
+      const ao = resp.headers.get('access-control-allow-origin') || 'NOT SET';
+      const am = resp.headers.get('access-control-allow-methods') || 'NOT SET';
+      const ah = resp.headers.get('access-control-allow-headers') || 'NOT SET';
+      log(`Allow-Origin: ${ao}`, ao!=='NOT SET'?'success':'error');
+      log(`Allow-Methods: ${am}`, am!=='NOT SET'?'success':'error');
+      log(`Allow-Headers: ${ah}`, ah!=='NOT SET'?'success':'warning');
+
+      if(ao==='NOT SET'){
+        log(`❌ CORS not allowing ${window.location.origin}. Configure server to echo ACAO with your origin.`, 'error');
       }
+    }catch(e){
+      log(`❌ OPTIONS preflight error: ${e.name}: ${e.message}`, 'error');
     }
-    
-    async function testCORSPreflight() {
-      try {
-        log('🔍 Testing CORS with OPTIONS request...', 'info');
-        
-        const response = await fetch(`${API_BASE}/api/training-auth`, {
-          method: 'OPTIONS',
-          headers: {
-            'Origin': window.location.origin,
-            'Access-Control-Request-Method': 'GET',
-            'Access-Control-Request-Headers': 'content-type'
-          }
-        });
-        
-        log(`Status: ${response.status}`, 'info');
-        
-        const allowOrigin = response.headers.get('Access-Control-Allow-Origin');
-        const allowMethods = response.headers.get('Access-Control-Allow-Methods');
-        const allowHeaders = response.headers.get('Access-Control-Allow-Headers');
-        
-        log(`Allow-Origin: ${allowOrigin || 'NOT SET'}`, allowOrigin ? 'success' : 'error');
-        log(`Allow-Methods: ${allowMethods || 'NOT SET'}`, allowMethods ? 'success' : 'error');
-        log(`Allow-Headers: ${allowHeaders || 'NOT SET'}`, allowHeaders ? 'success' : 'warning');
-        
-        if (!allowOrigin) {
-          log('❌ CORS is NOT configured properly!', 'error');
-          log(`Your origin (${window.location.origin}) needs to be added to CORS whitelist`, 'error');
-        }
-        
-        return !!allowOrigin;
-      } catch (error) {
-        log(`❌ CORS preflight failed: ${error.message}`, 'error');
-        return false;
-      }
+  }
+
+  // A more realistic preflight: custom header + POST JSON usually triggers browser preflight
+  async function testPreflightReal(){
+    const body = { ping: 'diagnostics' };
+    try{
+      const addHdr = document.getElementById('addCustomHeader').checked;
+      const usePost = document.getElementById('usePostForPreflight').checked;
+      const method = usePost ? 'POST' : 'GET';
+      const headers = { 'Accept':'application/json','Content-Type':'application/json' };
+      if(addHdr) headers['X-Debug-Trigger'] = '1';
+
+      log(`🧪 Triggering real preflight with ${method} + ${addHdr?'custom header':''}…`, 'info');
+      const resp = await fetch(TOKEN_ENDPOINT, {
+        ...currentFetchOptsBase(),
+        method,
+        headers,
+        body: usePost ? JSON.stringify(body) : undefined
+      });
+
+      log(`Response: ${resp.status} ${resp.statusText}`, resp.ok?'success':'warning');
+      const hdrDump = dumpHeaders(resp.headers);
+      showResponse('Real Preflight Result - Response Headers', hdrDump);
+
+      const ct = resp.headers.get('content-type') || '';
+      if(ct.includes('json')){ const j = await resp.json(); showResponse('Real Preflight Result - JSON', j); }
+      else{ const txt = await resp.text(); showResponse('Real Preflight Result - Text', {body: txt.slice(0,2000)}); }
+    }catch(e){
+      log(`❌ Real preflight fetch error: ${e.name}: ${e.message}`, 'error');
+      if(e.message === 'Failed to fetch'){ log(`This almost always indicates CORS rejection or network/TLS mismatch.`, 'warning'); }
     }
-    
-    async function testTokenExchangeDetailed(tempToken) {
-      try {
-        log('🔑 Attempting token exchange...', 'info');
-        const url = `${API_BASE}/api/training-auth?temp_token=${tempToken}`;
-        log(`URL: ${url}`, 'info');
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        log(`Response Status: ${response.status} ${response.statusText}`, 
-            response.ok ? 'success' : 'error');
-        
-        // Try to get response body regardless of status
-        let data;
-        const contentType = response.headers.get('content-type');
-        log(`Content-Type: ${contentType}`, 'info');
-        
-        if (contentType && contentType.includes('application/json')) {
-          data = await response.json();
-          log('✅ Response is valid JSON', 'success');
-        } else {
-          const text = await response.text();
-          log(`⚠️ Response is not JSON. Body: ${text.substring(0, 200)}`, 'warning');
-          data = { raw_response: text };
-        }
-        
-        showResponse('Token Exchange Response', data);
-        
-        if (response.ok) {
-          log('✅ Token exchange successful!', 'success');
-          if (data.access_token) {
-            log(`✅ Access token received: ${data.access_token.substring(0, 20)}...`, 'success');
-          }
-          if (data.user) {
-            log(`✅ User: ${data.user.email}`, 'success');
-          }
-        } else {
-          log(`❌ Token exchange failed with status ${response.status}`, 'error');
-          if (data.error) {
-            log(`Error message: ${data.error}`, 'error');
-          }
-          if (data.message) {
-            log(`Message: ${data.message}`, 'error');
-          }
-        }
-        
-        return response.ok;
-      } catch (error) {
-        log(`❌ Token exchange error: ${error.name}: ${error.message}`, 'error');
-        
-        // Detailed error analysis
-        if (error.message === 'Failed to fetch') {
-          log('', 'error');
-          log('🔍 "Failed to fetch" usually means:', 'warning');
-          log('  1. CORS headers are missing or incorrect', 'warning');
-          log('  2. The endpoint does not exist', 'warning');
-          log('  3. Network/firewall blocking the request', 'warning');
-          log('  4. The API server is down', 'warning');
-        }
-        
-        showResponse('Error Details', {
-          error: error.message,
-          name: error.name,
-          stack: error.stack
-        });
-        
-        return false;
+  }
+
+  async function testTokenExchangeDetailed(tempToken){
+    try{
+      log('🔑 Attempting token exchange (GET with query param)…', 'info');
+      const url = `${TOKEN_ENDPOINT}?temp_token=${encodeURIComponent(tempToken)}`;
+      log(`URL: ${url}`, 'info');
+      const base = currentFetchOptsBase();
+
+      // First attempt: normal CORS
+      const resp = await fetch(url, { ...base, method:'GET', headers:{'Accept':'application/json','Content-Type':'application/json'} });
+      await handleTokenExchangeResponse(resp, 'Token Exchange (standard)');
+
+      // Optional second attempt with 'no-cors' to show opaque behavior
+      if(document.getElementById('opaqueAttempt').checked){
+        log('🫥 Also attempting mode:"no-cors" (diagnostic only)…', 'info');
+        const resp2 = await fetch(url, { method:'GET', mode:'no-cors' });
+        // Opaque responses have status 0 and no headers; just signal that to user
+        showResponse('Opaque Response (no-cors)', { note:'Opaque response: status 0, headers/body unreadable by design.' });
+        log('If this works but CORS mode failed, server is up but not granting CORS.', 'warning');
       }
+
+      return true;
+    }catch(e){
+      log(`❌ Token exchange error: ${e.name}: ${e.message}`, 'error');
+      if(e.message === 'Failed to fetch'){
+        log('🔎 "Failed to fetch" likely means CORS rejection, DNS/TLS mismatch, or network block.', 'warning');
+      }
+      showResponse('Error Details', { name:e.name, message:e.message, stack:e.stack });
+      return false;
     }
-    
-    async function testTokenExchange() {
-      const input = document.getElementById('tempTokenInput').value.trim();
-      
-      if (!input) {
-        log('❌ Please enter a temp_token first!', 'error');
-        return;
-      }
-      
-      const tempToken = extractToken(input);
-      
-      if (!tempToken) {
-        log('❌ Could not extract token from input!', 'error');
-        return;
-      }
-      
-      document.getElementById('diagnosticLog').innerHTML = '';
-      log(`Using token: ${tempToken.substring(0, 8)}...${tempToken.substring(tempToken.length - 8)}`, 'info');
-      await testTokenExchangeDetailed(tempToken);
+  }
+
+  async function handleTokenExchangeResponse(response, label){
+    log(`${label} → Status: ${response.status} ${response.statusText}`, response.ok?'success':'error');
+    const headers = dumpHeaders(response.headers);
+    showResponse(`${label} - Response Headers`, headers);
+
+    const ct = response.headers.get('content-type') || '';
+    let data;
+    if(ct.includes('json')){
+      try{ data = await response.json(); }
+      catch{ data = { parse_error:'failed to parse json' }; }
+    }else{
+      try{ const txt = await response.text(); data = { raw: txt.slice(0, 4000) }; }
+      catch{ data = { error:'failed to read body' }; }
     }
-    
-    // Additional helper: Test direct Supabase connection
-    async function testSupabaseDirectly() {
-      log('', 'info');
-      log('🔷 Testing direct Supabase connection...', 'info');
-      
-      try {
-        const response = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
-          headers: {
-            'apikey': SUPABASE_KEY
-          }
-        });
-        
-        log(`Supabase Health Check: ${response.status}`, response.ok ? 'success' : 'error');
-        
-        if (response.ok) {
-          const data = await response.json();
-          showResponse('Supabase Health', data);
-        }
-      } catch (error) {
-        log(`❌ Supabase connection failed: ${error.message}`, 'error');
+    showResponse(`${label} - Body`, data || {});
+
+    if(response.ok && data){
+      if(data.access_token){
+        log('✅ access_token received.', 'success');
+        peekJWT(data.access_token);
       }
+      if(data.user){ log(`User: ${data.user.email || '(no email field)'}`, 'info'); }
+    }else{
+      if(data?.error) log(`Server error: ${data.error}`, 'error');
+      if(data?.message) log(`Server message: ${data.message}`, 'warning');
     }
-  </script>
+  }
+
+  function peekJWT(token){
+    // Just a helper: if it looks like a JWT, decode header/payload (no verify)
+    if(typeof token !== 'string' || token.split('.').length !== 3) return;
+    try{
+      const [h,p] = token.split('.');
+      const hdr = JSON.parse(atob(h.replace(/-/g,'+').replace(/_/g,'/')));
+      const pay = JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));
+      showResponse('JWT peek (header/payload)', { header: hdr, payload: pay });
+    }catch(_){}
+  }
+
+  // Public button: token-only flow
+  async function testTokenExchange(){
+    document.getElementById('diagnosticLog').innerHTML = '';
+    const found = extractTokenFlexible();
+    if(!found){ log('❌ Please enter a temp_token first.', 'error'); return; }
+    logTokenPreview(found.token);
+    await testTokenExchangeDetailed(found.token);
+  }
+
+  // Supabase health (as you had)
+  async function testSupabaseDirectly(){
+    log('🔷 Testing direct Supabase /auth/v1/health…', 'info');
+    try{
+      const resp = await fetch(`${SUPABASE_URL}/auth/v1/health`, { headers:{ 'apikey': SUPABASE_KEY }, cache:'no-store' });
+      log(`Supabase Health Status: ${resp.status}`, resp.ok?'success':'warning');
+      const ct = resp.headers.get('content-type') || '';
+      if(ct.includes('json')){ const j = await resp.json(); showResponse('Supabase Health JSON', j); }
+      else{ const txt = await resp.text(); showResponse('Supabase Health Text', {body: txt}); }
+    }catch(e){
+      log(`❌ Supabase health error: ${e.name}: ${e.message}`, 'error');
+    }
+  }
+</script>
 </body>
 </html>
