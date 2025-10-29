@@ -6,8 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
+
+  <!-- === Launcher / Token Panel (new) === -->
   <style>
-    /* API Test Button */
+    /* Floating API Test Button (from original) */
     .api-test-button {
       position: fixed;
       bottom: 20px;
@@ -30,9 +32,128 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
     }
+
+    /* ===== Token / Diagnostics Bar (new) ===== */
+    :root{
+      --gg-bg:#0b0f14;
+      --gg-surface:#0f141b;
+      --gg-border:#1d2733;
+      --gg-ink:#d7e2f1;
+      --gg-ink-dim:#9fb0c5;
+      --gg-accent:#00e0ff;
+      --gg-accent-2:#7cf6c9;
+      --gg-bad:#ff6b6b;
+      --gg-good:#7CFCB5;
+      --gg-mono:'Courier New', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .launcher-wrap{
+      position: sticky; top: 0; z-index: 1100;
+      background: linear-gradient(180deg, rgba(11,15,20,.95), rgba(11,15,20,.85));
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--gg-border);
+      color: var(--gg-ink);
+      font-family: var(--gg-mono);
+    }
+    .launcher{
+      max-width: 1200px; margin: 0 auto; padding: 12px 16px;
+      display: grid; gap: 10px;
+    }
+    .launcher h1{
+      font-size: 16px; line-height: 1; font-weight: 700; letter-spacing: .02em;
+      color: var(--gg-accent);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .launcher .rows{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .box{
+      background: var(--gg-surface);
+      border: 1px solid var(--gg-border);
+      border-radius: 8px; padding: 10px; display: grid; gap: 8px;
+    }
+    .kv{display:grid;gap:4px}
+    .kv div{font-size:12px;color:var(--gg-ink-dim)}
+    .kv strong{color:var(--gg-ink);font-weight:700}
+    .label{font-size:12px;color:var(--gg-ink-dim);margin-bottom:4px}
+    .row{display:flex;gap:8px;align-items:stretch}
+    .col{flex:1 1 0}
+    textarea,input{
+      width:100%; background:#05080c; color:var(--gg-ink);
+      border:1px solid var(--gg-border); border-radius:6px; padding:8px 10px;
+      font-family:var(--gg-mono); font-size:12px; line-height:1.5;
+      outline:none;
+    }
+    textarea{min-height:60px; resize:vertical}
+    .btn, a.btn{
+      display:inline-block; text-decoration:none; cursor:pointer;
+      padding:9px 14px; border-radius:7px; font-weight:700; font-size:12px;
+      color:#001014; background:var(--gg-accent);
+      border:1px solid #00bbff55;
+    }
+    .btn.alt{ background:#0b2233; color:var(--gg-ink); border-color:#14405e }
+    .btn.warn{ background:#221013; color:#ffd6db; border-color:#5e141f }
+    .status{font-size:12px}
+    .status .ok{color:var(--gg-good);font-weight:700}
+    .status .bad{color:var(--gg-bad);font-weight:700}
+    code.badge{
+      background:#061018; border:1px solid #133044; color:#bfe8ff;
+      border-radius:4px; padding:2px 6px; font-size:12px; font-family:var(--gg-mono)
+    }
+    .tiny{opacity:.8; font-size:12px}
+    @media (max-width: 900px){
+      .launcher .rows{ grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
+  <!-- ===== NEW: Launcher / Token Panel ===== -->
+  <div class="launcher-wrap" role="region" aria-label="Diagnostics and Token Tools">
+    <div class="launcher">
+      <h1>🚀 GuestGuard • Launcher</h1>
+      <div class="rows">
+        <div class="box">
+          <div class="kv">
+            <div><strong>Current Origin:</strong> <span id="origin"></span></div>
+            <div><strong>Current URL:</strong> <span id="fullurl" class="tiny"></span></div>
+            <div><strong>User Agent:</strong> <span id="ua" class="tiny"></span></div>
+          </div>
+        </div>
+        <div class="box">
+          <div class="status">
+            <strong>Token status:</strong> <span id="tokStatus" class="bad">no token detected</span>
+          </div>
+          <div><strong>Detected token:</strong> <code id="tokPreview" class="badge">(none)</code></div>
+        </div>
+      </div>
+
+      <div class="rows">
+        <div class="box">
+          <div class="label">Paste a full URL or just a token:</div>
+          <textarea id="tokenInput" placeholder="https://site/page?temp_token=...  OR  raw: 5e915e24-..."></textarea>
+        </div>
+        <div class="box">
+          <div class="label">Normalized token:</div>
+          <input id="normalizedToken" placeholder="auto-filled here" />
+          <div class="tiny" style="margin-top:6px">Tip: press <kbd>Enter</kbd> after pasting to apply &amp; update links.</div>
+          <div class="row" style="margin-top:8px">
+            <button id="applyBtn" class="btn">Apply</button>
+            <button id="clearBtn" class="btn alt">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="row" style="flex-wrap:wrap;gap:8px">
+          <a id="apiBtn" class="btn" target="_blank" href="apitest.html">Open Diagnostics</a>
+          <a id="apiBtnSame" class="btn alt" href="apitest.html">Open Diagnostics (same tab)</a>
+          <button id="copyLinkBtn" class="btn alt">Copy Diagnostics Link</button>
+          <button id="autoOpenToggle" class="btn warn" title="If a token is present in the URL, automatically open diagnostics in a new tab.">Auto-open on load: ON</button>
+        </div>
+        <div class="tiny" style="margin-top:6px">Buttons and links include <code>?temp_token=…</code> automatically when available.</div>
+      </div>
+    </div>
+  </div>
+  <!-- ===== /Launcher ===== -->
+
+  <!-- ===== Your existing Training UI ===== -->
   <main class="frame" role="main" aria-label="Training Module">
     <div class="titlebar">
       <span class="title-text" id="moduleTitle">Loading…</span>
@@ -57,36 +178,37 @@
     <div class="panel">
       <h1>Select Module Files</h1>
       <p>Upload your JSON config and transcript file to begin.</p>
-      
+
       <div style="display:grid;gap:12px;margin:16px 0">
         <div class="file-upload-box">
           <div class="file-label">1. Module JSON (Required)</div>
           <button id="pickJsonBtn" class="btn" style="width:100%">Choose JSON File</button>
           <div id="jsonStatus" class="file-status">No file selected</div>
         </div>
-        
+
         <div class="file-upload-box">
           <div class="file-label">2. Transcript TXT (Optional)</div>
           <button id="pickTxtBtn" class="btn" style="width:100%">Choose Transcript File</button>
           <div id="txtStatus" class="file-status">No file selected</div>
         </div>
       </div>
-      
+
       <button id="loadBtn" class="btn" style="width:100%;background:#00e0ff;color:#000;font-weight:700;padding:12px" disabled>Load Module</button>
-      
+
       <div id="drop" class="drop" aria-label="Or drop JSON here" style="margin-top:16px">Or drag & drop JSON here</div>
       <div class="hint" id="hint" style="margin-top:12px"></div>
     </div>
   </div>
-  
+
   <input id="configPicker" type="file" accept=".json,application/json" />
   <input id="transcriptPicker" type="file" accept=".txt,text/plain" />
 
-  <!-- API Testing Button -->
-  <a href="apitest.html" target="_blank" class="api-test-button">
+  <!-- API Testing Button (now wired to token below) -->
+  <a id="apiFloatBtn" href="apitest.html" target="_blank" class="api-test-button" title="Open API Diagnostics">
     🔧 API Testing
   </a>
 
+  <!-- ===== App Script (original, unchanged except for ID on floating button) ===== -->
   <script>
   "use strict";
 
@@ -1345,6 +1467,113 @@
       loadModule(MODULE_SEQUENCE[0], 0);
     }
   })();
+  </script>
+
+  <!-- ===== NEW: Token wiring / diagnostics script ===== -->
+  <script>
+    (function(){
+      const $ = (id)=>document.getElementById(id);
+      const origin = location.origin;
+      $('origin').textContent = origin;
+      $('fullurl').textContent = location.href;
+      $('ua').textContent = navigator.userAgent;
+
+      function pickTokenFromString(s){
+        if(!s) return null;
+        try{
+          const u = new URL(s, location.href);
+          const q = u.searchParams.get('temp_token');
+          if(q) return q.trim();
+          if(u.hash){
+            const hp = new URLSearchParams(u.hash.replace(/^#/, ''));
+            const ht = hp.get('temp_token');
+            if(ht) return ht.trim();
+          }
+        }catch(_){}
+        const m = String(s).match(/temp_token\s*=\s*([A-Za-z0-9._\-]+)/);
+        if(m) return m[1].trim();
+        const raw = String(s).trim();
+        return raw.length >= 24 ? raw : null;
+      }
+
+      function summarize(tok){
+        if(!tok) return '(none)';
+        return tok.length>16 ? (tok.slice(0,8)+'...'+tok.slice(-8)) : tok;
+      }
+
+      function setStatus(tok){
+        $('normalizedToken').value = tok || '';
+        $('tokPreview').textContent = summarize(tok);
+        const st = $('tokStatus');
+        if (tok){ st.textContent = 'token detected'; st.classList.remove('bad'); st.classList.add('ok'); }
+        else { st.textContent = 'no token detected'; st.classList.remove('ok'); st.classList.add('bad'); }
+        const diag = tok ? `apitest.html?temp_token=${encodeURIComponent(tok)}` : 'apitest.html';
+        $('apiBtn').href = diag;
+        $('apiBtnSame').href = diag;
+        $('apiFloatBtn').href = diag;
+      }
+
+      function currentToken(){
+        return $('normalizedToken').value.trim() || null;
+      }
+
+      // Seed from current location
+      const initial = pickTokenFromString(location.href) || pickTokenFromString(location.hash);
+      setStatus(initial);
+
+      // Auto-open toggle (persisted)
+      const KEY='auto_open_apitest';
+      const btnAuto = $('autoOpenToggle');
+      const getAuto = ()=> localStorage.getItem(KEY)!=='0';
+      const setAuto = (on)=> localStorage.setItem(KEY, on?'1':'0');
+      const refreshAuto = ()=>{
+        const on = getAuto();
+        btnAuto.textContent = `Auto-open on load: ${on?'ON':'OFF'}`;
+        btnAuto.className = 'btn ' + (on?'warn':'alt');
+      };
+      btnAuto.addEventListener('click', ()=>{ setAuto(!getAuto()); refreshAuto(); });
+      if(localStorage.getItem(KEY)===null) setAuto(true); // default ON
+      refreshAuto();
+
+      // Auto-open diagnostics if token present & enabled
+      if(initial && getAuto()){
+        try{ window.open(`apitest.html?temp_token=${encodeURIComponent(initial)}`, '_blank', 'noopener'); }catch(_){}
+      }
+
+      // Controls
+      $('applyBtn').addEventListener('click', ()=>{
+        const cand = $('tokenInput').value.trim();
+        const tok = pickTokenFromString(cand);
+        setStatus(tok);
+      });
+      $('clearBtn').addEventListener('click', ()=>{
+        $('tokenInput').value = '';
+        setStatus(null);
+      });
+      $('tokenInput').addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter'){
+          e.preventDefault();
+          $('applyBtn').click();
+        }
+      });
+      $('normalizedToken').addEventListener('input', ()=>{
+        setStatus($('normalizedToken').value.trim() || null);
+      });
+
+      $('copyLinkBtn').addEventListener('click', async()=>{
+        const tok = currentToken();
+        const url = tok
+          ? new URL(`apitest.html?temp_token=${encodeURIComponent(tok)}`, location.href).href
+          : new URL('apitest.html', location.href).href;
+        try{
+          await navigator.clipboard.writeText(url);
+          $('copyLinkBtn').textContent = 'Copied!';
+          setTimeout(()=>$('copyLinkBtn').textContent='Copy Diagnostics Link', 1000);
+        }catch(_){
+          alert('Could not copy to clipboard. Link:\n' + url);
+        }
+      });
+    })();
   </script>
 </body>
 </html>
