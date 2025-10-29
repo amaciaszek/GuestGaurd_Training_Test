@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GuestGuard API Testing</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #fff;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .status-box.authenticated {
+      border-color: #4caf50;
+      background: rgba(76, 175, 80, 0.2);
+    }
+    
+    .status-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+    
+    .status-value {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+    
+    .input-group {
+      margin-bottom: 15px;
+    }
+    
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      opacity: 0.9;
+    }
+    
+    .input-group input {
+      width: 100%;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .input-group input:focus {
+      outline: none;
+      border-color: #4caf50;
+    }
+    
+    .btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 4px;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+    
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    .btn.primary {
+      background: #4caf50;
+    }
+    
+    .btn.primary:hover:not(:disabled) {
+      background: #45a049;
+    }
+    
+    .btn.warning {
+      background: #ff9800;
+    }
+    
+    .btn.warning:hover:not(:disabled) {
+      background: #fb8c00;
+    }
+    
+    .btn.danger {
+      background: #f44336;
+    }
+    
+    .btn.danger:hover:not(:disabled) {
+      background: #e53935;
+    }
+    
+    .log-box {
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 12px;
+      height: 250px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+    
+    .log-entry {
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    
+    .log-time {
+      color: #666;
+      margin-right: 8px;
+    }
+    
+    .log-entry.success { color: #4caf50; }
+    .log-entry.error { color: #f44336; }
+    .log-entry.warning { color: #ff9800; }
+    .log-entry.info { color: #00e0ff; }
+    
+    .response-box {
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    
+    .back-link {
+      display: inline-block;
+      color: #fff;
+      text-decoration: none;
+      margin-bottom: 20px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="index.html" class="back-link">← Back to Training</a>
+    
+    <div class="header">
+      <h1>🔧 GuestGuard API Testing</h1>
+      <p>Test all API endpoints for the training integration</p>
+    </div>
+    
+    <div class="grid">
+      <!-- Authentication Status -->
+      <div class="card">
+        <h2>🔐 Authentication Status</h2>
+        <div class="status-box" id="authStatusBox">
+          <div class="status-label">Status</div>
+          <div class="status-value" id="authStatus">Not Authenticated</div>
+        </div>
+        <div class="status-box">
+          <div class="status-label">User Email</div>
+          <div class="status-value" id="userEmail">—</div>
+        </div>
+        <div class="status-box">
+          <div class="status-label">User ID</div>
+          <div class="status-value" id="userId">—</div>
+        </div>
+        <div class="status-box">
+          <div class="status-label">Token Expires</div>
+          <div class="status-value" id="tokenExpiry">—</div>
+        </div>
+      </div>
+      
+      <!-- Token Input -->
+      <div class="card">
+        <h2>🔗 Paste Redirect URL</h2>
+        <div class="input-group">
+          <label>Full URL with temp_token:</label>
+          <input 
+            type="text" 
+            id="urlInput" 
+            placeholder="https://amaciaszek.github.io/GuestGaurd_Training_Test/?temp_token=..."
+          />
+        </div>
+        <button class="btn primary" onclick="loadTokenFromURL()">Load Token</button>
+      </div>
+      
+      <!-- Authentication Actions -->
+      <div class="card">
+        <h2>🔑 Authentication</h2>
+        <div class="button-group">
+          <button class="btn primary" onclick="exchangeToken()">Exchange Temp Token</button>
+          <button class="btn" id="refreshBtn" onclick="refreshToken()" disabled>Refresh Token</button>
+          <button class="btn warning" onclick="testConnection()">Test Connection</button>
+        </div>
+      </div>
+      
+      <!-- Training Progress -->
+      <div class="card">
+        <h2>📚 Training Progress</h2>
+        <div class="button-group">
+          <button class="btn" id="getProgressBtn" onclick="getTrainingProgress()" disabled>GET Progress</button>
+          <button class="btn" id="postProgressBtn" onclick="updateTrainingProgress()" disabled>POST Progress</button>
+          <button class="btn" id="putProgressBtn" onclick="overwriteTrainingProgress()" disabled>PUT Progress</button>
+        </div>
+      </div>
+      
+      <!-- Inspector Status -->
+      <div class="card">
+        <h2>🎖️ Inspector Status</h2>
+        <div class="button-group">
+          <button class="btn" id="getStatusBtn" onclick="getInspectorStatus()" disabled>GET Status</button>
+          <button class="btn primary" id="grantBtn" onclick="grantCertification()" disabled>Grant Certification</button>
+          <button class="btn danger" id="revokeBtn" onclick="revokeCertification()" disabled>Revoke Certification</button>
+        </div>
+      </div>
+      
+      <!-- Activity Log -->
+      <div class="card full-width">
+        <h2>📋 Activity Log</h2>
+        <div class="log-box" id="logBox"></div>
+      </div>
+      
+      <!-- API Response -->
+      <div class="card full-width">
+        <h2>📥 Latest API Response</h2>
+        <div class="response-box" id="responseBox">No responses yet</div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_CONFIG = {
+      BASE_URL: 'https://guestguard-platform.vercel.app',
+      SUPABASE_URL: 'https://wdjxrewqsltxfntccpda.supabase.co',
+      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkanhyZXdxc2x0eGZudGNjcGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUzMzc4MjMsImV4cCI6MjA1MDkxMzgyM30.iCuZFMf7rRRwsZGSFx95DxUB9YT0fFGg3gQvVVJKJJw'
+    };
+    
+    let apiSession = {
+      tempToken: null,
+      accessToken: null,
+      refreshToken: null,
+      userId: null,
+      email: null,
+      expiresAt: null
+    };
+    
+    function log(message, type = 'info') {
+      const logBox = document.getElementById('logBox');
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.innerHTML = `<span class="log-time">[${time}]</span>${message}`;
+      logBox.appendChild(entry);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+    
+    function displayResponse(data, success = true) {
+      const responseBox = document.getElementById('responseBox');
+      responseBox.textContent = JSON.stringify(data, null, 2);
+      responseBox.style.color = success ? '#4caf50' : '#f44336';
+    }
+    
+    function updateAuthUI() {
+      const authBox = document.getElementById('authStatusBox');
+      const authStatus = document.getElementById('authStatus');
+      const userEmail = document.getElementById('userEmail');
+      const userId = document.getElementById('userId');
+      const tokenExpiry = document.getElementById('tokenExpiry');
+      
+      if (apiSession.accessToken) {
+        authBox.classList.add('authenticated');
+        authStatus.textContent = '✅ Authenticated';
+        userEmail.textContent = apiSession.email || '—';
+        userId.textContent = apiSession.userId || '—';
+        tokenExpiry.textContent = apiSession.expiresAt ? new Date(apiSession.expiresAt).toLocaleString() : '—';
+        
+        document.getElementById('refreshBtn').disabled = false;
+        document.getElementById('getProgressBtn').disabled = false;
+        document.getElementById('postProgressBtn').disabled = false;
+        document.getElementById('putProgressBtn').disabled = false;
+        document.getElementById('getStatusBtn').disabled = false;
+        document.getElementById('grantBtn').disabled = false;
+        document.getElementById('revokeBtn').disabled = false;
+      } else {
+        authBox.classList.remove('authenticated');
+        authStatus.textContent = apiSession.tempToken ? '🔄 Token Ready' : '❌ Not Authenticated';
+        userEmail.textContent = '—';
+        userId.textContent = '—';
+        tokenExpiry.textContent = '—';
+        
+        document.getElementById('refreshBtn').disabled = true;
+        document.getElementById('getProgressBtn').disabled = true;
+        document.getElementById('postProgressBtn').disabled = true;
+        document.getElementById('putProgressBtn').disabled = true;
+        document.getElementById('getStatusBtn').disabled = true;
+        document.getElementById('grantBtn').disabled = true;
+        document.getElementById('revokeBtn').disabled = true;
+      }
+    }
+    
+    function loadTokenFromURL() {
+      const input = document.getElementById('urlInput');
+      const pastedURL = input.value.trim();
+      
+      if (!pastedURL) {
+        log('❌ Please paste a URL', 'error');
+        return;
+      }
+      
+      try {
+        const url = new URL(pastedURL);
+        const tempToken = url.searchParams.get('temp_token');
+        
+        if (!tempToken) {
+          log('❌ No temp_token found in URL', 'error');
+          return;
+        }
+        
+        apiSession.tempToken = tempToken;
+        log(`✅ Found temp_token: ${tempToken.substring(0, 20)}...`, 'success');
+        updateAuthUI();
+        
+        setTimeout(() => exchangeToken(), 500);
+      } catch (error) {
+        log(`❌ Invalid URL: ${error.message}`, 'error');
+      }
+    }
+    
+    async function exchangeToken() {
+      if (!apiSession.tempToken) {
+        log('❌ No temp_token available', 'error');
+        return;
+      }
+      
+      log('🔄 Exchanging temp_token...', 'info');
+      
+      try {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/api/training-auth?temp_token=${apiSession.tempToken}`,
+          {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          apiSession.accessToken = data.access_token;
+          apiSession.refreshToken = data.refresh_token;
+          apiSession.userId = data.user?.id;
+          apiSession.email = data.user?.email;
+          apiSession.expiresAt = Date.now() + (data.expires_in * 1000);
+          
+          log('✅ Successfully authenticated!', 'success');
+          log(`User: ${apiSession.email}`, 'success');
+          displayResponse(data, true);
+          updateAuthUI();
+        } else {
+          log(`❌ Token exchange failed: ${data.error || 'Unknown error'}`, 'error');
+          displayResponse(data, false);
+        }
+      } catch (error) {
+        log(`❌ Network error: ${error.message}`, 'error');
+        log('💡 This might be a CORS issue. Contact Brian to add CORS headers.', 'warning');
+        displayResponse({ error: error.message }, false);
+      }
+    }
+    
+    async function refreshToken() {
+      if (!apiSession.refreshToken) {
+        log('❌ No refresh token available', 'error');
+        return;
+      }
+      
+      log('🔄 Refreshing access token...', 'info');
+      
+      try {
+        const response = await fetch(
+          `${API_CONFIG.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': API_CONFIG.SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({ refresh_token: apiSession.refreshToken })
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          apiSession.accessToken = data.access_token;
+          apiSession.refreshToken = data.refresh_token;
+          apiSession.expiresAt = Date.now() + (data.expires_in * 1000);
+          
+          log('✅ Token refreshed successfully!', 'success');
+          displayResponse(data, true);
+          updateAuthUI();
+        } else {
+          log(`❌ Refresh failed: ${data.error || 'Unknown error'}`, 'error');
+          displayResponse(data, false);
+        }
+      } catch (error) {
+        log(`❌ Network error: ${error.message}`, 'error');
+        displayResponse({ error: error.message }, false);
+      }
+    }
+    
+    async function getTrainingProgress() {
+      if (!apiSession.accessToken) {
+        log('❌ Please authenticate first', 'error');
+        return;
+      }
+      
+      log('📚 Fetching training progress...', 'info');
+      
+      try {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/api/training-progress`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiSession.accessToken}`,
+              'Accept': 'application/json'
+            }
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          log('✅ Training progress retrieved!', 'success');
+          displayResponse(data, true);
+        } else {
+          log(`❌ Failed: ${data.error || 'Unknown error'}`, 'error');
+          displayResponse(data, false);
+        }
+      } catch (error) {
+        log(`❌ Network error: ${error.message}`, 'error');
+        displayResponse({ error: error.message }, false);
+      }
+    }
+    
+    async function updateTrainingProgress() {
+      if (!apiSession.accessToken) {
+        log('❌ Please authenticate first', 'error');
+        return;
+      }
+      
+      const progressData = {
+        "module_1": {
+          "completed": true,
+          "progress": 100
+        },
+        "module_2": {
+          "completed": false,
+          "progress": 50
+        }
+      };
+      
+      log('➕ Updating training progress (POST)...', 'info');
+      
+      try {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/api/training-progress`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiSession.accessToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ training_progress: progressData })
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          log('✅ Progress updated (POST)!', 'success');
+          displayResponse(data, true);
+        } else {
+          log(`❌ Failed: ${data.error || 'Unknown error'}`, 'error');
+          displayResponse(data, false);
+        }
+      } catch (error) {
+        log(`❌ Network error: ${error.message}`, 'error');
+        displayResponse({ error: error.message }, false);
+      }
+    }
+    
+    async function overwriteTrainingProgress() {
+      if (!apiSession.accessToken) {
+        log('❌ Please authenticate first', 'error');
+        return;
+      }
+      
+      const progressData = {
+        "module_1": {
+          "completed": true,
+          "progress": 100
+        }
+      };
+      
+      log('🔄 Overwriting training progress (PUT)...', 'info');
+      
+      try {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/api/training-progress`,
+          {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${apiSession.accessToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ training_progress: progressData })
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          log('✅ Progress overwritten (PUT)!', 'success');
+          displayResponse(data, true);
+        } else {
+          log(`❌ Failed: ${data.error || 'Unknown error'}`, 'error');
+          displayResponse(data, false);
+        }
+      } catch (error) {
+        log(`❌ Network error: ${error.message}`, 'error');
+        displayResponse({ error: error.message }, false);
+      }
+    }
+    
+    async function getInspectorStatus() {
+      if (!apiSession.accessToken) {
+        log('❌ Please authenticate first', 'error');
+        return;
+      }
+      
+      log('🎖️ Fetching inspector status...', 'info');
+      
+      try {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/api/inspector-status`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiSession.accessToken}`,
+              'Accept': 'application/json'
+            }
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          log(`✅ Status: ${data.is_inspector ? 'CERTIFIED ✓' : 'NOT CERTIFIED'}`, 'success');
+          displayResponse(data, true);
+        } else {
+          log(`❌ Failed: ${data.error || 'Unknown error'}`, 'error');
+          displayResponse(data, false);
+        }
+      } catch (error) {
+        log(`❌ Network error: ${error.message}`, 'error');
+        displayResponse({ error: error.message }, false);
+      }
+    }
+    
+    async function grantCertification() {
+      if (!apiSession.accessToken) {
+        log('❌ Please authenticate first', 'error');
+        return;
+      }
+      
+      log('✅ Granting inspector certification...', 'info');
+      
+      try {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/api/inspector-status`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiSession.accessToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ is_inspector: true })
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          log('✅ Certification GRANTED! 🎉', 'success');
+          displayResponse(data, true);
+        } else {
+          log(`❌ Failed: ${data.error || 'Unknown error'}`, 'error');
+          displayResponse(data, false);
+        }
+      } catch (error) {
+        log(`❌ Network error: ${error.message}`, 'error');
+        displayResponse({ error: error.message }, false);
+      }
+    }
+    
+    async function revokeCertification() {
+      if (!apiSession.accessToken) {
+        log('❌ Please authenticate first', 'error');
+        return;
+      }
+      
+      if (!confirm('Are you sure you want to revoke certification?')) {
+        return;
+      }
+      
+      log('❌ Revoking inspector certification...', 'warning');
+      
+      try {
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/api/inspector-status`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiSession.accessToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ is_inspector: false })
+          }
+        );
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          log('✅ Certification REVOKED', 'warning');
+          displayResponse(data, true);
+        } else {
+          log(`❌ Failed: ${data.error || 'Unknown error'}`, 'error');
+          displayResponse(data, false);
+        }
+      } catch (error) {
+        log(`❌ Network error: ${error.message}`, 'error');
+        displayResponse({ error: error.message }, false);
+      }
+    }
+    
+    async function testConnection() {
+      log('🔌 Testing API connection...', 'info');
+      log(`Your domain: ${window.location.origin}`, 'info');
+      log(`Target API: ${API_CONFIG.BASE_URL}`, 'info');
+      
+      try {
+        const response = await fetch(API_CONFIG.BASE_URL, {
+          method: 'HEAD',
+          mode: 'no-cors'
+        });
+        log('✅ API domain is reachable!', 'success');
+      } catch (error) {
+        log(`❌ Cannot reach API: ${error.message}`, 'error');
+      }
+    }
+    
+    // Auto-detect temp_token on page load
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const tempToken = params.get('temp_token');
+      
+      if (tempToken) {
+        apiSession.tempToken = tempToken;
+        log('✅ Auto-detected temp_token from URL!', 'success');
+        document.getElementById('urlInput').value = window.location.href;
+        updateAuthUI();
+        
+        setTimeout(() => {
+          log('🔄 Auto-exchanging token...', 'info');
+          exchangeToken();
+        }, 1000);
+      } else {
+        log('ℹ️ Ready for testing. Paste your redirect URL to begin.', 'info');
+      }
+    })();
+  </script>
+</body>
+</html>

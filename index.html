@@ -6,6 +6,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* API Test Button */
+    .api-test-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      z-index: 1000;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .api-test-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+  </style>
 </head>
 <body>
   <main class="frame" role="main" aria-label="Training Module">
@@ -56,6 +81,11 @@
   
   <input id="configPicker" type="file" accept=".json,application/json" />
   <input id="transcriptPicker" type="file" accept=".txt,text/plain" />
+
+  <!-- API Testing Button -->
+  <a href="apitest.html" target="_blank" class="api-test-button">
+    🔧 API Testing
+  </a>
 
   <script>
   "use strict";

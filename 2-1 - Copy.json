@@ -1,0 +1,115 @@
+{
+  "id": "facility_planning_utilities",
+  "title": "Facility Planning - Utilities",
+  "audioFile": "1.1 Fire Safety_Emergency Evacuation.wav",
+  "transcriptFile": "1.1 Fire Safety_Emergency Evacuation.txt",
+  "backgroundImage": "1_1.jpg",
+  "canvasDimensions": {
+    "width": 6000,
+    "height": 4000
+  },
+  "nextPage": "2-2.html",
+  "hotspots": [
+    {
+      "id": "b1",
+      "type": "pill",
+      "label": "Start",
+      "dock": "left",
+      "tcStart": "00;00;00;00",
+      "tcEnd": "00;00;07;01",
+      "order": "first",
+      "text": "[Intro]",
+      "realLifeExamples": []
+    },
+    {
+      "id": "b2",
+      "type": "circle",
+      "centerX": 1207,
+      "centerY": 2753,
+      "width": 940,
+      "height": 940,
+      "tcStart": "00;00;07;01",
+      "tcEnd": "00;00;32;20",
+      "text": "[Evacuation Basics]",
+      "contentMedia": {
+        "type": "video",
+        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/1.%20Fire%20Safety/1.1%20Emergency%20Evacuation/3.%20Media/1.1.1.%20Evacuation%20Basics.mov"
+      },
+      "realLifeExamples": ["https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/1.%20Fire%20Safety/1.1%20Emergency%20Evacuation/3.%20Media/1.1%20Guest%20Upper%20Landing.jpg","https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/1.%20Fire%20Safety/1.1%20Emergency%20Evacuation/3.%20Media/1.1%20Home%20Interior%2C%20Staircase.jpg"]
+    },
+    {
+      "id": "b3",
+      "type": "circle",
+      "centerX": 1000,
+      "centerY": 1587,
+      "width": 940,
+      "height": 940,
+      "tcStart": "00;00;32;20",
+      "tcEnd": "00;00;52;24",
+      "text": "[Host & Guest Plan]",
+      "contentMedia": {
+        "type": "video",
+        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/1.%20Fire%20Safety/1.1%20Emergency%20Evacuation/3.%20Media/1.1.2%20Host%20%26%20Guest%20Plan.mov"
+      },
+      "realLifeExamples": []
+    },
+    {
+      "id": "b4",
+      "type": "circle",
+      "centerX": 1770,
+      "centerY": 680,
+      "width": 940,
+      "height": 940,
+      "tcStart": "00;00;52;24",
+      "tcEnd": "00;01;06;23",
+      "text": "[Exit Signage]",
+      "contentMedia": {
+        "type": "video",
+        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/1.%20Fire%20Safety/1.1%20Emergency%20Evacuation/3.%20Media/1.1.3%20Exit%20Signage.mov"
+      },
+      "realLifeExamples": []
+    },
+    {
+      "id": "b5",
+      "type": "circle",
+      "centerX": 4314,
+      "centerY": 665,
+      "width": 940,
+      "height": 940,
+      "tcStart": "00;01;06;23",
+      "tcEnd": "00;01;42;22",
+      "text": "[Emergency Manual]",
+      "contentMedia": {
+        "type": "video",
+        "src": ""
+      },
+      "realLifeExamples": []
+    },
+    {
+      "id": "b6",
+      "type": "circle",
+      "centerX": 4815,
+      "centerY": 2761,
+      "width": 940,
+      "height": 940,
+      "tcStart": "00;01;42;22",
+      "tcEnd": "00;02;16;15",
+      "text": "[Hypothetical Example]",
+      "contentMedia": {
+        "type": "video",
+        "src": ""
+      },
+      "realLifeExamples": []
+    },
+    {
+      "id": "b7",
+      "type": "pill",
+      "text": "Done",
+      "tcStart": "00;02;16;15",
+      "tcEnd": "00;02;29;28",
+      "order": "done",
+      "content": "[Closing]",
+      "realLifeExamples": []
+    }
+  ]
+}
