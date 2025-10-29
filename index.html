@@ -1502,15 +1502,18 @@
       }
 
       function setStatus(tok){
+        console.log('🔧 setStatus called with token:', tok);
         $('normalizedToken').value = tok || '';
         $('tokPreview').textContent = summarize(tok);
         const st = $('tokStatus');
         if (tok){ st.textContent = 'token detected'; st.classList.remove('bad'); st.classList.add('ok'); }
         else { st.textContent = 'no token detected'; st.classList.remove('ok'); st.classList.add('bad'); }
         const diag = tok ? `apitest.html?temp_token=${encodeURIComponent(tok)}` : 'apitest.html';
+        console.log('🔗 Updating button hrefs to:', diag);
         $('apiBtn').href = diag;
         $('apiBtnSame').href = diag;
         $('apiFloatBtn').href = diag;
+        console.log('✅ Updated hrefs - apiBtn:', $('apiBtn').href, 'apiFloatBtn:', $('apiFloatBtn').href);
       }
 
       function currentToken(){
@@ -1543,7 +1546,9 @@
       // Controls
       $('applyBtn').addEventListener('click', ()=>{
         const cand = $('tokenInput').value.trim();
+        console.log('👆 Apply button clicked, raw input:', cand);
         const tok = pickTokenFromString(cand);
+        console.log('🔍 Extracted token:', tok);
         setStatus(tok);
       });
       $('clearBtn').addEventListener('click', ()=>{
@@ -1557,7 +1562,9 @@
         }
       });
       $('normalizedToken').addEventListener('input', ()=>{
-        setStatus($('normalizedToken').value.trim() || null);
+        const val = $('normalizedToken').value.trim() || null;
+        console.log('⌨️ Normalized token field changed, value:', val);
+        setStatus(val);
       });
 
       $('copyLinkBtn').addEventListener('click', async()=>{
@@ -1572,6 +1579,17 @@
         }catch(_){
           alert('Could not copy to clipboard. Link:\n' + url);
         }
+      });
+
+      // Add click logging to diagnostic buttons
+      $('apiBtn').addEventListener('click', (e)=>{
+        console.log('🖱️ API Diagnostics button clicked (new tab), href:', e.target.href);
+      });
+      $('apiBtnSame').addEventListener('click', (e)=>{
+        console.log('🖱️ API Diagnostics button clicked (same tab), href:', e.target.href);
+      });
+      $('apiFloatBtn').addEventListener('click', (e)=>{
+        console.log('🖱️ Floating API Test button clicked, href:', e.target.href);
       });
     })();
   </script>

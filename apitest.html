@@ -33,7 +33,7 @@
     <h1>🔬 GuestGuard API Diagnostics</h1>
 
     <div class="section">
-      <h2>📍 Environment</h2>
+      <h2>🔍 Environment</h2>
       <div class="row">
         <div class="col result" id="envBox"></div>
         <div class="col result" id="hintsBox"></div>
@@ -167,11 +167,11 @@
       const dt = (performance.now()-t0).toFixed(0);
       log(`Status: ${resp.status} ${resp.statusText} in ${dt}ms`);
       const hdrs = dumpHeaders(resp.headers);
-      setResponse('Basic Connectivity — Response Headers', hdrs, 'Basic Connectivity — Body (best effort)', {});
+      setResponse('Basic Connectivity – Response Headers', hdrs, 'Basic Connectivity – Body (best effort)', {});
       try{
         const ct = resp.headers.get('content-type') || '';
-        if(ct.includes('json')) setResponse('Basic Connectivity — Response Headers', hdrs, 'Basic Connectivity — JSON', await resp.json());
-        else setResponse('Basic Connectivity — Response Headers', hdrs, 'Basic Connectivity — Text', { body: (await resp.text()).slice(0,1500) });
+        if(ct.includes('json')) setResponse('Basic Connectivity – Response Headers', hdrs, 'Basic Connectivity – JSON', await resp.json());
+        else setResponse('Basic Connectivity – Response Headers', hdrs, 'Basic Connectivity – Text', { body: (await resp.text()).slice(0,1500) });
       }catch(_){}
       const acao = resp.headers.get('access-control-allow-origin');
       log(`ACAO: ${acao ? acao : '(absent)'}`);
@@ -193,7 +193,7 @@
       const dt = (performance.now()-t0).toFixed(0);
       log(`OPTIONS status: ${resp.status} ${resp.statusText} in ${dt}ms`);
       const hdrs = dumpHeaders(resp.headers);
-      setResponse('OPTIONS — Response Headers', hdrs, 'OPTIONS — Body', {});
+      setResponse('OPTIONS – Response Headers', hdrs, 'OPTIONS – Body', {});
       log(`ACAO: ${resp.headers.get('access-control-allow-origin') || '(absent)'}`);
       log(`ACAM: ${resp.headers.get('access-control-allow-methods') || '(absent)'}`);
       log(`ACAH: ${resp.headers.get('access-control-allow-headers') || '(absent)'}`);
@@ -210,7 +210,7 @@
       log(`🧪 Real preflight trigger: ${method} with ${$('preflightHeader').checked ? 'custom header' : 'no custom header'}…`);
       const resp = await fetch(TOKEN_ENDPOINT, { ...currentFetchOpts(), method, headers: hdrs, body: method==='POST' ? JSON.stringify({ ping:'diagnostics' }) : undefined });
       log(`Trigger response: ${resp.status} ${resp.statusText}`);
-      setResponse('Real Preflight — Response Headers', dumpHeaders(resp.headers), 'Real Preflight — Body', await safeBody(resp));
+      setResponse('Real Preflight – Response Headers', dumpHeaders(resp.headers), 'Real Preflight – Body', await safeBody(resp));
     }catch(e){
       log(`❌ Real preflight error: ${e.name}: ${e.message}`);
     }
@@ -233,7 +233,7 @@
       log(`Response: ${resp.status} ${resp.statusText}`);
       const hdrs = dumpHeaders(resp.headers);
       const body = await safeBody(resp);
-      setResponse('Token Exchange — Response Headers', hdrs, 'Token Exchange — Body', body);
+      setResponse('Token Exchange – Response Headers', hdrs, 'Token Exchange – Body', body);
 
       // Quick JWT peek if access_token looks like JWT
       if(body && typeof body==='object' && typeof body.access_token==='string' && body.access_token.split('.').length===3){
