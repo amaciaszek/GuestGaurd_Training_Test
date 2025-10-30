@@ -1,259 +1,152 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>GuestGuard API Diagnostics</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"/>
+  <title>GuestGuard • API Diagnostics (No-CORS)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="icon" href="data:,">
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Courier New,monospace;background:#1a1a1a;color:#00ff00;padding:20px;line-height:1.6}
-    .container{max-width:1200px;margin:0 auto}
-    h1{color:#00ffff;margin-bottom:20px;border-bottom:2px solid #00ffff;padding-bottom:10px}
-    h2{color:#ffff00;margin:24px 0 10px;font-size:18px}
-    .section{background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:14px;margin-bottom:16px}
-    .row{display:flex;flex-wrap:wrap;gap:12px}
-    .col{flex:1 1 360px}
-    .result{background:#000;border:1px solid #333;padding:10px;white-space:pre-wrap;word-break:break-word;max-height:420px;overflow:auto;font-size:11px}
-    label{display:block;color:#888;font-size:12px;margin-bottom:6px}
-    input,textarea{width:100%;background:#000;border:1px solid #333;color:#0f0;padding:8px;font-family:Courier New,monospace}
-    button{background:#033;border:1px solid #0f0;color:#0f0;padding:10px 16px;margin:6px 6px 0 0;cursor:pointer;font-weight:bold}
-    button:hover{background:#044}
-    code.badge{background:#001b00;border:1px solid #335c33;border-radius:4px;padding:1px 6px}
-    .chip{display:inline-block;border:1px solid #333;padding:2px 6px;border-radius:10px;margin:2px 6px 0 0}
+    :root{
+      --bg:#0b0f14; --surface:#0f141b; --ink:#d7e2f1; --dim:#9fb0c5;
+      --border:#1d2733; --accent:#00e0ff; --good:#7CFCB5; --bad:#ff6b6b;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+    }
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono)}
+    .wrap{max-width:980px;margin:0 auto;padding:18px}
+    h1{font-size:18px;color:var(--accent);margin:8px 0 16px}
+    .box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin:12px 0}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .btn{cursor:pointer;border:1px solid #0aa3c8;border-radius:8px;padding:10px 14px;background:#072533;color:#bfe8ff;font-weight:700}
+    .btn.warn{background:#351318;border-color:#5e141f;color:#ffd6db}
+    .btn.good{background:#133523;border-color:#1c7741;color:#c9ffe1}
+    code.badge{background:#061018;border:1px solid #133044;padding:3px 6px;border-radius:4px}
+    .tiny{color:var(--dim);font-size:12px}
+    .status .ok{color:var(--good);font-weight:700}
+    .status .bad{color:var(--bad);font-weight:700}
+    textarea{width:100%;min-height:110px;background:#05080c;color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:var(--mono)}
+    input[type=text]{width:100%;background:#05080c;color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:var(--mono)}
+    .log{white-space:pre-wrap;font-size:12px;background:#05080c;border:1px dashed var(--border);border-radius:8px;padding:10px}
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>GuestGuard API Diagnostics</h1>
+  <div class="wrap">
+    <h1>🚀 GuestGuard • API Diagnostics (No-CORS)</h1>
 
-    <div class="section">
-      <h2>Environment</h2>
+    <div class="box">
       <div class="row">
-        <div class="col result" id="envBox"></div>
-        <div class="col result" id="hintsBox"></div>
+        <div><strong>Origin:</strong> <span id="origin"></span></div>
+        <div><strong>URL:</strong> <span id="fullurl" class="tiny"></span></div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <div><strong>Token status:</strong> <span id="tokStatus" class="bad">no token</span></div>
+        <div><strong>Detected token:</strong> <code id="tokMasked" class="badge">(none)</code></div>
+      </div>
+      <div style="margin-top:8px">
+        <label class="tiny">Raw token</label>
+        <input type="text" id="tokRaw" placeholder="paste or auto-filled…"/>
       </div>
     </div>
 
-    <div class="section">
-      <h2>Token</h2>
+    <div class="box">
       <div class="row">
-        <div class="col">
-          <label>Paste full URL or raw token (Enter to apply)</label>
-          <textarea id="tokenInput" placeholder="https://...?...&temp_token=... or raw 5e915e24-..."></textarea>
-        </div>
-        <div class="col">
-          <label>Detected token (editable)</label>
-          <input id="tokenField">
-          <div style="margin-top:8px">Preview: <code id="tokenPreview" class="badge">(none)</code></div>
-          <div style="margin-top:10px">
-            <button id="applyBtn">Apply</button>
-            <button id="clearBtn">Clear</button>
-            <button id="sendBtn">Send to API Now</button>
-            <button id="fullBtn">Run Full Diagnostics</button>
-          </div>
-        </div>
+        <button id="openGet" class="btn">Open GET /api/training-auth?temp_token=… (new tab)</button>
+        <button id="sendBeacon" class="btn good">POST (sendBeacon, no preflight)</button>
+        <button id="copyCurl" class="btn">Copy cURL (GET)</button>
+        <button id="clear" class="btn warn">Clear</button>
+      </div>
+      <div class="tiny" style="margin-top:8px">
+        • <strong>Open GET</strong> navigates to the server and lets it handle redirects/flows (no CORS required).<br>
+        • <strong>sendBeacon</strong> uses <code>text/plain</code> POST (CORS-safelisted) — no preflight; response is not readable by design.<br>
+        • If neither works, you’ll need someone with server access to allow your origin or run the cURL server-side.
       </div>
     </div>
 
-    <div class="section">
-      <h2>Settings</h2>
-      <div class="row">
-        <div class="col result" id="settingsBox"></div>
-        <div class="col">
-          <div class="chip"><label><input type="checkbox" id="useCreds"> credentials: include</label></div>
-          <div class="chip"><label><input type="checkbox" id="forceCors" checked> mode: cors</label></div>
-          <div class="chip"><label><input type="checkbox" id="tryNoCors"> also try no-cors (opaque)</label></div>
-          <div class="chip"><label><input type="checkbox" id="sendDbg" checked> send X-Debug-Trigger</label></div>
-          <div class="chip"><label><input type="checkbox" id="postProbe" checked> real preflight via POST</label></div>
-        </div>
+    <div class="box">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>Logs</strong>
+        <span class="tiny">These are client-side only; failures here are expected if the server blocks cross-origin.</span>
       </div>
+      <div id="log" class="log"></div>
     </div>
 
-    <div class="section">
-      <h2>Diagnostic Results</h2>
-      <div class="result" id="log"></div>
-    </div>
-
-    <div class="section">
-      <h2>Last Response</h2>
-      <div class="row">
-        <div class="col"><div class="result" id="respHeaders"></div></div>
-        <div class="col"><div class="result" id="respBody"></div></div>
+    <div class="box">
+      <strong>FYI for training progress / certification</strong>
+      <div class="tiny" style="margin-top:6px;line-height:1.6">
+        Until the server enables your origin, store progress locally and expose an <em>Export Progress JSON</em> button.
+        The backend route (e.g. <code>/api/update-progress</code>) is what ultimately updates the PROFILES table and certification flag. :contentReference[oaicite:2]{index=2}
+        When all modules + final exam meet thresholds, certification flips <code>is_inspector=true</code> server-side. :contentReference[oaicite:3]{index=3}
       </div>
     </div>
   </div>
 
-<script>
-  // ---------------- Config ----------------
-  var API_BASE = "https://guestguard-platform.vercel.app";
-  var TOKEN_ENDPOINT = API_BASE + "/api/training-auth";
+  <script>
+    (function(){
+      const $ = id => document.getElementById(id);
+      const log = (m)=>{ const t=new Date().toLocaleTimeString(); $('log').textContent += `[${t}] ${m}\n`; };
 
-  // ---------------- Helpers ----------------
-  function $(id){return document.getElementById(id);}
-  function log(msg){ var ts=new Date().toLocaleTimeString(); $('log').textContent+="["+ts+"] "+msg+"\n"; $('log').scrollTop=$('log').scrollHeight; }
-  function dumpHeaders(h){ var o={}; try{ for(var p of h.entries()) o[p[0]]=p[1]; }catch(e){} return o; }
-  function short(tok){ return tok ? (tok.length>16 ? tok.slice(0,8)+"..."+tok.slice(-8) : tok) : "(none)"; }
-  function setPreview(tok){ $('tokenPreview').textContent = short(tok); }
-  function pickTokenFromString(s){
-    if(!s) return null;
-    try{
-      var u=new URL(s, location.href);
-      var q=u.searchParams.get("temp_token"); if(q) return q.trim();
-      if(u.hash){ var hp=new URLSearchParams(u.hash.replace(/^#/, "")); var ht=hp.get("temp_token"); if(ht) return ht.trim(); }
-    }catch(e){}
-    var m=String(s).match(/temp_token\s*=\s*([A-Za-z0-9._\-]+)/); if(m) return m[1].trim();
-    var raw=String(s).trim(); return raw.length>=24 ? raw : null;
-  }
-  function baseFetchOpts(){
-    var o={cache:"no-store",redirect:"follow"};
-    if($("forceCors").checked) o.mode="cors";
-    if($("useCreds").checked) o.credentials="include";
-    if($("tryNoCors").checked) o.mode="no-cors"; // last wins if both toggled
-    return o;
-  }
-  function showSettings(){
-    var out=[];
-    out.push("API_BASE: "+API_BASE);
-    out.push("TOKEN_ENDPOINT: "+TOKEN_ENDPOINT);
-    out.push("mode: "+( $("tryNoCors").checked ? "no-cors" : ($("forceCors").checked ? "cors" : "(browser default)") ));
-    out.push("credentials: "+( $("useCreds").checked ? "include" : "omit" ));
-    out.push("extra header X-Debug-Trigger: "+( $("sendDbg").checked ? "yes" : "no" ));
-    out.push("real preflight via POST: "+( $("postProbe").checked ? "yes" : "no" ));
-    $("settingsBox").textContent = out.join("\n");
-  }
-  function setResponse(hTitle,h,bTitle,b){
-    $("respHeaders").textContent = hTitle + "\n\n" + JSON.stringify(h,null,2);
-    $("respBody").textContent    = bTitle + "\n\n" + JSON.stringify(b,null,2);
-  }
-  async function safeBody(resp){
-    try{
-      var ct=resp.headers.get("content-type")||"";
-      if(ct.indexOf("json")>=0) return await resp.json();
-      return { text:(await resp.text()).slice(0,4000) };
-    }catch(e){ return { note:"no body" }; }
-  }
+      const params = new URLSearchParams(location.search);
+      const fromHref = params.get('temp_token');
+      const token = (fromHref && fromHref.trim()) || '';
 
-  // ---------------- Tests ----------------
-  async function testBasic(){
-    try{
-      log("GET / (basic connectivity) ...");
-      var t0=performance.now();
-      var resp=await fetch(API_BASE, Object.assign({}, baseFetchOpts(), { method:"GET", headers:{ "Accept":"application/json" } }));
-      log("Status: "+resp.status+" "+resp.statusText+" in "+(performance.now()-t0|0)+"ms");
-      var hdrs=dumpHeaders(resp.headers);
-      var ct=resp.headers.get("content-type")||"";
-      if(ct.indexOf("json")>=0){
-        setResponse("Basic Connectivity - Headers", hdrs, "Basic Connectivity - JSON", await resp.json());
-      }else{
-        setResponse("Basic Connectivity - Headers", hdrs, "Basic Connectivity - Text", { body:(await resp.text()).slice(0,1500) });
+      $('origin').textContent = location.origin;
+      $('fullurl').textContent = location.href;
+
+      function mask(t){ return !t ? '(none)' : (t.length>16 ? `${t.slice(0,8)}…${t.slice(-8)}` : t); }
+      function setTok(t){
+        $('tokRaw').value = t || '';
+        $('tokMasked').textContent = mask(t);
+        const ok = !!t;
+        const st = $('tokStatus');
+        st.textContent = ok ? 'token detected' : 'no token';
+        st.className = ok ? 'ok' : 'bad';
       }
-      log("ACAO: "+(resp.headers.get("access-control-allow-origin")||"(absent)"));
-    }catch(e){ log("Basic GET error: "+e.name+": "+e.message); }
-  }
+      setTok(token);
 
-  async function testOPTIONS(){
-    try{
-      log("Preflight (OPTIONS /api/training-auth) ...");
-      var headers={
-        "Origin": location.origin,
-        "Access-Control-Request-Method": "GET",
-        "Access-Control-Request-Headers": "content-type,authorization,x-debug-trigger"
-      };
-      var resp=await fetch(TOKEN_ENDPOINT, Object.assign({}, baseFetchOpts(), { method:"OPTIONS", headers:headers }));
-      log("OPTIONS status: "+resp.status+" "+resp.statusText);
-      var hdrs=dumpHeaders(resp.headers);
-      setResponse("OPTIONS - Headers", hdrs, "OPTIONS - Body", {});
-      log("ACAO: "+(resp.headers.get("access-control-allow-origin")||"(absent)"));
-      log("ACAM: "+(resp.headers.get("access-control-allow-methods")||"(absent)"));
-      log("ACAH: "+(resp.headers.get("access-control-allow-headers")||"(absent)"));
-    }catch(e){ log("OPTIONS error: "+e.name+": "+e.message); }
-  }
+      $('tokRaw').addEventListener('input', ()=> setTok($('tokRaw').value.trim()));
 
-  async function testRealPreflight(){
-    try{
-      var method = $("postProbe").checked ? "POST" : "GET";
-      var hdrs = { "Accept":"application/json" };
-      if($("sendDbg").checked) hdrs["X-Debug-Trigger"] = "1";
-      var body = method==="POST" ? JSON.stringify({ ping:"diagnostics" }) : undefined;
-      if(method==="POST") hdrs["Content-Type"]="application/json";
-      log("Real preflight trigger: "+method+" ...");
-      var resp=await fetch(TOKEN_ENDPOINT, Object.assign({}, baseFetchOpts(), { method:method, headers:hdrs, body:body }));
-      log("Trigger response: "+resp.status+" "+resp.statusText);
-      setResponse("Real Preflight - Headers", dumpHeaders(resp.headers), "Real Preflight - Body", await safeBody(resp));
-    }catch(e){ log("Real preflight error: "+e.name+": "+e.message); }
-  }
+      $('openGet').addEventListener('click', ()=>{
+        const t = $('tokRaw').value.trim();
+        if(!t){ log('Open GET aborted: no token'); return; }
+        const url = `https://guestguard-platform.vercel.app/api/training-auth?temp_token=${encodeURIComponent(t)}`;
+        log(`Navigating to: ${url}`);
+        try{ window.open(url, '_blank', 'noopener'); }catch(e){ log('Open failed: '+e.message); }
+      });
 
-  async function sendTokenNow(token){
-    if(!token){ log("No token to send."); return; }
-    var url = TOKEN_ENDPOINT + "?temp_token=" + encodeURIComponent(token);
-    try{
-      log("GET "+url);
-      // IMPORTANT: do not set Content-Type on GET to avoid unnecessary preflight
-      var resp=await fetch(url, Object.assign({}, baseFetchOpts(), { method:"GET", headers:{ "Accept":"application/json" } }));
-      log("Response: "+resp.status+" "+resp.statusText);
-      setResponse("Token Exchange - Headers", dumpHeaders(resp.headers), "Token Exchange - Body", await safeBody(resp));
-    }catch(e){
-      log("Token exchange fetch error: "+e.name+": "+e.message);
-      if(e.message==="Failed to fetch") log("Likely CORS rejection, redirect without CORS, DNS/TLS issue, or network block.");
-    }
-  }
+      $('sendBeacon').addEventListener('click', ()=>{
+        const t = $('tokRaw').value.trim();
+        if(!t){ log('sendBeacon aborted: no token'); return; }
+        const url = 'https://guestguard-platform.vercel.app/api/training-auth';
+        // Use text/plain body to stay safelisted (no preflight)
+        const payload = `temp_token=${encodeURIComponent(t)}`;
+        const ok = navigator.sendBeacon(url, new Blob([payload], {type:'text/plain;charset=UTF-8'}));
+        log(ok ? 'sendBeacon dispatched (no response visible by design).' : 'sendBeacon rejected by browser.');
+      });
 
-  async function runFull(token){
-    $("log").textContent="";
-    showSettings();
-    await testBasic();
-    await testOPTIONS();
-    await testRealPreflight();
-    await sendTokenNow(token);
-    log("Diagnostics complete.");
-  }
+      $('copyCurl').addEventListener('click', async()=>{
+        const t = $('tokRaw').value.trim();
+        if(!t){ log('Copy cURL aborted: no token'); return; }
+        const cmd = `curl -i "https://guestguard-platform.vercel.app/api/training-auth?temp_token=${t}"`;
+        try{ await navigator.clipboard.writeText(cmd); log('cURL copied to clipboard.'); }
+        catch{ log('Clipboard failed. Here is the cURL:\n'+cmd); }
+      });
 
-  // ---------------- Init ----------------
-  (function init(){
-    $("envBox").textContent = [
-      "Origin: "+location.origin,
-      "URL: "+location.href,
-      "Protocol: "+location.protocol,
-      "Referrer: "+(document.referrer||"(none)"),
-      "User-Agent: "+navigator.userAgent,
-      "API Base: "+API_BASE,
-      "Token Endpoint: "+TOKEN_ENDPOINT
-    ].join("\n");
+      $('clear').addEventListener('click', ()=>{
+        setTok('');
+        log('Cleared.');
+      });
 
-    $("hintsBox").textContent = [
-      "This page auto-detects ?temp_token= or #temp_token=.",
-      "Send to API Now performs only the GET token exchange (no Content-Type set).",
-      "Run Full Diagnostics also probes OPTIONS and a POST that triggers preflight."
-    ].join("\n");
+      // Minimal connectivity check (no CORS read required)
+      log('GET / (basic connectivity) …');
+      fetch('.', {method:'GET'}).then(r=>{
+        log(`Status: ${r.status}  in (browser handled)`);
+        log('ACAO: (not applicable locally)');
+      }).catch(e=>{
+        log('Local GET failed: '+e.message);
+      });
 
-    var detected = pickTokenFromString(location.href) || pickTokenFromString(location.hash);
-    $("tokenInput").value = detected || "";
-    $("tokenField").value = detected || "";
-    setPreview(detected);
-
-    // Auto-send on load if present
-    if(detected){ sendTokenNow(detected); }
-
-    // Wire controls
-    $("applyBtn").addEventListener("click", function(){
-      var tok = pickTokenFromString($("tokenInput").value.trim());
-      $("tokenField").value = tok || "";
-      setPreview(tok);
-    });
-    $("clearBtn").addEventListener("click", function(){
-      $("tokenInput").value = ""; $("tokenField").value = ""; setPreview("");
-    });
-    $("tokenInput").addEventListener("keydown", function(e){
-      if(e.key==="Enter"){ e.preventDefault(); $("applyBtn").click(); }
-    });
-    $("tokenField").addEventListener("input", function(){ setPreview($("tokenField").value.trim()); });
-    $("sendBtn").addEventListener("click", function(){ sendTokenNow($("tokenField").value.trim()); });
-    $("fullBtn").addEventListener("click", function(){ runFull($("tokenField").value.trim()); });
-    ["useCreds","forceCors","tryNoCors","sendDbg","postProbe"].forEach(function(id){
-      $(id).addEventListener("change", showSettings);
-    });
-    showSettings();
-  })();
-</script>
+      // No manual OPTIONS / JSON fetch here (preflight was the problem)
+      log('Ready. Use the buttons above.');
+    })();
+  </script>
 </body>
 </html>
