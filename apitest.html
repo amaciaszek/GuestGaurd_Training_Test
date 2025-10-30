@@ -9,10 +9,10 @@
     body{font-family:Courier New,monospace;background:#1a1a1a;color:#00ff00;padding:20px;line-height:1.6}
     .container{max-width:1200px;margin:0 auto}
     h1{color:#00ffff;margin-bottom:20px;border-bottom:2px solid #00ffff;padding-bottom:10px}
-    h2{color:#ffff00;margin:26px 0 12px;font-size:18px}
+    h2{color:#ffff00;margin:24px 0 10px;font-size:18px}
     .section{background:#0a0a0a;border:1px solid #333;border-radius:6px;padding:14px;margin-bottom:16px}
     .row{display:flex;flex-wrap:wrap;gap:12px}
-    .col{flex:1 1 320px}
+    .col{flex:1 1 360px}
     .result{background:#000;border:1px solid #333;padding:10px;white-space:pre-wrap;word-break:break-word;max-height:420px;overflow:auto;font-size:11px}
     label{display:block;color:#888;font-size:12px;margin-bottom:6px}
     input,textarea{width:100%;background:#000;border:1px solid #333;color:#0f0;padding:8px;font-family:Courier New,monospace}
@@ -44,14 +44,12 @@
         <div class="col">
           <label>Detected token (editable)</label>
           <input id="tokenField">
-          <div style="margin-top:8px">
-            <span>Preview:</span> <code id="tokenPreview" class="badge">(none)</code>
-          </div>
+          <div style="margin-top:8px">Preview: <code id="tokenPreview" class="badge">(none)</code></div>
           <div style="margin-top:10px">
             <button id="applyBtn">Apply</button>
             <button id="clearBtn">Clear</button>
             <button id="sendBtn">Send to API Now</button>
-            <button id="fullDiagBtn">Run Full Diagnostics</button>
+            <button id="fullBtn">Run Full Diagnostics</button>
           </div>
         </div>
       </div>
@@ -64,9 +62,9 @@
         <div class="col">
           <div class="chip"><label><input type="checkbox" id="useCreds"> credentials: include</label></div>
           <div class="chip"><label><input type="checkbox" id="forceCors" checked> mode: cors</label></div>
-          <div class="chip"><label><input type="checkbox" id="alsoNoCors"> also try no-cors (opaque)</label></div>
-          <div class="chip"><label><input type="checkbox" id="preflightPost" checked> preflight via POST</label></div>
-          <div class="chip"><label><input type="checkbox" id="preflightHeader" checked> send X-Debug-Trigger</label></div>
+          <div class="chip"><label><input type="checkbox" id="tryNoCors"> also try no-cors (opaque)</label></div>
+          <div class="chip"><label><input type="checkbox" id="sendDbg" checked> send X-Debug-Trigger</label></div>
+          <div class="chip"><label><input type="checkbox" id="postProbe" checked> real preflight via POST</label></div>
         </div>
       </div>
     </div>
@@ -86,128 +84,174 @@
   </div>
 
 <script>
-  // Config
-  var API_BASE = 'https://guestguard-platform.vercel.app';
-  var TOKEN_ENDPOINT = API_BASE + '/api/training-auth';
+  // ---------------- Config ----------------
+  var API_BASE = "https://guestguard-platform.vercel.app";
+  var TOKEN_ENDPOINT = API_BASE + "/api/training-auth";
 
-  // Utilities
+  // ---------------- Helpers ----------------
   function $(id){return document.getElementById(id);}
-  function log(msg){ var ts=new Date().toLocaleTimeString(); $('log').textContent+='['+ts+'] '+msg+'\n'; $('log').scrollTop=$('log').scrollHeight; }
-  function dumpHeaders(h){ var o={}; try{ var it=h.entries(); for(var p=it.next(); !p.done; p=it.next()){ o[p.value[0]]=p.value[1]; } }catch(e){} return o; }
-  function short(tok){ return tok ? (tok.length>16 ? tok.slice(0,8)+'...'+tok.slice(-8) : tok) : '(none)'; }
-  function setPreview(tok){ $('tokenPreview').textContent=short(tok); }
+  function log(msg){ var ts=new Date().toLocaleTimeString(); $('log').textContent+="["+ts+"] "+msg+"\n"; $('log').scrollTop=$('log').scrollHeight; }
+  function dumpHeaders(h){ var o={}; try{ for(var p of h.entries()) o[p[0]]=p[1]; }catch(e){} return o; }
+  function short(tok){ return tok ? (tok.length>16 ? tok.slice(0,8)+"..."+tok.slice(-8) : tok) : "(none)"; }
+  function setPreview(tok){ $('tokenPreview').textContent = short(tok); }
   function pickTokenFromString(s){
     if(!s) return null;
     try{
-      var u = new URL(s, location.href);
-      var q = u.searchParams.get('temp_token'); if(q) return q.trim();
-      if(u.hash){ var hp=new URLSearchParams(u.hash.replace(/^#/,'')); var ht=hp.get('temp_token'); if(ht) return ht.trim(); }
+      var u=new URL(s, location.href);
+      var q=u.searchParams.get("temp_token"); if(q) return q.trim();
+      if(u.hash){ var hp=new URLSearchParams(u.hash.replace(/^#/, "")); var ht=hp.get("temp_token"); if(ht) return ht.trim(); }
     }catch(e){}
-    var m = String(s).match(/temp_token\s*=\s*([A-Za-z0-9._\-]+)/); if(m) return m[1].trim();
-    var raw = String(s).trim(); return raw.length>=24 ? raw : null;
+    var m=String(s).match(/temp_token\s*=\s*([A-Za-z0-9._\-]+)/); if(m) return m[1].trim();
+    var raw=String(s).trim(); return raw.length>=24 ? raw : null;
   }
-  function currentFetchOpts(){ var o={cache:'no-store',redirect:'follow'}; if($('useCreds').checked) o.credentials='include'; if($('forceCors').checked) o.mode='cors'; return o; }
+  function baseFetchOpts(){
+    var o={cache:"no-store",redirect:"follow"};
+    if($("forceCors").checked) o.mode="cors";
+    if($("useCreds").checked) o.credentials="include";
+    if($("tryNoCors").checked) o.mode="no-cors"; // last wins if both toggled
+    return o;
+  }
   function showSettings(){
-    var lines=[]; lines.push('API_BASE: '+API_BASE); lines.push('TOKEN_ENDPOINT: '+TOKEN_ENDPOINT);
-    lines.push('mode: '+($('forceCors').checked?'cors':'(browser default)'));
-    lines.push('credentials: '+($('useCreds').checked?'include':'omit'));
-    lines.push('extra preflight header: '+($('preflightHeader').checked?'yes':'no'));
-    lines.push('preflight via POST: '+($('preflightPost').checked?'yes':'no'));
-    lines.push('also try no-cors: '+($('alsoNoCors').checked?'yes':'no'));
-    $('settingsBox').textContent = lines.join('\n');
+    var out=[];
+    out.push("API_BASE: "+API_BASE);
+    out.push("TOKEN_ENDPOINT: "+TOKEN_ENDPOINT);
+    out.push("mode: "+( $("tryNoCors").checked ? "no-cors" : ($("forceCors").checked ? "cors" : "(browser default)") ));
+    out.push("credentials: "+( $("useCreds").checked ? "include" : "omit" ));
+    out.push("extra header X-Debug-Trigger: "+( $("sendDbg").checked ? "yes" : "no" ));
+    out.push("real preflight via POST: "+( $("postProbe").checked ? "yes" : "no" ));
+    $("settingsBox").textContent = out.join("\n");
   }
-  function setResponse(hTitle,h,bTitle,b){ $('respHeaders').textContent=hTitle+'\n\n'+JSON.stringify(h,null,2); $('respBody').textContent=bTitle+'\n\n'+JSON.stringify(b,null,2); }
-  async function safeBody(resp){ try{ var ct=resp.headers.get('content-type')||''; if(ct.indexOf('json')>=0) return await resp.json(); return { text:(await resp.text()).slice(0,4000) }; }catch(e){ return { note:'no body' }; } }
+  function setResponse(hTitle,h,bTitle,b){
+    $("respHeaders").textContent = hTitle + "\n\n" + JSON.stringify(h,null,2);
+    $("respBody").textContent    = bTitle + "\n\n" + JSON.stringify(b,null,2);
+  }
+  async function safeBody(resp){
+    try{
+      var ct=resp.headers.get("content-type")||"";
+      if(ct.indexOf("json")>=0) return await resp.json();
+      return { text:(await resp.text()).slice(0,4000) };
+    }catch(e){ return { note:"no body" }; }
+  }
 
-  // Tests
+  // ---------------- Tests ----------------
   async function testBasic(){
     try{
-      log('GET / (basic connectivity) ...');
+      log("GET / (basic connectivity) ...");
       var t0=performance.now();
-      var resp=await fetch(API_BASE, Object.assign({}, currentFetchOpts(), {method:'GET',headers:{'Accept':'application/json'}}));
-      var dt=(performance.now()-t0).toFixed(0);
-      log('Status: '+resp.status+' '+resp.statusText+' in '+dt+'ms');
+      var resp=await fetch(API_BASE, Object.assign({}, baseFetchOpts(), { method:"GET", headers:{ "Accept":"application/json" } }));
+      log("Status: "+resp.status+" "+resp.statusText+" in "+(performance.now()-t0|0)+"ms");
       var hdrs=dumpHeaders(resp.headers);
-      var ct=resp.headers.get('content-type')||'';
-      if(ct.indexOf('json')>=0){ setResponse('Basic Connectivity - Response Headers',hdrs,'Basic Connectivity - JSON',await resp.json()); }
-      else { setResponse('Basic Connectivity - Response Headers',hdrs,'Basic Connectivity - Text',{ body:(await resp.text()).slice(0,1500) }); }
-      var acao=resp.headers.get('access-control-allow-origin'); log('ACAO: '+(acao?acao:'(absent)'));
-    }catch(e){ log('Basic GET error: '+e.name+': '+e.message); }
+      var ct=resp.headers.get("content-type")||"";
+      if(ct.indexOf("json")>=0){
+        setResponse("Basic Connectivity - Headers", hdrs, "Basic Connectivity - JSON", await resp.json());
+      }else{
+        setResponse("Basic Connectivity - Headers", hdrs, "Basic Connectivity - Text", { body:(await resp.text()).slice(0,1500) });
+      }
+      log("ACAO: "+(resp.headers.get("access-control-allow-origin")||"(absent)"));
+    }catch(e){ log("Basic GET error: "+e.name+": "+e.message); }
   }
-  async function testOptions(){
+
+  async function testOPTIONS(){
     try{
-      log('Preflight (OPTIONS /api/training-auth) ...');
-      var headers={'Origin':location.origin,'Access-Control-Request-Method':'GET','Access-Control-Request-Headers':'content-type,x-debug-trigger'};
-      var t0=performance.now();
-      var resp=await fetch(TOKEN_ENDPOINT, Object.assign({}, currentFetchOpts(), {method:'OPTIONS',headers:headers}));
-      var dt=(performance.now()-t0).toFixed(0);
-      log('OPTIONS status: '+resp.status+' '+resp.statusText+' in '+dt+'ms');
+      log("Preflight (OPTIONS /api/training-auth) ...");
+      var headers={
+        "Origin": location.origin,
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "content-type,authorization,x-debug-trigger"
+      };
+      var resp=await fetch(TOKEN_ENDPOINT, Object.assign({}, baseFetchOpts(), { method:"OPTIONS", headers:headers }));
+      log("OPTIONS status: "+resp.status+" "+resp.statusText);
       var hdrs=dumpHeaders(resp.headers);
-      setResponse('OPTIONS - Response Headers',hdrs,'OPTIONS - Body',{});
-      log('ACAO: '+(resp.headers.get('access-control-allow-origin')||'(absent)'));
-      log('ACAM: '+(resp.headers.get('access-control-allow-methods')||'(absent)'));
-      log('ACAH: '+(resp.headers.get('access-control-allow-headers')||'(absent)'));
-    }catch(e){ log('OPTIONS error: '+e.name+': '+e.message); }
+      setResponse("OPTIONS - Headers", hdrs, "OPTIONS - Body", {});
+      log("ACAO: "+(resp.headers.get("access-control-allow-origin")||"(absent)"));
+      log("ACAM: "+(resp.headers.get("access-control-allow-methods")||"(absent)"));
+      log("ACAH: "+(resp.headers.get("access-control-allow-headers")||"(absent)"));
+    }catch(e){ log("OPTIONS error: "+e.name+": "+e.message); }
   }
+
   async function testRealPreflight(){
     try{
-      var method=$('preflightPost').checked?'POST':'GET';
-      var hdrs={'Accept':'application/json','Content-Type':'application/json'}; if($('preflightHeader').checked) hdrs['X-Debug-Trigger']='1';
-      log('Real preflight trigger: '+method+' ...');
-      var resp=await fetch(TOKEN_ENDPOINT, Object.assign({}, currentFetchOpts(), {method:method,headers:hdrs,body:method==='POST'?JSON.stringify({ping:'diagnostics'}):undefined}));
-      log('Trigger response: '+resp.status+' '+resp.statusText);
-      setResponse('Real Preflight - Response Headers', dumpHeaders(resp.headers), 'Real Preflight - Body', await safeBody(resp));
-    }catch(e){ log('Real preflight error: '+e.name+': '+e.message); }
-  }
-  async function sendTokenNow(token){
-    if(!token){ log('No token to send.'); return; }
-    var url=TOKEN_ENDPOINT+'?temp_token='+encodeURIComponent(token);
-    try{
-      log('GET '+url);
-      var resp=await fetch(url, Object.assign({}, currentFetchOpts(), {method:'GET',headers:{'Accept':'application/json','Content-Type':'application/json'}}));
-      log('Response: '+resp.status+' '+resp.statusText);
-      setResponse('Token Exchange - Response Headers', dumpHeaders(resp.headers), 'Token Exchange - Body', await safeBody(resp));
-    }catch(e){ log('Token exchange fetch error: '+e.name+': '+e.message); if(e.message==='Failed to fetch') log('Likely CORS rejection, DNS/TLS mismatch, or network block.'); }
-  }
-  async function fullDiagnostics(token){
-    $('log').textContent=''; showSettings();
-    await testBasic(); await testOptions(); await testRealPreflight(); await sendTokenNow(token);
-    log('Diagnostics complete.');
+      var method = $("postProbe").checked ? "POST" : "GET";
+      var hdrs = { "Accept":"application/json" };
+      if($("sendDbg").checked) hdrs["X-Debug-Trigger"] = "1";
+      var body = method==="POST" ? JSON.stringify({ ping:"diagnostics" }) : undefined;
+      if(method==="POST") hdrs["Content-Type"]="application/json";
+      log("Real preflight trigger: "+method+" ...");
+      var resp=await fetch(TOKEN_ENDPOINT, Object.assign({}, baseFetchOpts(), { method:method, headers:hdrs, body:body }));
+      log("Trigger response: "+resp.status+" "+resp.statusText);
+      setResponse("Real Preflight - Headers", dumpHeaders(resp.headers), "Real Preflight - Body", await safeBody(resp));
+    }catch(e){ log("Real preflight error: "+e.name+": "+e.message); }
   }
 
-  // Init
+  async function sendTokenNow(token){
+    if(!token){ log("No token to send."); return; }
+    var url = TOKEN_ENDPOINT + "?temp_token=" + encodeURIComponent(token);
+    try{
+      log("GET "+url);
+      // IMPORTANT: do not set Content-Type on GET to avoid unnecessary preflight
+      var resp=await fetch(url, Object.assign({}, baseFetchOpts(), { method:"GET", headers:{ "Accept":"application/json" } }));
+      log("Response: "+resp.status+" "+resp.statusText);
+      setResponse("Token Exchange - Headers", dumpHeaders(resp.headers), "Token Exchange - Body", await safeBody(resp));
+    }catch(e){
+      log("Token exchange fetch error: "+e.name+": "+e.message);
+      if(e.message==="Failed to fetch") log("Likely CORS rejection, redirect without CORS, DNS/TLS issue, or network block.");
+    }
+  }
+
+  async function runFull(token){
+    $("log").textContent="";
+    showSettings();
+    await testBasic();
+    await testOPTIONS();
+    await testRealPreflight();
+    await sendTokenNow(token);
+    log("Diagnostics complete.");
+  }
+
+  // ---------------- Init ----------------
   (function init(){
-    $('envBox').textContent=[
-      'Origin: '+location.origin,
-      'URL: '+location.href,
-      'Protocol: '+location.protocol,
-      'Referrer: '+(document.referrer||'(none)'),
-      'User-Agent: '+navigator.userAgent,
-      'API Base: '+API_BASE,
-      'Token Endpoint: '+TOKEN_ENDPOINT
-    ].join('\n');
-    $('hintsBox').textContent=[
-      'This page auto-detects ?temp_token= or #temp_token=.',
-      'Use Send to API Now to only test the exchange.',
-      'Use Run Full Diagnostics for OPTIONS + headers matrix.'
-    ].join('\n');
+    $("envBox").textContent = [
+      "Origin: "+location.origin,
+      "URL: "+location.href,
+      "Protocol: "+location.protocol,
+      "Referrer: "+(document.referrer||"(none)"),
+      "User-Agent: "+navigator.userAgent,
+      "API Base: "+API_BASE,
+      "Token Endpoint: "+TOKEN_ENDPOINT
+    ].join("\n");
+
+    $("hintsBox").textContent = [
+      "This page auto-detects ?temp_token= or #temp_token=.",
+      "Send to API Now performs only the GET token exchange (no Content-Type set).",
+      "Run Full Diagnostics also probes OPTIONS and a POST that triggers preflight."
+    ].join("\n");
 
     var detected = pickTokenFromString(location.href) || pickTokenFromString(location.hash);
-    $('tokenInput').value = detected || '';
-    $('tokenField').value = detected || '';
+    $("tokenInput").value = detected || "";
+    $("tokenField").value = detected || "";
     setPreview(detected);
 
+    // Auto-send on load if present
     if(detected){ sendTokenNow(detected); }
 
-    $('applyBtn').addEventListener('click', function(){
-      var cand=$('tokenInput').value.trim(); var tok=pickTokenFromString(cand); $('tokenField').value=tok||''; setPreview(tok);
+    // Wire controls
+    $("applyBtn").addEventListener("click", function(){
+      var tok = pickTokenFromString($("tokenInput").value.trim());
+      $("tokenField").value = tok || "";
+      setPreview(tok);
     });
-    $('clearBtn').addEventListener('click', function(){ $('tokenInput').value=''; $('tokenField').value=''; setPreview(''); });
-    $('tokenInput').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); $('applyBtn').click(); }});
-    $('tokenField').addEventListener('input', function(){ setPreview($('tokenField').value.trim()); });
-    $('sendBtn').addEventListener('click', function(){ sendTokenNow($('tokenField').value.trim()); });
-    $('fullDiagBtn').addEventListener('click', function(){ fullDiagnostics($('tokenField').value.trim()); });
-    ['useCreds','forceCors','alsoNoCors','preflightPost','preflightHeader'].forEach(function(id){ $(id).addEventListener('change', showSettings); });
+    $("clearBtn").addEventListener("click", function(){
+      $("tokenInput").value = ""; $("tokenField").value = ""; setPreview("");
+    });
+    $("tokenInput").addEventListener("keydown", function(e){
+      if(e.key==="Enter"){ e.preventDefault(); $("applyBtn").click(); }
+    });
+    $("tokenField").addEventListener("input", function(){ setPreview($("tokenField").value.trim()); });
+    $("sendBtn").addEventListener("click", function(){ sendTokenNow($("tokenField").value.trim()); });
+    $("fullBtn").addEventListener("click", function(){ runFull($("tokenField").value.trim()); });
+    ["useCreds","forceCors","tryNoCors","sendDbg","postProbe"].forEach(function(id){
+      $(id).addEventListener("change", showSettings);
+    });
     showSettings();
   })();
 </script>
