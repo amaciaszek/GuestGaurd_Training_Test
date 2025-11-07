@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>GuestGuard • Chapter 2-1 Progress Test</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="icon" href="data:,">
+  <style>
+    :root{
+      --bg:#0b0f14; --surface:#0f141b; --ink:#d7e2f1; --dim:#9fb0c5;
+      --border:#1d2733; --accent:#00e0ff; --good:#7CFCB5; --bad:#ff6b6b; --warn:#ffd166;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono);line-height:1.5;padding:20px}
+    .container{max-width:1200px;margin:0 auto}
+    h1{font-size:24px;color:var(--accent);margin:0 0 20px}
+    h2{font-size:16px;color:#bfe8ff;margin:20px 0 10px;border-bottom:1px solid var(--border);padding-bottom:8px}
+    .box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin:16px 0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+    .btn{cursor:pointer;border:1px solid #0aa3c8;border-radius:10px;padding:12px 18px;background:#072533;color:#bfe8ff;font-weight:700;font-size:14px}
+    .btn.good{background:#133523;border-color:#1c7741;color:#c9ffe1}
+    .btn.warn{background:#351318;border-color:#5e141f;color:#ffd6db}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    input,textarea{
+      width:100%;background:#05080c;color:var(--ink);border:1px solid var(--border);
+      border-radius:10px;padding:10px;font-family:var(--mono);font-size:13px;margin:6px 0
+    }
+    textarea{min-height:100px;font-size:12px}
+    .status{padding:8px 12px;border-radius:8px;margin:10px 0;border:1px solid var(--border)}
+    .status.ok{background:#133523;border-color:#1c7741;color:var(--good)}
+    .status.bad{background:#351318;border-color:#5e141f;color:var(--bad)}
+    .segment-item{
+      background:#05080c;border:1px solid var(--border);border-radius:8px;
+      padding:12px;margin:8px 0;display:flex;justify-content:space-between;align-items:center
+    }
+    .segment-item.current{border-color:var(--accent);background:#0a1822}
+    .segment-item.completed{opacity:.6;border-color:#1c7741}
+    .segment-label{font-weight:700;color:var(--accent)}
+    .segment-ptr{font-size:12px;color:var(--dim);font-family:var(--mono)}
+    code{background:#061018;border:1px solid #133044;padding:2px 6px;border-radius:6px;font-size:12px}
+    .log{background:#05080c;border:1px dashed var(--border);border-radius:10px;padding:12px;
+         white-space:pre-wrap;font-size:11px;max-height:300px;overflow-y:auto;margin:10px 0}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:900px){.grid-2{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🧪 Chapter 2-1 Progress Test</h1>
+  
+  <!-- Auth Section -->
+  <div class="box">
+    <h2>1. Authentication</h2>
+    <div class="status" id="authStatus" class="bad">No token</div>
+    
+    <label style="font-size:13px;color:var(--dim)">Temp Token (from URL or paste here):</label>
+    <input id="tempToken" placeholder="Paste temp_token here or it will auto-detect from URL"/>
+    
+    <div class="row">
+      <button id="btnExchange" class="btn good">Exchange Token</button>
+      <button id="btnShowAuth" class="btn">Show Stored Auth</button>
+      <button id="btnClearAuth" class="btn warn">Clear Auth</button>
+    </div>
+    
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;color:var(--dim);font-size:13px">Auth Details</summary>
+      <textarea id="authDump" readonly style="margin-top:8px"></textarea>
+    </details>
+  </div>
+
+  <!-- JSON Loader -->
+  <div class="box">
+    <h2>2. Load Chapter JSON</h2>
+    <label style="font-size:13px;color:var(--dim)">Upload or fetch 2-1.json:</label>
+    
+    <div class="row">
+      <input type="file" id="jsonFile" accept=".json" style="flex:1"/>
+      <button id="btnLoadJson" class="btn good">Load JSON</button>
+    </div>
+    
+    <div style="margin-top:10px">
+      <label style="font-size:13px;color:var(--dim)">Or paste JSON URL:</label>
+      <input id="jsonUrl" placeholder="https://example.com/2-1.json"/>
+      <button id="btnFetchJson" class="btn" style="margin-top:6px">Fetch from URL</button>
+    </div>
+    
+    <div id="jsonStatus" class="status bad" style="display:none">No JSON loaded</div>
+    <div id="segmentInfo" style="margin-top:12px;color:var(--dim);font-size:13px"></div>
+  </div>
+
+  <!-- Progress Simulator -->
+  <div class="box">
+    <h2>3. Segment Progress Simulator</h2>
+    
+    <div class="grid-2">
+      <div>
+        <strong style="color:var(--accent)">Current State:</strong>
+        <div style="margin:10px 0;font-size:14px">
+          <div>Module: <code id="currModule">2</code></div>
+          <div>Chapter: <code id="currChapter">0</code> (0-based)</div>
+          <div>Segment: <code id="currSegment">0</code> (0-based)</div>
+          <div>Pointer: <code id="currPtr">2.0.0</code></div>
+          <div>Progress: <code id="currPercent">0%</code></div>
+        </div>
+      </div>
+      
+      <div>
+        <strong style="color:var(--accent)">Controls:</strong>
+        <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">
+          <button id="btnNextSegment" class="btn good" disabled>Complete Current Segment</button>
+          <button id="btnResetProgress" class="btn warn">Reset to Start</button>
+          <button id="btnPullServer" class="btn">Pull from Server</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <strong style="color:var(--accent)">Segments:</strong>
+      <div id="segmentList"></div>
+    </div>
+  </div>
+
+  <!-- API Log -->
+  <div class="box">
+    <h2>4. API Activity Log</h2>
+    <div class="row">
+      <button id="btnClearLog" class="btn">Clear Log</button>
+      <button id="btnGetProgress" class="btn">GET Current Progress</button>
+    </div>
+    <div id="apiLog" class="log">Ready. Exchange token to begin.</div>
+  </div>
+
+  <!-- Response Viewer -->
+  <div class="box">
+    <h2>5. Last API Response</h2>
+    <textarea id="apiResponse" readonly placeholder="API responses will appear here..."></textarea>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+  
+  // Config
+  const API_BASE = 'https://guestguard-platform.vercel.app';
+  const SUPABASE_URL = 'https://uwbwaujbvqctmcpgqhds.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3YndhVWpiVnFjdG1jcGdxaGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNjU2NDksImV4cCI6MjA2NDk0MTY0OX0.sb_publishable_4thWdEYtuLNTZ0R0F9Bw1w_tzYEyH9R';
+  
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  
+  // State
+  const state = {
+    accessToken: null,
+    refreshToken: null,
+    expiresAt: null,
+    jsonData: null,
+    totalSegments: 0,
+    currentSegment: 0, // 0-based
+    moduleNum: 2,
+    chapterNum: 0 // 0-based (Chapter 1 = 0)
+  };
+
+  // Logging
+  function log(msg, isError = false) {
+    const ts = new Date().toLocaleTimeString();
+    const prefix = isError ? '❌' : '✓';
+    $('apiLog').textContent += `[${ts}] ${prefix} ${msg}\n`;
+    $('apiLog').scrollTop = $('apiLog').scrollHeight;
+  }
+
+  // Auth helpers
+  function getStoredAuth() {
+    const access = localStorage.getItem('gg_access_token');
+    const refresh = localStorage.getItem('gg_refresh_token');
+    const expires = localStorage.getItem('gg_expires_at');
+    return { access, refresh, expires: expires ? parseInt(expires) : null };
+  }
+
+  function saveAuth(access, refresh, expiresAt) {
+    localStorage.setItem('gg_access_token', access);
+    localStorage.setItem('gg_refresh_token', refresh);
+    localStorage.setItem('gg_expires_at', expiresAt);
+    state.accessToken = access;
+    state.refreshToken = refresh;
+    state.expiresAt = expiresAt;
+    updateAuthStatus();
+  }
+
+  function clearAuth() {
+    localStorage.removeItem('gg_access_token');
+    localStorage.removeItem('gg_refresh_token');
+    localStorage.removeItem('gg_expires_at');
+    state.accessToken = null;
+    state.refreshToken = null;
+    state.expiresAt = null;
+    updateAuthStatus();
+  }
+
+  function updateAuthStatus() {
+    const stored = getStoredAuth();
+    if (stored.access) {
+      const expiresIn = stored.expires ? Math.floor((stored.expires - Date.now()) / 1000) : 0;
+      $('authStatus').className = 'status ok';
+      $('authStatus').textContent = `✓ Authenticated (expires in ${expiresIn}s)`;
+    } else {
+      $('authStatus').className = 'status bad';
+      $('authStatus').textContent = '✗ Not authenticated';
+    }
+  }
+
+  async function exchangeTempToken() {
+    const token = $('tempToken').value.trim();
+    if (!token) {
+      log('No temp token provided', true);
+      return;
+    }
+
+    try {
+      log('Exchanging temp token...');
+      const resp = await fetch(`${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(token)}`);
+      
+      if (!resp.ok) {
+        throw new Error(`Exchange failed: ${resp.status} ${resp.statusText}`);
+      }
+
+      const data = await resp.json();
+      $('apiResponse').value = JSON.stringify(data, null, 2);
+      
+      if (data.access_token && data.refresh_token && data.expires_at) {
+        saveAuth(data.access_token, data.refresh_token, data.expires_at);
+        log('Token exchange successful!');
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (e) {
+      log(`Token exchange error: ${e.message}`, true);
+    }
+  }
+
+  async function refreshAccessToken() {
+    const stored = getStoredAuth();
+    if (!stored.refresh) {
+      throw new Error('No refresh token available');
+    }
+
+    log('Refreshing access token...');
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token: stored.refresh
+    });
+
+    if (error) throw error;
+    if (!data.session) throw new Error('No session returned');
+
+    saveAuth(
+      data.session.access_token,
+      data.session.refresh_token,
+      Date.now() + (data.session.expires_in * 1000)
+    );
+    log('Access token refreshed');
+  }
+
+  async function fetchWithAuth(url, options = {}) {
+    const stored = getStoredAuth();
+    
+    // Check if token needs refresh (1 min before expiry)
+    if (stored.expires && (stored.expires - Date.now() < 60000)) {
+      await refreshAccessToken();
+    }
+
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${state.accessToken || stored.access}`
+    };
+
+    return fetch(url, { ...options, headers });
+  }
+
+  // JSON Loading
+  function loadJsonFromFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+        processJsonData(json);
+      } catch (err) {
+        log(`JSON parse error: ${err.message}`, true);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  async function fetchJsonFromUrl(url) {
+    try {
+      log(`Fetching JSON from ${url}...`);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+      const json = await resp.json();
+      processJsonData(json);
+    } catch (e) {
+      log(`Fetch error: ${e.message}`, true);
+    }
+  }
+
+  function processJsonData(json) {
+    state.jsonData = json;
+    
+    // Count segments (hotspots)
+    const hotspots = json.hotspots || [];
+    state.totalSegments = hotspots.length;
+    
+    log(`Loaded JSON: ${state.totalSegments} segments found`);
+    
+    $('jsonStatus').style.display = 'block';
+    $('jsonStatus').className = 'status ok';
+    $('jsonStatus').textContent = `✓ Loaded: ${state.totalSegments} segments`;
+    
+    $('segmentInfo').textContent = `Chapter 2-1 loaded with ${state.totalSegments} segments. Module: 2, Chapter: 0 (0-based)`;
+    
+    renderSegmentList();
+    updateProgress();
+    $('btnNextSegment').disabled = false;
+  }
+
+  function renderSegmentList() {
+    if (!state.jsonData || !state.jsonData.hotspots) return;
+    
+    const html = state.jsonData.hotspots.map((hs, idx) => {
+      const ptr = `2.0.${idx}`;
+      const isCurrent = idx === state.currentSegment;
+      const isCompleted = idx < state.currentSegment;
+      const className = isCurrent ? 'current' : (isCompleted ? 'completed' : '');
+      const status = isCompleted ? '✓' : (isCurrent ? '→' : '○');
+      
+      return `
+        <div class="segment-item ${className}">
+          <div>
+            <span class="segment-label">${status} Segment ${idx}</span>
+            <span class="segment-ptr">(${ptr})</span>
+          </div>
+          <span style="font-size:12px;color:var(--dim)">${hs.title || `Hotspot ${idx}`}</span>
+        </div>
+      `;
+    }).join('');
+    
+    $('segmentList').innerHTML = html;
+  }
+
+  function updateProgress() {
+    const ptr = `${state.moduleNum}.${state.chapterNum}.${state.currentSegment}`;
+    const percent = state.totalSegments > 0 
+      ? Math.round((state.currentSegment / state.totalSegments) * 100)
+      : 0;
+    
+    $('currModule').textContent = state.moduleNum;
+    $('currChapter').textContent = state.chapterNum;
+    $('currSegment').textContent = state.currentSegment;
+    $('currPtr').textContent = ptr;
+    $('currPercent').textContent = `${percent}%`;
+    
+    renderSegmentList();
+  }
+
+  async function completeCurrentSegment() {
+    if (!state.jsonData) {
+      log('No JSON loaded', true);
+      return;
+    }
+
+    if (state.currentSegment >= state.totalSegments) {
+      log('All segments completed!', true);
+      return;
+    }
+
+    const stored = getStoredAuth();
+    if (!stored.access) {
+      log('Not authenticated - please exchange token first', true);
+      return;
+    }
+
+    const oldPtr = `${state.moduleNum}.${state.chapterNum}.${state.currentSegment}`;
+    
+    // Advance segment
+    state.currentSegment++;
+    const newPtr = `${state.moduleNum}.${state.chapterNum}.${state.currentSegment}`;
+    const percent = Math.round((state.currentSegment / state.totalSegments) * 100);
+    const completed = state.currentSegment >= state.totalSegments;
+
+    log(`Segment completed: ${oldPtr} → ${newPtr}`);
+    
+    updateProgress();
+
+    // POST to API
+    try {
+      const payload = {
+        training_progress: {
+          modules: {
+            "2": {
+              ptr: newPtr,
+              percent: percent,
+              completed: completed,
+              updated_at: new Date().toISOString()
+            }
+          },
+          overall_progress: Math.round((2 + (percent / 100)) / 6 * 100), // Assuming 6 total modules
+          last_updated: new Date().toISOString()
+        }
+      };
+
+      log(`POSTing progress update...`);
+      const resp = await fetchWithAuth(`${API_BASE}/api/training-progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) {
+        throw new Error(`${resp.status} ${resp.statusText}`);
+      }
+
+      const data = await resp.json();
+      $('apiResponse').value = JSON.stringify(data, null, 2);
+      log(`✓ Progress saved: ${newPtr} (${percent}%)`);
+
+      if (completed) {
+        log('🎉 Chapter 2-1 completed!');
+        $('btnNextSegment').disabled = true;
+      }
+    } catch (e) {
+      log(`POST error: ${e.message}`, true);
+    }
+  }
+
+  async function getProgress() {
+    const stored = getStoredAuth();
+    if (!stored.access) {
+      log('Not authenticated', true);
+      return;
+    }
+
+    try {
+      log('Fetching current progress from server...');
+      const resp = await fetchWithAuth(`${API_BASE}/api/training-progress`);
+      
+      if (!resp.ok) {
+        throw new Error(`${resp.status} ${resp.statusText}`);
+      }
+
+      const data = await resp.json();
+      $('apiResponse').value = JSON.stringify(data, null, 2);
+      log('✓ Progress retrieved');
+
+      // Parse server progress for Module 2
+      const mod2 = data.training_progress?.modules?.["2"];
+      if (mod2 && mod2.ptr) {
+        log(`Server has Module 2 at: ${mod2.ptr} (${mod2.percent}%)`);
+      }
+    } catch (e) {
+      log(`GET error: ${e.message}`, true);
+    }
+  }
+
+  function resetProgress() {
+    state.currentSegment = 0;
+    updateProgress();
+    $('btnNextSegment').disabled = state.jsonData ? false : true;
+    log('Progress reset to segment 0');
+  }
+
+  // Event Listeners
+  $('btnExchange').addEventListener('click', exchangeTempToken);
+  
+  $('btnShowAuth').addEventListener('click', () => {
+    const stored = getStoredAuth();
+    $('authDump').value = JSON.stringify({
+      access_token: stored.access ? stored.access.substring(0, 30) + '...' : null,
+      refresh_token: stored.refresh ? stored.refresh.substring(0, 30) + '...' : null,
+      expires_at: stored.expires,
+      expires_in_seconds: stored.expires ? Math.floor((stored.expires - Date.now()) / 1000) : null
+    }, null, 2);
+  });
+
+  $('btnClearAuth').addEventListener('click', () => {
+    clearAuth();
+    log('Auth cleared');
+  });
+
+  $('jsonFile').addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) loadJsonFromFile(file);
+  });
+
+  $('btnLoadJson').addEventListener('click', () => {
+    $('jsonFile').click();
+  });
+
+  $('btnFetchJson').addEventListener('click', () => {
+    const url = $('jsonUrl').value.trim();
+    if (url) fetchJsonFromUrl(url);
+  });
+
+  $('btnNextSegment').addEventListener('click', completeCurrentSegment);
+  $('btnResetProgress').addEventListener('click', resetProgress);
+  $('btnPullServer').addEventListener('click', getProgress);
+  $('btnGetProgress').addEventListener('click', getProgress);
+  
+  $('btnClearLog').addEventListener('click', () => {
+    $('apiLog').textContent = 'Log cleared.\n';
+  });
+
+  // Initialize
+  (function init() {
+    // Check for temp_token in URL
+    const params = new URLSearchParams(window.location.search);
+    const tempToken = params.get('temp_token');
+    if (tempToken) {
+      $('tempToken').value = tempToken;
+      log('Temp token detected in URL');
+    }
+
+    // Load stored auth
+    const stored = getStoredAuth();
+    if (stored.access) {
+      state.accessToken = stored.access;
+      state.refreshToken = stored.refresh;
+      state.expiresAt = stored.expires;
+      updateAuthStatus();
+      log('Loaded stored authentication');
+    }
+
+    updateProgress();
+  })();
+})();
+</script>
+</body>
+</html>
