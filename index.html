@@ -83,54 +83,6 @@
   <input id="configPicker" type="file" accept=".json,application/json" />
   <input id="transcriptPicker" type="file" accept=".txt,text/plain" />
 
-  <!-- Progress Display Panel -->
-  <div id="progressPanel" style="
-    position: fixed; 
-    top: 70px; 
-    right: 20px; 
-    width: 340px; 
-    max-height: calc(100vh - 100px);
-    background: linear-gradient(135deg, rgba(15,20,27,0.98), rgba(11,15,20,0.98));
-    border: 1px solid #1d2733;
-    border-radius: 16px;
-    padding: 16px;
-    z-index: 999;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    backdrop-filter: blur(10px);
-    overflow-y: auto;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    display: none;
-  ">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h3 style="margin: 0; color: #00e0ff; font-size: 14px; font-weight: 700;">Training Progress</h3>
-      <button id="closePanelBtn" style="background: none; border: none; color: #9fb0c5; cursor: pointer; font-size: 20px; padding: 0; width: 24px; height: 24px;">×</button>
-    </div>
-    <div id="overallProgress" style="margin-bottom: 16px; padding: 12px; background: rgba(0,224,255,0.05); border: 1px solid #1d2733; border-radius: 8px;">
-      <div style="font-size: 11px; color: #9fb0c5; margin-bottom: 4px;">OVERALL</div>
-      <div style="font-size: 24px; font-weight: 700; color: #7CFCB5;"><span id="overallPercent">0</span>%</div>
-      <div style="font-size: 11px; color: #9fb0c5; margin-top: 6px;" id="lastUpdated">Not synced</div>
-    </div>
-    <div id="moduleProgressList"></div>
-  </div>
-
-  <!-- Toggle Progress Button -->
-  <button id="toggleProgressBtn" style="
-    position: fixed;
-    top: 70px;
-    right: 20px;
-    background: linear-gradient(135deg, #00e0ff, #0099cc);
-    color: #000;
-    border: none;
-    padding: 12px 18px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 13px;
-    box-shadow: 0 4px 15px rgba(0, 224, 255, 0.3);
-    z-index: 998;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  ">📊 Progress</button>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- ===== Singleton Audio Manager ===== -->
@@ -154,7 +106,16 @@
 
     function ensureHandlers() {
       if (!audioElement || audioElement.__ggHandlersAttached) return;
-      
+
+      const debugState = (label) => {
+        const info = {
+          currentTime: Number.isFinite(audioElement.currentTime) ? Number(audioElement.currentTime.toFixed(3)) : audioElement.currentTime,
+          readyState: audioElement.readyState,
+          src: audioElement.currentSrc || src
+        };
+        console.debug(`[Audio] ${label}`, info);
+      };
+
       audioElement.addEventListener('timeupdate', () => {
         if (!seg) return;
         if (audioElement.currentTime < seg.start - 0.02) {
@@ -171,7 +132,23 @@
           seg = null;
         }
       });
-      
+
+      if (!audioElement.__ggDebugAttached) {
+        audioElement.addEventListener('loadedmetadata', () => {
+          debugState(`loadedmetadata (duration: ${Number.isFinite(audioElement.duration) ? Number(audioElement.duration.toFixed(3)) : 'n/a'})`);
+        });
+        audioElement.addEventListener('canplay', () => debugState('canplay'), { once: true });
+        audioElement.addEventListener('playing', () => debugState('playing'));
+        audioElement.addEventListener('pause', () => debugState('pause'));
+        audioElement.addEventListener('waiting', () => debugState('waiting'));
+        audioElement.addEventListener('stalled', () => debugState('stalled'));
+        audioElement.addEventListener('error', (event) => {
+          const err = audioElement.error;
+          console.error('[Audio] error', err ? { code: err.code, message: err.message } : event);
+        });
+        audioElement.__ggDebugAttached = true;
+      }
+
       audioElement.__ggHandlersAttached = true;
     }
 
@@ -182,6 +159,7 @@
 
       src = url;
       loaded = false;
+      console.debug('[Audio] Requesting load', { src: url });
       audioElement.src = src;
       audioElement.load();
 
@@ -190,11 +168,12 @@
           audioElement.removeEventListener('canplay', onReady);
           audioElement.removeEventListener('canplaythrough', onReady);
           loaded = true;
-          console.log('✅ Audio ready');
+          console.debug('✅ Audio ready', { src: url, readyState: audioElement.readyState });
           resolve();
         };
-        const onErr = () => {
+        const onErr = (event) => {
           audioElement.removeEventListener('error', onErr);
+          console.error('[Audio] Failed to load source', { src: url, error: audioElement.error, event });
           reject(new Error('audio failed to load'));
         };
         audioElement.addEventListener('canplay', onReady, { once: true });
@@ -293,6 +272,7 @@
       accessToken: null,
       refreshToken: null,
       expiresAt: null,
+      progressUIAvailable: false,
       
       init() {
         this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -460,10 +440,12 @@
       },
       
       updateProgressDisplay(trainingProgress) {
+        if (!this.progressUIAvailable) return;
+
         const overall = trainingProgress.overall_progress || 0;
         const modules = trainingProgress.modules || {};
         const lastUpdated = trainingProgress.last_updated;
-        
+
         // Update overall
         document.getElementById('overallPercent').textContent = overall;
         
@@ -507,12 +489,19 @@
           moduleList.appendChild(moduleDiv);
         }
       },
-      
+
       setupProgressUI() {
         const toggleBtn = document.getElementById('toggleProgressBtn');
         const panel = document.getElementById('progressPanel');
         const closeBtn = document.getElementById('closePanelBtn');
-        
+
+        if (!toggleBtn || !panel || !closeBtn) {
+          this.progressUIAvailable = false;
+          return;
+        }
+
+        this.progressUIAvailable = true;
+
         toggleBtn.addEventListener('click', () => {
           const isVisible = panel.style.display !== 'none';
           panel.style.display = isVisible ? 'none' : 'block';
@@ -697,7 +686,7 @@
       this.FPS = 30;
       this.VER_KEY = 'training_schema';
       this.SCHEMA_VERSION = 4;
-      this.seg = {start:0,end:0,active:false,rafId:null,currentId:null,currentVideo:null};
+      this.seg = {start:0,end:0,active:false,rafId:null,currentId:null,currentVideo:null,cleanupSkipHandler:null};
       this.realLifeIndex = 0;
       this.captions = [];
       this.currentCaptionElement = null;
@@ -1192,6 +1181,7 @@
         if (this.seg.currentVideo){ this.seg.currentVideo.pause(); this.seg.currentVideo=null; }
         if (!GGAudio.paused) GGAudio.pause();
         this.seg.active=false; cancelAnimationFrame(this.seg.rafId);
+        if (this.seg.cleanupSkipHandler){ this.seg.cleanupSkipHandler(); this.seg.cleanupSkipHandler=null; }
         this.currentCaptionElement = null;
         
         this.innerWindow.style.top = '';
@@ -1291,7 +1281,9 @@
 
     wireAudioSegment(startSec,endSec,id){
       const total = Math.max(0.01, endSec-startSec);
-      this.seg = {start:startSec,end:endSec,active:true,currentId:id,currentVideo:this.seg.currentVideo,rafId:null};
+      const previousVideo = this.seg.currentVideo || null;
+      if (this.seg.cleanupSkipHandler){ this.seg.cleanupSkipHandler(); this.seg.cleanupSkipHandler=null; }
+      this.seg = {start:startSec,end:endSec,active:true,currentId:id,currentVideo:previousVideo,rafId:null,cleanupSkipHandler:null};
       
       const fill = document.getElementById('fill');
       const playPause = document.getElementById('playPause');
@@ -1315,6 +1307,7 @@
           if (playPause) playPause.textContent='▶';
           if (status) status.textContent='Finished';
           cancelAnimationFrame(this.seg.rafId);
+          if (this.seg.cleanupSkipHandler){ this.seg.cleanupSkipHandler(); this.seg.cleanupSkipHandler=null; }
           this.onSegmentComplete(id);
           return;
         }
@@ -1338,6 +1331,7 @@
           if (playPause) playPause.textContent='▶';
           if (status) status.textContent='Finished';
           cancelAnimationFrame(this.seg.rafId);
+          if (this.seg.cleanupSkipHandler){ this.seg.cleanupSkipHandler(); this.seg.cleanupSkipHandler=null; }
           this.onSegmentComplete(id);
         }).then(() => {
           // Start video when audio starts
@@ -1378,33 +1372,43 @@
       if (replay) replay.onclick = ()=> startSeg();
       if (closeBtn) closeBtn.onclick = ()=>this.closeViewer();
       
-      // Secret skip button: press 'b' during video playback to skip
-      const skipHandler = (e) => {
-        if (e.key === 'b' || e.key === 'B') {
-          if (this.seg.active && !GGAudio.paused) {
-            // Pause audio and video
-            GGAudio.pause();
-            if (this.seg.currentVideo) this.seg.currentVideo.pause();
-            
-            // Update UI
-            if (playPause) playPause.textContent='▶';
-            if (status) status.textContent='Finished';
-            if (fill) fill.style.width = '100%';
-            if (tcur) tcur.textContent = fmt(total);
-            
-            // Cancel animation frame
-            cancelAnimationFrame(this.seg.rafId);
-            
-            // Trigger completion
-            this.onSegmentComplete(id);
-            
-            // Remove this handler
-            document.removeEventListener('keydown', skipHandler);
+      if (this.seg.currentVideo) {
+        let skipHandlerAttached = false;
+        let boundSkipHandler = null;
+        const cleanupSkipHandler = () => {
+          if (!skipHandlerAttached || !boundSkipHandler) return;
+          document.removeEventListener('keydown', boundSkipHandler);
+          skipHandlerAttached = false;
+          boundSkipHandler = null;
+        };
+        function skipHandler(e) {
+          if (e.key === 'b' || e.key === 'B') {
+            const video = this.seg.currentVideo;
+            if (this.seg.active && video && !video.paused) {
+              GGAudio.pause();
+              video.pause();
+
+              if (playPause) playPause.textContent='▶';
+              if (status) status.textContent='Finished';
+              if (fill) fill.style.width = '100%';
+              if (tcur) tcur.textContent = fmt(total);
+
+              cancelAnimationFrame(this.seg.rafId);
+
+              cleanupSkipHandler();
+              this.seg.cleanupSkipHandler = null;
+              this.onSegmentComplete(id);
+            }
           }
         }
-      };
-      document.addEventListener('keydown', skipHandler);
-      
+        boundSkipHandler = skipHandler.bind(this);
+        document.addEventListener('keydown', boundSkipHandler);
+        skipHandlerAttached = true;
+        this.seg.cleanupSkipHandler = cleanupSkipHandler;
+      } else {
+        this.seg.cleanupSkipHandler = null;
+      }
+
       startSeg();
     }
 
@@ -1435,12 +1439,32 @@
         
         if (hasVideo) {
           const videoSrc = h.video ? this.resolveAsset(h.video) : this.resolveAsset(h.contentMedia.src);
+          console.debug('[Video] Preparing source', { src: videoSrc });
           const vid = el('video',{src:videoSrc});
-          vid.muted = true; 
-          vid.playsInline = true; 
-          vid.loop = true; 
+          vid.muted = true;
+          vid.playsInline = true;
+          vid.loop = true;
           vid.controls = false;
           vid.preload = 'auto';
+          const formatVideoTime = () => Number.isFinite(vid.currentTime) ? Number(vid.currentTime.toFixed(3)) : vid.currentTime;
+          vid.addEventListener('loadedmetadata', () => {
+            console.debug('[Video] loadedmetadata', {
+              src: videoSrc,
+              width: vid.videoWidth,
+              height: vid.videoHeight,
+              duration: Number.isFinite(vid.duration) ? Number(vid.duration.toFixed(3)) : 'n/a'
+            });
+          }, { once: true });
+          vid.addEventListener('canplay', () => console.debug('[Video] canplay', { src: videoSrc }), { once: true });
+          vid.addEventListener('play', () => console.debug('[Video] play', { src: videoSrc, currentTime: formatVideoTime() }));
+          vid.addEventListener('pause', () => console.debug('[Video] pause', { src: videoSrc, currentTime: formatVideoTime() }));
+          vid.addEventListener('waiting', () => console.debug('[Video] waiting', { src: videoSrc }));
+          vid.addEventListener('stalled', () => console.debug('[Video] stalled', { src: videoSrc }));
+          vid.addEventListener('error', (event) => {
+            const err = vid.error;
+            console.error('[Video] error', { src: videoSrc, error: err ? { code: err.code, message: err.message } : event });
+          });
+          vid.load();
           // Video will start playing when audio starts in wireAudioSegment()
           media.appendChild(vid);
           this.seg.currentVideo = vid;
