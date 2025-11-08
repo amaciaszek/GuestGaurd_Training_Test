@@ -1,131 +1,134 @@
 {
   "id": "facility_planning_utilities",
   "title": "Facility Planning - Utilities",
-  "audioFile": "2.1 Facility Planning_Utilities.wav",
-  "transcriptFile": "2_1.txt",
-  "backgroundImage": "2_1.jpg",
+  "audioFile": "/Assets/Module 2/Chapter 1/Audio/2.1 Facility Planning_Utilities.wav",
+  "transcriptFile": "/Assets/Module 2/Chapter 1/Info/2_1.txt",
+  "backgroundImage": "/Assets/Module 2/Chapter 1/Background/2_1.jpg",
   "canvasDimensions": {
     "width": 6000,
     "height": 4000
   },
-  "nextPage": "2-2.html",
   "hotspots": [
     {
       "id": "b1",
+      "tcStart": "00;00;00;00",
+      "tcEnd": "00;00;15;15",
+      "realLifeExamples": [],
       "type": "pill",
       "label": "Start",
       "dock": "left",
-      "tcStart": "00;00;00;00",
-      "tcEnd": "00;00;15;15",
       "order": "first",
-      "text": "[Intro]\nEvery vacation rental relies on basic utilities — water, gas, electricity, and WiFi. \nThese aren't just conveniences. \nThey're essentials that must be safe, reliable, and high quality for your guests.",
-      "realLifeExamples": []
+      "text": "[Intro]"
     },
     {
       "id": "b2",
-      "type": "circle",
-      "centerX": 1207,
-      "centerY": 2753,
-      "width": 940,
-      "height": 940,
       "tcStart": "00;00;15;15",
       "tcEnd": "00;00;37;28",
-      "text": "[What Utilities Are & Why They Matter]\nUtilities include water, gas, electricity, and internet. \nGuests expect each of these to work flawlessly. \nSafe wiring, clean water, steady gas service, and strong WiFi make your property feel trustworthy and professional. \nIf even one of these fails, the guest experience — and your reviews — will suffer.",
+      "realLifeExamples": [],
+      "type": "circle",
+      "centerX": 960,
+      "centerY": 2764,
+      "width": 940,
+      "height": 940,
+      "text": "[What Utilities Are & Why They Matter]",
       "contentMedia": {
         "type": "video",
-        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/2.%20Facility%20Planning/2.1%20Utilities/3.%20Media/Utilities%20Overview%20Video%20%28HD%29.mov"
-      },
-      "realLifeExamples": []
+        "src": "/Assets/Module 2/Chapter 1/Segment 1/Utilities Overview Video (HD).mp4"
+      }
     },
     {
       "id": "b3",
-      "type": "circle",
-      "centerX": 1000,
-      "centerY": 1587,
-      "width": 940,
-      "height": 940,
       "tcStart": "00;00;37;28",
       "tcEnd": "00;01;03;04",
-      "text": "[Alternative Heating Sources]\nSome homes rely on alternative heating sources like space heaters or oil heaters. \nIf you provide these, safety comes first. \nSpace heaters should never be left running unattended, and they should be placed far from curtains, bedding, or furniture. \nOil heaters must be regularly cleaned and inspected to prevent leaks. \nAlways provide clear instructions for safe use.",
+      "realLifeExamples": [],
+      "type": "circle",
+      "centerX": 847,
+      "centerY": 1515,
+      "width": 940,
+      "height": 940,
+      "text": "[Alternative Heating Sources]",
       "contentMedia": {
         "type": "video",
-        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/2.%20Facility%20Planning/2.1%20Utilities/3.%20Media/Alternative%20Heating%20Sources.mov"
-      },
-      "realLifeExamples": []
+        "src": "/Assets/Module 2/Chapter 1/Segment 2/Alternative Heating Sources.mov"
+      }
     },
     {
       "id": "b4",
-      "type": "circle",
-      "centerX": 1770,
-      "centerY": 680,
-      "width": 940,
-      "height": 940,
       "tcStart": "00;01;03;04",
       "tcEnd": "00;01;24;23",
-      "text": "[Air Conditioning Units]\nAir conditioning is another critical utility. \nHosts should ensure that AC units are kept clean, with filters replaced on schedule. \nUnits should be plugged into outlets that can handle the load — never overloaded power strips. \nClean and properly powered AC keeps guests comfortable and prevents dangerous electrical issues.",
+      "realLifeExamples": [
+        "/Assets/Module 2/Chapter 1/Segment 3/Examples/2.1 Common Area AC Unit, Extinguisher, Clean.jpg"
+      ],
+      "type": "circle",
+      "centerX": 1952,
+      "centerY": 683,
+      "width": 940,
+      "height": 940,
+      "text": "[Air Conditioning Units]",
       "contentMedia": {
         "type": "video",
-        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/2.%20Facility%20Planning/2.1%20Utilities/3.%20Media/HVAC%20video%20%28shutterstock%29.mov"
-      },
-      "realLifeExamples": ["https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/2.%20Facility%20Planning/2.1%20Utilities/3.%20Media/2.1%20Common%20Area%20AC%20Unit%2C%20Extinguisher%2C%20Clean.jpg"]
+        "src": "/Assets/Module 2/Chapter 1/Segment 3/HVAC video (shutterstock).mov"
+      }
     },
     {
       "id": "b5",
+      "tcStart": "00;01;24;23",
+      "tcEnd": "00;01;39;18",
+      "realLifeExamples": [
+        "/Assets/Module 2/Chapter 1/Segment 4/Examples/2.1 Water Cooler.jpg"
+      ],
       "type": "circle",
-      "centerX": 4314,
-      "centerY": 665,
+      "centerX": 4049,
+      "centerY": 683,
       "width": 940,
       "height": 940,
-      "tcStart": "00;01;24;23",
-      "tcEnd": "00;01;45;07",
-      "text": "[Water Availability]\nDon't overlook water. \nGuests should always have access to drinking water on the property, and if you can provide water bottles in communal areas and bedrooms like hotels do, that works great as well. \nWhether through bottled water, filtration systems, or pitchers, this simple step enhances comfort and convenience.",
+      "text": "[Water Availability]",
       "contentMedia": {
         "type": "video",
-        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/2.%20Facility%20Planning/2.1%20Utilities/3.%20Media/Water%20utilities%20%28shutterstock%29.mov"
-      },
-      "realLifeExamples": ["https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/2.%20Facility%20Planning/2.1%20Utilities/3.%20Media/2.1%20Water%20Cooler.jpg"]
+        "src": "/Assets/Module 2/Chapter 1/Segment 4/Water utilities (shutterstock).mov"
+      }
     },
     {
       "id": "b6",
+      "tcStart": "00;01;39;18",
+      "tcEnd": "00;02;07;15",
+      "realLifeExamples": [],
       "type": "circle",
-      "centerX": 5121,
-      "centerY": 1600,
+      "centerX": 5158,
+      "centerY": 1517,
       "width": 940,
       "height": 940,
-      "tcStart": "00;01;45;07",
-      "tcEnd": "00;02;36;29",
-      "text": "[WiFi Access & Standards]\nFinally, let's talk about WiFi. In today's world, reliable internet is considered table stakes — every guest expects it. If your property is meant to have WiFi, we want to make sure that it's up to guests' standards. If you have a property, such as a cabin or one in the wilderness that is not meant to have WiFi, this won't apply to you. \nThat's why GuestGuard inspectors check WiFi connectivity speeds during inspections. The minimum standard is 25 megabits per second — enough for streaming, work, and multiple devices. Make sure your WiFi is accessible, fast, and easy to connect to. Understanding that some properties, especially those in rural or rustic areas, don't have WiFi, we at GuestGuard want to make sure that if the property is meant to have WiFi, it's working as advertised for guests.",
+      "text": "[WiFi Access & Standards]",
       "contentMedia": {
         "type": "video",
-        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/2.%20Facility%20Planning/2.1%20Utilities/3.%20Media/WiFi%20Access%20and%20Standards.mov"
-      },
-      "realLifeExamples": []
+        "src": "/Assets/Module 2/Chapter 1/Segment 5/WiFi Access and Standards.mov"
+      }
     },
     {
       "id": "b7",
+      "tcStart": "00;02;07;15",
+      "tcEnd": "00;02;38;21",
+      "realLifeExamples": [],
       "type": "circle",
-      "centerX": 4815,
-      "centerY": 2761,
+      "centerX": 5048,
+      "centerY": 2758,
       "width": 940,
       "height": 940,
-      "tcStart": "00;02;36;29",
-      "tcEnd": "00;03;08;06",
-      "text": "[Hypothetical Example]\nImagine a guest arrives after a long flight. \nThey find bottled water waiting in the bedroom, the WiFi is fast enough for them to check in with family, and the AC runs quietly with clean, fresh air. \nLater, they notice a small space heater placed safely in the living room with clear instructions. \nEvery utility works exactly as it should — reliable, safe, and easy to use. \nBecause you prepared properly, their stay feels smooth and worry-free.",
+      "text": "[Hypothetical Example]",
       "contentMedia": {
         "type": "video",
-        "src": "https://netorg16311946.sharepoint.com/sites/GuestGuard/Shared%20Documents/Newer%20Files%20-%20%2725%20and%20Beyond/1.%20Training%20Program/1.%20Master%20Framework/GuestGuard%20Corporate/2.%20Facility%20Planning/2.1%20Utilities/3.%20Media/Hypothetical%20Example.mov"
-      },
-      "realLifeExamples": []
+        "src": "/Assets/Module 2/Chapter 1/Segment 6/Hypothetical Example.mov"
+      }
     },
     {
-      "id": "b8",
+      "id": "b9",
+      "tcStart": "00;02;38;21",
+      "tcEnd": "00;03;00;29",
+      "realLifeExamples": [],
       "type": "pill",
       "text": "Done",
-      "tcStart": "00;03;08;06",
-      "tcEnd": "00;03;30;13",
       "order": "done",
-      "content": "[Closing]\nTo summarize: keep your utilities functioning, safe, and reliable. \nManage alternative heating carefully, maintain AC units, provide water in living spaces, and ensure fast WiFi for all guests. \nWhen utilities are dependable, guests feel cared for — and your property stands out as both safe and professional.",
-      "realLifeExamples": []
+      "content": "[Closing]"
     }
   ]
 }
