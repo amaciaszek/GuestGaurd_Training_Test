@@ -524,18 +524,34 @@
     els.cc.style.display = 'block';
   }
   function findCaptionsForTime(time){
-    if (!state.segEnd || !state.captions.length) return [];
-    const segCaps = state.captions.filter(c => c.start >= state.segStart && c.end <= state.segEnd);
-    const started = segCaps.filter(c => time >= c.start);
-    return started.slice(-2); // previous + current
-  }
+  if (!this.seg || !this.seg.active) return [];
+
+  // Include any caption that overlaps the current segment window
+  const overlapsSegment = (cap) =>
+    cap.start < this.seg.end && cap.end > this.seg.start;
+
+  // Keep all captions that have STARTED by "time" and overlap the segment.
+  // (No slice(...) limiting to 2 — that’s what made them non-persistent.)
+  return this.captions
+    .filter(overlapsSegment)
+    .filter(cap => time >= cap.start);
+}
+
   function updateCaption(time){
-    if (!state.captions.length || !state.segEnd) { hideCaption(); return; }
-    const caps = findCaptionsForTime(time);
-    if (!caps.length) { hideCaption(); return; }
-    const html = caps.map(c => c.text).join('<br><br>');
-    showCaption(html);
+  if (!this.currentCaptionElement) return;
+
+  const captions = this.findCaptionsForTime(time);
+
+  if (captions.length > 0){
+    this.currentCaptionElement.innerHTML = captions
+      .map(cap => cap.text)
+      .join('<br><br>');
+    this.currentCaptionElement.style.display = 'inline-block';
+  } else {
+    this.currentCaptionElement.style.display = 'none';
   }
+}
+
   async function loadTranscriptIfAny(json){
     state.captions = [];
     const path = json && json.transcriptFile;
