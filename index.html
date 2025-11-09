@@ -538,20 +538,12 @@
 }
 
   function updateCaption(time){
-  if (!this.currentCaptionElement) return;
-
-  const captions = this.findCaptionsForTime(time);
-
-  if (captions.length > 0){
-    this.currentCaptionElement.innerHTML = captions
-      .map(cap => cap.text)
-      .join('<br><br>');
-    this.currentCaptionElement.style.display = 'inline-block';
-  } else {
-    this.currentCaptionElement.style.display = 'none';
+    if (!state.captions.length || !state.segEnd) { hideCaption(); return; }
+    const caps = findCaptionsForTime(time);
+    if (!caps.length) { hideCaption(); return; }
+    const html = caps.map(c => c.text).join('<br><br>');
+    showCaption(html);
   }
-}
-
   async function loadTranscriptIfAny(json){
     state.captions = [];
     const path = json && json.transcriptFile;
