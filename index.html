@@ -1,659 +1,1876 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>GuestGuard Training</title>
+  <title>Training Module</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
 
-  <!-- 1) Set a safe <base> at runtime so GitHub Pages subfolder paths work -->
-  <script>
-  (() => {
-    const isGh = location.hostname.endsWith('github.io');
-    // On GH Pages, path is /<user>.github.io/<repo>/...
-    // repo segment is the first after the leading slash.
-    const seg = location.pathname.split('/').filter(Boolean)[0] || '';
-    const ghBase = isGh && seg ? `/${seg}/` : './';
-
-    let base = document.querySelector('base');
-    if (!base) {
-      base = document.createElement('base');
-      document.head.prepend(base);
-    }
-    base.href = ghBase;
-  })();
-  </script>
-
+  <!-- === Launcher / Token Panel (new) === -->
   <style>
-    :root{
-      --ui-bg: #0c0f12;
-      --ui-fg: #f2f5f7;
-      --accent: #27c5a5;
-      --pill: #1f2937;
-      --pill-fg:#e5e7eb;
-      --danger:#ef4444;
-      --ok:#22c55e;
-      --hint:#94a3b8;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
-    html,body{
-      height:100%;
-      margin:0;
-      background:var(--ui-bg);
-      color:var(--ui-fg);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-    }
-
-    .app {
-      display:flex;
-      height:100%;
-      gap:16px;
-      padding:16px;
-      box-sizing:border-box;
-    }
-
-    .stage-wrap{
-      position:relative;
-      flex: 1 1 auto;
-      background:#0a0d10;
-      border:1px solid #1b2330;
-      border-radius:16px;
-      overflow:hidden;
-      box-shadow: var(--shadow);
-      min-height: 400px;
-    }
-
-    /* Background image scales to fit while preserving aspect ratio */
-    #bg {
-      width:100%;
-      height:100%;
-      object-fit: contain;
-      display:block;
-      background:#0a0d10;
-      user-select:none;
-      -webkit-user-drag:none;
-      pointer-events:none;
-    }
-
-    /* Hotspot layer matches #bg box content rect */
-    .hotspot-layer{
-      position:absolute;
-      inset:0;
-      pointer-events:none; /* Each hotspot re-enables pointer events */
-    }
-
-    .hotspot{
-      position:absolute;
-      pointer-events:auto;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:600;
-      border-radius:999px;
-      background: rgba(39,197,165,0.16);
-      border:2px solid var(--accent);
-      color: var(--ui-fg);
-      backdrop-filter: blur(2px);
-      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
-      box-shadow: 0 6px 16px rgba(0,0,0,.25);
-      cursor:pointer;
-    }
-    .hotspot:hover{ transform: translateY(-1px) scale(1.015); }
-    .hotspot.active{
-      background: rgba(39,197,165,0.32);
-      box-shadow: 0 8px 20px rgba(39,197,165,.35);
-    }
-    .hotspot.pill{
-      border-radius: 18px;
-      padding: 10px 14px;
-      height: 40px;
-      background: var(--pill);
-      border:1px solid #2b3647;
-      color: var(--pill-fg);
-      font-weight:600;
-      white-space: nowrap;
-    }
-
-    .sidebar{
-      width:360px;
-      max-width: 40vw;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .card{
-      background:#0e141b;
-      border:1px solid #1b2330;
-      border-radius:14px;
-      box-shadow: var(--shadow);
-      padding:14px;
-    }
-    .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
-    .row > * { flex: 1 1 auto; }
-    .title{
-      font-size:18px;
-      font-weight:700;
-      margin:0 0 8px 0;
-    }
-    .muted{ color: var(--hint); font-size: 12px;}
-    .btn{
-      appearance:none; border:0; border-radius:10px;
-      background:#16202b; color:#e5e7eb; padding:10px 12px; font-weight:600; cursor:pointer;
-    }
-    .btn:hover{ background:#1d2a38; }
-    .btn.primary{ background: var(--accent); color:#07211a; }
-    .btn.primary:hover{ filter: brightness(0.95); }
-    .input, select{
-      width:100%; background:#0b1117; color:#e5e7eb; border:1px solid #1b2330; border-radius:10px; padding:10px 12px;
-    }
-    .small{ font-size:12px; }
-
-    .audio-bar{
-      display:flex; gap:8px; align-items:center;
-    }
-    .time{
-      font-variant-numeric: tabular-nums;
-      font-size:12px; color: var(--hint);
-      width: 64px; text-align:center;
-    }
-    .range{
-      flex:1 1 auto;
-    }
-    input[type="range"]{ width:100% }
-
-    /* Modal for hotspot media */
-    .modal{
-      position:fixed; inset:0; background: rgba(0,0,0,.6);
-      display:none; align-items:center; justify-content:center; z-index:1000;
-      padding:24px;
-    }
-    .modal.open{ display:flex; }
-    .modal-dialog{
-      width:min(1200px, 92vw); max-height: 88vh; overflow:auto; background:#0e141b; border:1px solid #1b2330; border-radius:14px; box-shadow: var(--shadow);
-      padding:14px;
-    }
-    .modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
-    .modal-body{ display:block; }
-    .modal video, .modal img{ width:100%; height:auto; display:block; border-radius:10px; }
-
-    .toast{
-      position:fixed; right:16px; bottom:16px; background:#111827; color:#e5e7eb; border:1px solid #1f2937;
-      padding:10px 12px; border-radius:10px; box-shadow: var(--shadow); font-size:13px;
-      max-width: 420px;
+    /* Floating API Test Button (kept for backend compatibility) */
+    .api-test-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      z-index: 1000;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: none; /* Hidden in UI */
     }
   </style>
 </head>
 <body>
 
-  <div class="app">
 
-    <div class="stage-wrap" id="stage">
-      <img id="bg" alt="Background" />
-      <div class="hotspot-layer" id="hotspots"></div>
+  <!-- ===== Your existing Training UI ===== -->
+  <main class="frame" role="main" aria-label="Training Module">
+    <div class="titlebar">
+      <span class="title-text" id="moduleTitle">Loading…</span>
     </div>
-
-    <aside class="sidebar">
-      <div class="card">
-        <h2 class="title" id="chapter-title">Loading…</h2>
-        <div class="muted small" id="chapter-id"></div>
-        <div class="row" style="margin-top:8px">
-          <input class="input" id="chapter-input" placeholder="Chapter JSON (e.g., 2-1.json)" />
-          <button class="btn" id="chapter-load">Load</button>
-        </div>
-        <div class="muted small" style="margin-top:6px">
-          Tip: you can also use <code>?chapter=2-1</code> in the URL.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="row" style="align-items:center; justify-content:space-between">
-          <div class="title" style="margin:0">Audio</div>
-          <button class="btn" id="btn-reload">Reload</button>
-        </div>
-
-        <audio id="audio" preload="auto"></audio>
-
-        <div class="audio-bar" style="margin-top:8px">
-          <button class="btn" id="btn-playpause" style="min-width:90px">Play</button>
-          <div class="time" id="cur">00:00</div>
-          <input class="range" id="seek" type="range" min="0" max="1" step="0.001" value="0">
-          <div class="time" id="dur">00:00</div>
-        </div>
-
-        <div class="row" style="margin-top:8px">
-          <label class="small muted"><input type="checkbox" id="loopHS"> Loop active hotspot</label>
-        </div>
-        <div class="muted small" id="audio-status" style="margin-top:6px"></div>
-      </div>
-
-      <div class="card">
-        <div class="title" style="margin:0 0 8px 0">Hotspots</div>
-        <div id="hotspot-list" class="small"></div>
-      </div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">Training Modules</div>
+      <ul class="module-list" id="moduleList"></ul>
     </aside>
-
-  </div>
-
-  <!-- Modal -->
-  <div class="modal" id="modal">
-    <div class="modal-dialog">
-      <div class="modal-head">
-        <div id="modal-title" class="title" style="margin:0; font-size:16px;"></div>
-        <button class="btn" id="modal-close">Close</button>
+    <section class="stage" aria-label="Main visual with hotspots" id="stage">
+      <div id="innerWindow" class="inner-window" aria-modal="true" role="dialog" aria-label="Content viewer">
+        <header>
+          <span id="viewerTitle">Narration</span>
+          <div class="right"><button id="closeViewer" class="btn" title="Close">×</button></div>
+        </header>
+        <div id="viewer" class="viewer"></div>
       </div>
-      <div class="modal-body" id="modal-body"></div>
+      <audio id="vo" preload="metadata"></audio>
+    </section>
+  </main>
+
+  <div id="startup" class="startup" aria-modal="true" role="dialog">
+    <div class="panel">
+      <h1>Select Module Files</h1>
+      <p>Upload your JSON config and transcript file to begin.</p>
+
+      <div style="display:grid;gap:12px;margin:16px 0">
+        <div class="file-upload-box">
+          <div class="file-label">1. Module JSON (Required)</div>
+          <button id="pickJsonBtn" class="btn" style="width:100%">Choose JSON File</button>
+          <div id="jsonStatus" class="file-status">No file selected</div>
+        </div>
+
+        <div class="file-upload-box">
+          <div class="file-label">2. Transcript TXT (Optional)</div>
+          <button id="pickTxtBtn" class="btn" style="width:100%">Choose Transcript File</button>
+          <div id="txtStatus" class="file-status">No file selected</div>
+        </div>
+      </div>
+
+      <button id="loadBtn" class="btn" style="width:100%;background:#00e0ff;color:#000;font-weight:700;padding:12px" disabled>Load Module</button>
+
+      <div id="drop" class="drop" aria-label="Or drop JSON here" style="margin-top:16px">Or drag & drop JSON here</div>
+      <div class="hint" id="hint" style="margin-top:12px"></div>
     </div>
   </div>
 
-  <div class="toast" id="toast" style="display:none"></div>
+  <input id="configPicker" type="file" accept=".json,application/json" />
+  <input id="transcriptPicker" type="file" accept=".txt,text/plain" />
 
+  <!-- Progress Display Panel -->
+  <div id="progressPanel" style="
+    position: fixed; 
+    top: 70px; 
+    right: 20px; 
+    width: 340px; 
+    max-height: calc(100vh - 100px);
+    background: linear-gradient(135deg, rgba(15,20,27,0.98), rgba(11,15,20,0.98));
+    border: 1px solid #1d2733;
+    border-radius: 16px;
+    padding: 16px;
+    z-index: 999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    display: none;
+  ">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="margin: 0; color: #00e0ff; font-size: 14px; font-weight: 700;">Training Progress</h3>
+      <button id="closePanelBtn" style="background: none; border: none; color: #9fb0c5; cursor: pointer; font-size: 20px; padding: 0; width: 24px; height: 24px;">×</button>
+    </div>
+    <div id="overallProgress" style="margin-bottom: 16px; padding: 12px; background: rgba(0,224,255,0.05); border: 1px solid #1d2733; border-radius: 8px;">
+      <div style="font-size: 11px; color: #9fb0c5; margin-bottom: 4px;">OVERALL</div>
+      <div style="font-size: 24px; font-weight: 700; color: #7CFCB5;"><span id="overallPercent">0</span>%</div>
+      <div style="font-size: 11px; color: #9fb0c5; margin-top: 6px;" id="lastUpdated">Not synced</div>
+    </div>
+    <div id="moduleProgressList"></div>
+  </div>
+
+  <!-- Toggle Progress Button -->
+  <button id="toggleProgressBtn" style="
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: linear-gradient(135deg, #00e0ff, #0099cc);
+    color: #000;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 13px;
+    box-shadow: 0 4px 15px rgba(0, 224, 255, 0.3);
+    z-index: 998;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  ">📊 Progress</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- ===== Singleton Audio Manager ===== -->
   <script>
-  /***************
-   * URL helpers *
-   ***************/
-  function showToast(msg, ms=3200){
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.display = 'block';
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(()=> t.style.display = 'none', ms);
-  }
+  const GGAudio = (() => {
+    const GG_FPS = 30;
+    let audioElement = null;
+    let src = null;
+    let loaded = false;
+    let loadPromise = null;
+    let seg = null;
+    let rafId = null;
+    let onCompleteCallback = null;
 
-  // Turn "Assets/..." or "/Assets/..." into a valid URL under our <base>.
-  function resolveAsset(p){
-    if(!p) return '';
-    // Full URL? pass through.
-    if(/^([a-z]+:)?\/\//i.test(p)) return p;
-    // Prevent domain-root jumps
-    p = p.replace(/^\/+/, '');
-    return new URL(p, document.baseURI).href;
-  }
+    function tcToSeconds(tc) {
+      if (typeof tc === 'number') return tc;
+      if (!tc || typeof tc !== 'string') return 0;
+      const [hh, mm, ss, ff] = tc.split(/[;:]/).map(v => parseInt(v, 10) || 0);
+      return hh*3600 + mm*60 + ss + (ff / GG_FPS);
+    }
 
-  // Append a cache-bust param when desired
-  function withBust(url){ const u = new URL(url, document.baseURI); u.searchParams.set('v', Date.now().toString()); return u.href; }
+    function ensureHandlers() {
+      if (!audioElement || audioElement.__ggHandlersAttached) return;
+      
+      audioElement.addEventListener('timeupdate', () => {
+        if (!seg) return;
+        if (audioElement.currentTime < seg.start - 0.02) {
+          audioElement.currentTime = seg.start;
+          return;
+        }
+        if (audioElement.currentTime >= seg.end - 0.02) {
+          audioElement.pause();
+          audioElement.currentTime = seg.end;
+          if (onCompleteCallback) {
+            onCompleteCallback();
+            onCompleteCallback = null;
+          }
+          seg = null;
+        }
+      });
+      
+      audioElement.__ggHandlersAttached = true;
+    }
 
-  /*********************
-   * Timecode handling *
-   *********************/
-  // Parse "HH;MM;SS;FF" -> seconds. We assume 30 fps unless overridden in JSON later.
-  function tcToSeconds(tc, fps=30){
-    if(!tc) return 0;
-    const m = String(tc).trim().match(/^(\d{2});(\d{2});(\d{2});(\d{2})$/);
-    if(!m) return 0;
-    const hh = +m[1], mm=+m[2], ss=+m[3], ff=+m[4];
-    return hh*3600 + mm*60 + ss + (ff / fps);
-  }
-  function fmtTime(secs){
-    secs = Math.max(0, secs|0);
-    const m = (secs/60)|0, s = secs%60;
-    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  }
+    function loadOnce(url) {
+      ensureHandlers();
+      if (loaded && src === url) return loadPromise || Promise.resolve();
+      if (loadPromise && src === url) return loadPromise;
 
-  /****************
-   * App state    *
-   ****************/
-  const state = {
-    chapter: null,
-    chapterPath: null,
-    fps: 30,
-    naturalW: 6000,
-    naturalH: 4000,
-    hotspots: [],
-    activeIdx: -1,
-    loopActive: false,
-  };
+      src = url;
+      loaded = false;
+      audioElement.src = src;
+      audioElement.load();
 
-  const els = {
-    bg: document.getElementById('bg'),
-    hsLayer: document.getElementById('hotspots'),
-    hsList: document.getElementById('hotspot-list'),
-    audio: document.getElementById('audio'),
-    cur: document.getElementById('cur'),
-    dur: document.getElementById('dur'),
-    seek: document.getElementById('seek'),
-    playpause: document.getElementById('btn-playpause'),
-    reload: document.getElementById('btn-reload'),
-    status: document.getElementById('audio-status'),
-    title: document.getElementById('chapter-title'),
-    chapterId: document.getElementById('chapter-id'),
-    chapterInput: document.getElementById('chapter-input'),
-    chapterLoad: document.getElementById('chapter-load'),
-    loopHS: document.getElementById('loopHS'),
-    stage: document.getElementById('stage'),
-    modal: document.getElementById('modal'),
-    modalTitle: document.getElementById('modal-title'),
-    modalBody: document.getElementById('modal-body'),
-    modalClose: document.getElementById('modal-close'),
-  };
+      loadPromise = new Promise((resolve, reject) => {
+        const onReady = () => {
+          audioElement.removeEventListener('canplay', onReady);
+          audioElement.removeEventListener('canplaythrough', onReady);
+          loaded = true;
+          console.log('✅ Audio ready');
+          resolve();
+        };
+        const onErr = () => {
+          audioElement.removeEventListener('error', onErr);
+          reject(new Error('audio failed to load'));
+        };
+        audioElement.addEventListener('canplay', onReady, { once: true });
+        audioElement.addEventListener('canplaythrough', onReady, { once: true });
+        audioElement.addEventListener('error', onErr, { once: true });
+      });
+      return loadPromise;
+    }
 
-  /********************
-   * Layout scaling   *
-   ********************/
-  function measureContentBox(imgEl){
-    // Because object-fit: contain, we need actual drawn box for overlay scaling.
-    const r = imgEl.getBoundingClientRect();
-    // The image's intrinsic ratio box inside its container will have letterboxing; we can't get that directly.
-    // A simple approach: compute the drawn image size by comparing container and intrinsic ratio.
-    const cont = els.stage.getBoundingClientRect();
-    const contW = cont.width, contH = cont.height;
-    const imgRatio = state.naturalW / state.naturalH;
-    const contRatio = contW / contH;
+    async function playSegment(tcStart, tcEnd, onComplete) {
+      const start = tcToSeconds(tcStart);
+      const end = tcToSeconds(tcEnd);
+      if (!(start < end)) {
+        console.warn('Bad segment times:', start, end);
+        return;
+      }
+      
+      seg = { start, end };
+      onCompleteCallback = onComplete;
 
-    let drawW, drawH, left, top;
-    if (imgRatio > contRatio) {
-      // limited by width
-      drawW = contW;
-      drawH = contW / imgRatio;
-      left = 0;
-      top = (contH - drawH)/2;
+      const doSeekAndPlay = () => {
+        try { 
+          audioElement.currentTime = start; 
+        } catch(e) {
+          console.warn('Seek failed:', e);
+        }
+        
+        const tryPlay = () => {
+          audioElement.play()
+            .then(() => console.log(`▶️ Playing ${start.toFixed(2)} → ${end.toFixed(2)}`))
+            .catch(e => console.warn('Play failed:', e));
+        };
+        
+        if (audioElement.readyState >= 2) {
+          tryPlay();
+        } else {
+          const onCp = () => {
+            audioElement.removeEventListener('canplay', onCp);
+            tryPlay();
+          };
+          audioElement.addEventListener('canplay', onCp, { once: true });
+        }
+      };
+
+      if (audioElement.readyState >= 2) {
+        doSeekAndPlay();
+      } else {
+        await (loadPromise || Promise.resolve());
+        doSeekAndPlay();
+      }
+    }
+
+    return {
+      setElement(el) {
+        audioElement = el;
+      },
+      async init(audioUrl) {
+        if (!audioUrl) {
+          console.warn('No audio URL provided');
+          return;
+        }
+        if (!audioElement) {
+          console.error('Audio element not set');
+          return;
+        }
+        await loadOnce(audioUrl);
+      },
+      play: playSegment,
+      pause() {
+        if (audioElement) audioElement.pause();
+      },
+      get element() {
+        return audioElement;
+      },
+      get currentTime() {
+        return audioElement ? audioElement.currentTime : 0;
+      },
+      get paused() {
+        return audioElement ? audioElement.paused : true;
+      }
+    };
+  })();
+  </script>
+  
+  <script>
+  // ===== GuestGuard Training API Integration =====
+  (function() {
+    'use strict';
+    
+    const API_BASE = 'https://guestguard-platform.vercel.app';
+    const SUPABASE_URL = 'https://uwbwaujbvqctmcpgqhds.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3YndhVWpiVnFjdG1jcGdxaGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNjU2NDksImV4cCI6MjA2NDk0MTY0OX0.sb_publishable_4thWdEYtuLNTZ0R0F9Bw1w_tzYEyH9R';
+    
+    window.GGTrainingAPI = {
+      supabase: null,
+      accessToken: null,
+      refreshToken: null,
+      expiresAt: null,
+      
+      init() {
+        this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        this.loadStoredAuth();
+        this.setupProgressUI();
+        
+        // Check for temp_token in URL
+        const params = new URLSearchParams(window.location.search);
+        const tempToken = params.get('temp_token');
+        if (tempToken && !this.accessToken) {
+          this.exchangeTempToken(tempToken);
+        } else if (this.accessToken) {
+          this.pullProgress();
+        }
+      },
+      
+      loadStoredAuth() {
+        this.accessToken = localStorage.getItem('gg_access_token');
+        this.refreshToken = localStorage.getItem('gg_refresh_token');
+        const expires = localStorage.getItem('gg_expires_at');
+        this.expiresAt = expires ? parseInt(expires) : null;
+      },
+      
+      saveAuth(access, refresh, expiresAt) {
+        localStorage.setItem('gg_access_token', access);
+        localStorage.setItem('gg_refresh_token', refresh);
+        localStorage.setItem('gg_expires_at', expiresAt);
+        this.accessToken = access;
+        this.refreshToken = refresh;
+        this.expiresAt = expiresAt;
+      },
+      
+      async exchangeTempToken(token) {
+        try {
+          console.log('🔑 Exchanging temp token...');
+          const resp = await fetch(`${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(token)}`);
+          if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+          
+          const data = await resp.json();
+          if (data.access_token && data.refresh_token && data.expires_at) {
+            this.saveAuth(data.access_token, data.refresh_token, data.expires_at);
+            console.log('✅ Token exchange successful');
+            await this.pullProgress();
+          }
+        } catch (e) {
+          console.error('❌ Token exchange failed:', e.message);
+        }
+      },
+      
+      async refreshAccessToken() {
+        if (!this.refreshToken) throw new Error('No refresh token');
+        
+        console.log('🔄 Refreshing access token...');
+        const { data, error } = await this.supabase.auth.refreshSession({
+          refresh_token: this.refreshToken
+        });
+        
+        if (error) throw error;
+        if (!data.session) throw new Error('No session returned');
+        
+        this.saveAuth(
+          data.session.access_token,
+          data.session.refresh_token,
+          Date.now() + (data.session.expires_in * 1000)
+        );
+        console.log('✅ Token refreshed');
+      },
+      
+      async fetchWithAuth(url, options = {}) {
+        // Check if token needs refresh (1 min before expiry)
+        if (this.expiresAt && (this.expiresAt - Date.now() < 60000)) {
+          await this.refreshAccessToken();
+        }
+        
+        const headers = {
+          ...options.headers,
+          'Authorization': `Bearer ${this.accessToken}`
+        };
+        
+        return fetch(url, { ...options, headers });
+      },
+      
+      // Parse filename to get module/chapter (e.g., "2-1.json" → module 2, chapter 0)
+      parseFilename(filename) {
+        const match = filename.match(/(\d+)-(\d+)\.json/);
+        if (!match) return null;
+        return {
+          module: parseInt(match[1]),
+          chapter: parseInt(match[2]) - 1 // Convert to 0-based
+        };
+      },
+      
+      // Calculate progress for a module based on current segment
+      calculateProgress(totalSegments, currentSegment) {
+        if (totalSegments === 0) return 0;
+        return Math.round((currentSegment / totalSegments) * 100);
+      },
+      
+      async postProgress(moduleNum, chapterNum, segmentNum, totalSegments, completed = false) {
+        if (!this.accessToken) {
+          console.warn('⚠️ Not authenticated - skipping progress update');
+          return;
+        }
+        
+        try {
+          const ptr = `${moduleNum}.${chapterNum}.${segmentNum}`;
+          const percent = this.calculateProgress(totalSegments, segmentNum);
+          
+          const payload = {
+            training_progress: {
+              modules: {
+                [moduleNum]: {
+                  ptr: ptr,
+                  percent: percent,
+                  completed: completed,
+                  updated_at: new Date().toISOString()
+                }
+              },
+              overall_progress: Math.round(((moduleNum - 1) + (percent / 100)) / 6 * 100),
+              last_updated: new Date().toISOString()
+            }
+          };
+          
+          console.log(`📤 Posting progress: ${ptr} (${percent}%)`);
+          const resp = await this.fetchWithAuth(`${API_BASE}/api/training-progress`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!resp.ok) {
+            throw new Error(`${resp.status} ${resp.statusText}`);
+          }
+          
+          const data = await resp.json();
+          console.log('✅ Progress saved:', data);
+          
+          // Update UI
+          this.updateProgressDisplay(data.training_progress);
+        } catch (e) {
+          console.error('❌ Failed to post progress:', e.message);
+        }
+      },
+      
+      async pullProgress() {
+        if (!this.accessToken) return;
+        
+        try {
+          console.log('📥 Pulling progress from server...');
+          const resp = await this.fetchWithAuth(`${API_BASE}/api/training-progress`);
+          
+          if (!resp.ok) {
+            throw new Error(`${resp.status} ${resp.statusText}`);
+          }
+          
+          const data = await resp.json();
+          console.log('✅ Progress retrieved:', data);
+          
+          if (data.training_progress) {
+            this.updateProgressDisplay(data.training_progress);
+          }
+        } catch (e) {
+          console.error('❌ Failed to pull progress:', e.message);
+        }
+      },
+      
+      updateProgressDisplay(trainingProgress) {
+        const overall = trainingProgress.overall_progress || 0;
+        const modules = trainingProgress.modules || {};
+        const lastUpdated = trainingProgress.last_updated;
+        
+        // Update overall
+        document.getElementById('overallPercent').textContent = overall;
+        
+        if (lastUpdated) {
+          const date = new Date(lastUpdated);
+          document.getElementById('lastUpdated').textContent = 
+            `Updated ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+        }
+        
+        // Update module list
+        const moduleList = document.getElementById('moduleProgressList');
+        moduleList.innerHTML = '';
+        
+        for (let i = 1; i <= 6; i++) {
+          const mod = modules[i] || { ptr: `${i}.0.0`, percent: 0, completed: false };
+          
+          const moduleDiv = document.createElement('div');
+          moduleDiv.style.cssText = `
+            background: rgba(5, 8, 12, 0.6);
+            border: 1px solid #1d2733;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+          `;
+          
+          moduleDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div style="font-size: 12px; font-weight: 700; color: #00e0ff;">Module ${i}</div>
+              <div style="font-size: 14px; font-weight: 700; color: ${mod.completed ? '#7CFCB5' : '#9fb0c5'};">
+                ${mod.percent}%
+              </div>
+            </div>
+            <div style="background: #05080c; height: 4px; border-radius: 2px; overflow: hidden;">
+              <div style="background: linear-gradient(90deg, #00e0ff, #7CFCB5); height: 100%; width: ${mod.percent}%; transition: width 0.3s;"></div>
+            </div>
+            <div style="font-size: 10px; color: #9fb0c5; margin-top: 4px; font-family: monospace;">
+              ${mod.ptr} ${mod.completed ? '✓' : ''}
+            </div>
+          `;
+          
+          moduleList.appendChild(moduleDiv);
+        }
+      },
+      
+      setupProgressUI() {
+        const toggleBtn = document.getElementById('toggleProgressBtn');
+        const panel = document.getElementById('progressPanel');
+        const closeBtn = document.getElementById('closePanelBtn');
+        
+        toggleBtn.addEventListener('click', () => {
+          const isVisible = panel.style.display !== 'none';
+          panel.style.display = isVisible ? 'none' : 'block';
+          if (!isVisible && this.accessToken) {
+            this.pullProgress();
+          }
+        });
+        
+        closeBtn.addEventListener('click', () => {
+          panel.style.display = 'none';
+        });
+      }
+    };
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => window.GGTrainingAPI.init());
     } else {
-      // limited by height
-      drawH = contH;
-      drawW = contH * imgRatio;
-      top = 0;
-      left = (contW - drawW)/2;
+      window.GGTrainingAPI.init();
     }
-    return {left, top, width: drawW, height: drawH};
-  }
+  })();
+  </script>
 
-  function placeHotspots(){
-    const box = measureContentBox(els.bg);
-    const scaleX = box.width / state.naturalW;
-    const scaleY = box.height / state.naturalH;
+  <!-- ===== App Script (original, unchanged except for ID on floating button) ===== -->
+  <script>
+  "use strict";
 
-    for(const h of state.hotspots){
-      const el = h._el;
-      if(!el) continue;
+  const LocalDebugMode = false;
+  const MODULE_SEQUENCE = ['2-1.json','2-2.json','2-3.json'];
 
-      if(h.type === 'circle'){
-        const x = box.left + (h.centerX - h.width/2) * scaleX;
-        const y = box.top  + (h.centerY - h.height/2) * scaleY;
-        const w = h.width * scaleX;
-        const hh = h.height * scaleY;
-        el.style.left = `${x}px`;
-        el.style.top  = `${y}px`;
-        el.style.width = `${w}px`;
-        el.style.height = `${hh}px`;
-      } else if (h.type === 'pill'){
-        const y = box.top + 16 + (h.order === 'done' ? 56 : 0);
-        const x = h.dock === 'right'
-          ? box.left + box.width - 16
-          : box.left + 16;
-        el.style.top = `${y}px`;
-        el.style[h.dock === 'right' ? 'right' : 'left'] = `${els.stage.getBoundingClientRect().width - (x + (h.dock === 'right' ? 0 : 0))}px`;
-        // Let content-size define width; minimal base:
-        el.style.minWidth = '120px';
-        el.style.height = '40px';
-        el.style.padding = '10px 14px';
-      }
+  const TRAINING_STRUCTURE = [
+    {
+      id: 'module-1',
+      name: 'Module 1: Fire Safety',
+      chapters: [
+        {
+          id: 'chapter-1-1',
+          name: 'Chapter 1: Emergency Evacuation',
+          segments: ['Intro', 'Evacuation Basics', 'Host & Guest Plan', 'Exit Signage', 'Emergency Manual', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-1-2',
+          name: 'Chapter 2: Emergency Egress',
+          segments: ['Intro', 'Keeping Exit Paths Clear', 'Fire Ladders', 'Exit Signage', 'Flashlights', 'Lighting the Property', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-1-3',
+          name: 'Chapter 3: Fire Extinguishers',
+          segments: ['Intro', 'Accessibility & Placement', 'Compliance, Tagging & Condition', 'Types of Extinguishers', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-1-4',
+          name: 'Chapter 4: Fire Alarm Systems',
+          segments: ['Intro', 'What They Look Like & Where to Place Them', 'Local vs. Interconnected Systems', 'Common Brands', 'Testing & Monitoring Requirements', 'Showing Detectors to Inspectors', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-1-5',
+          name: 'Chapter 5: General Safety & Maintenance',
+          segments: ['Intro', 'Electrical Systems & Breaker Boxes', 'Outlets', 'Heating Types in the Home', 'Standards for Open Flames', 'Certification & Training', 'Flammable Gas Storage', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-2',
+      name: 'Module 2: Facility Planning',
+      chapters: [
+        {
+          id: 'chapter-2-1',
+          name: 'Chapter 1: Utilities',
+          segments: ['Intro', 'What Utilities Are & Why They Matter', 'Alternative Heating Sources', 'Air Conditioning Units', 'Water Availability', 'WiFi Access & Standards', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-2-2',
+          name: 'Chapter 2: Hazards',
+          segments: ['Intro', 'Common Hazards in Homes', 'What Hazards Are & How to Identify Them', 'Weathertight Properties', 'Sewer Systems', 'Pests & Pest Programs', 'Odor & Smoking Policies', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-2-3',
+          name: 'Chapter 3: Other Considerations',
+          segments: ['Intro', 'Safe Spaces in the Home', 'Noise Levels & Standards', 'Hypothetical Example', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-3',
+      name: 'Module 3: First Aid, Hazard Awareness',
+      chapters: [
+        {
+          id: 'chapter-3-1',
+          name: 'Chapter 1: First Aid Training',
+          segments: ['Intro', 'First Aid Kits', 'The GuestGuard First Aid Logbook', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-3-2',
+          name: 'Chapter 2: General Considerations',
+          segments: ['Intro', 'Understanding General Hazards', 'Walkways & Pathways', 'Landscaping & Security Risks', 'Hypothetical Example', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-4',
+      name: 'Module 4: Personal Safety',
+      chapters: [
+        {
+          id: 'chapter-4-1',
+          name: 'Chapter 1: Property Entry',
+          segments: ['Intro', 'Types of Locks', 'Guest Safes', 'Exterior Considerations', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-4-2',
+          name: 'Chapter 2: Other Considerations',
+          segments: ['Intro', 'Privacy & Facilities', 'Deeper', 'Hypothetical Example', 'Party Rules', 'Closing']
+        },
+        {
+          id: 'chapter-4-3',
+          name: 'Chapter 3: Weapons',
+          segments: ['Intro', 'Optional Opt-In for Hosts', 'The GuestGuard Process', 'Benefits of Opting In', 'Hypothetical Example', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-5',
+      name: 'Module 5: Amenities, Pets, Cleanliness, Appliances',
+      chapters: [
+        {
+          id: 'chapter-5-1',
+          name: 'Chapter 1: Amenities',
+          segments: ['Intro', 'Why Amenities Matter', 'Specific Amenities for Hosts to Consider', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-5-2',
+          name: 'Chapter 2: Pets',
+          segments: ['Intro', 'Benefits of Allowing Pets', 'What to Communicate', 'Hypothetical Example', 'Closing']
+        },
+        {
+          id: 'chapter-5-3',
+          name: 'Chapter 3: General Appliances',
+          segments: ['Intro', 'Key Appliances in a Property', 'Furnace and Boiler Systems', 'Safety & Utilities Reminder', 'Closing']
+        }
+      ]
+    },
+    {
+      id: 'module-6',
+      name: 'Module 6: Universal Accessibility',
+      chapters: [
+        {
+          id: 'chapter-6-1',
+          name: 'Chapter 1: Accessibility Accommodations',
+          segments: ['Intro', 'Measurements', 'Accessible Bathroom', 'Accessible Bedroom', 'Accessible Common Spaces', 'Parking Considerations', 'Host Access', 'Additional Items', 'Closing']
+        }
+      ]
     }
-  }
-  window.addEventListener('resize', placeHotspots);
+  ];
 
-  /*******************
-   * Rendering HS    *
-   *******************/
-  function clearHotspots(){
-    els.hsLayer.innerHTML = '';
-    els.hsList.innerHTML = '';
-    state.hotspots.length = 0;
-    state.activeIdx = -1;
-  }
-
-  function addHotspot(hs, idx){
-    const el = document.createElement('div');
-    el.className = 'hotspot ' + (hs.type === 'pill' ? 'pill' : 'circle');
-    el.textContent = hs.label || hs.text || hs.id || `#${idx+1}`;
-    el.title = `${hs.text || hs.label || ''}`.trim();
-    el.dataset.idx = String(idx);
-
-    // Circle: make it round
-    if(hs.type === 'circle'){
-      el.style.borderRadius = '999px';
+  const fmt = (t)=>`${Math.floor(t/60)}:${Math.floor(t%60).toString().padStart(2,'0')}`;
+  const tcToSeconds = (tc, FPS=30)=>{
+    const parts = String(tc||'0:0:0:0').split(/[;:]/).map(n=>parseInt(n,10)||0);
+    const [hh,mm,ss,ff]=[parts[0]||0,parts[1]||0,parts[2]||0,parts[3]||0];
+    return hh*3600+mm*60+ss+(ff/FPS);
+  };
+  function el(tag, attrs={}, children=[]){
+    const n = document.createElement(tag);
+    for (const [k,v] of Object.entries(attrs)){
+      if (k === 'class') n.className = v;
+      else if (k === 'style') n.style.cssText = v;
+      else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.substring(2), v);
+      else n.setAttribute(k, v);
     }
-
-    el.addEventListener('click', () => {
-      // If contentMedia/realLifeExamples exist, open modal
-      openHotspotContent(hs);
+    (Array.isArray(children)?children:[children]).forEach(c=>{
+      if (c==null) return;
+      if (typeof c === 'string') n.appendChild(document.createTextNode(c));
+      else n.appendChild(c);
     });
+    return n;
+  }
+  const isAbsoluteUrl = (p)=>/^([a-z]+:)?\/\//i.test(p) || p.startsWith('/');
 
-    els.hsLayer.appendChild(el);
+  class ModularTrainingSystem {
+    constructor(config, currentModuleIndex=0, modulePath=null, transcriptText=null){
+      this.config = config;
+      this.currentModuleIndex = currentModuleIndex;
+      this.FPS = 30;
+      this.VER_KEY = 'training_schema';
+      this.SCHEMA_VERSION = 4;
+      this.seg = {start:0,end:0,active:false,rafId:null,currentId:null,currentVideo:null};
+      this.realLifeIndex = 0;
+      this.captions = [];
+      this.currentCaptionElement = null;
+      this.transcriptText = transcriptText;
 
-    // List entry
-    const li = document.createElement('div');
-    const start = tcToSeconds(hs.tcStart, state.fps);
-    const end   = tcToSeconds(hs.tcEnd, state.fps);
-    li.innerHTML = `
-      <div style="display:flex; justify-content:space-between; gap:8px; align-items:center; margin:6px 0;">
-        <div style="flex:1 1 auto">
-          <div style="font-weight:600">${hs.text || hs.label || hs.id || `#${idx+1}`}</div>
-          <div class="muted small">${fmtTime(start)} – ${fmtTime(end)}</div>
-        </div>
-        <button class="btn small" data-jump="${start}">Jump</button>
-      </div>
-    `;
-    li.querySelector('button').addEventListener('click', (e)=>{
-      e.stopPropagation();
-      if (!isNaN(start)) {
-        els.audio.currentTime = start + 0.01;
-        els.audio.play().catch(()=>{});
+      if (modulePath && modulePath.includes('/')) {
+        this.moduleUrl = new URL(modulePath, window.location.href);
+        this.moduleFilename = this.moduleUrl.pathname.split('/').pop();
+        this.moduleBase = new URL('.', this.moduleUrl).href;
+      } else if (modulePath) {
+        this.moduleFilename = modulePath;
+        this.moduleUrl = new URL(window.location.href);
+        this.moduleBase = new URL('.', this.moduleUrl).href;
+      } else {
+        this.moduleUrl = new URL(window.location.href);
+        this.moduleFilename = this.moduleUrl.pathname.split('/').pop();
+        this.moduleBase = new URL('.', this.moduleUrl).href;
       }
-    });
-    els.hsList.appendChild(li);
 
-    // keep references
-    hs._el = el;
-    hs._listEl = li;
-  }
+      console.log('📄 Module filename:', this.moduleFilename);
 
-  function setActiveHotspot(idx){
-    if(state.activeIdx === idx) return;
-    state.activeIdx = idx;
-    state.hotspots.forEach((h, i)=>{
-      if(h._el) h._el.classList.toggle('active', i === idx);
-    });
-  }
+      this.init();
+      this.setupVisibilityHandler();
+    }
 
-  /********************
-   * Hotspot content  *
-   ********************/
-  function openHotspotContent(hs){
-    els.modalTitle.textContent = hs.text || hs.label || hs.id || 'Content';
-    els.modalBody.innerHTML = '';
+    setupVisibilityHandler(){
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          if (this.seg.active && !GGAudio.paused) {
+            this.pauseViewer();
+          }
+        }
+      });
+    }
 
-    if (hs.contentMedia && hs.contentMedia.type) {
-      if (hs.contentMedia.type === 'video') {
-        const v = document.createElement('video');
-        v.controls = true;
-        v.playsInline = true;
-        v.src = resolveAsset(hs.contentMedia.src);
-        els.modalBody.appendChild(v);
-      } else if (hs.contentMedia.type === 'image') {
-        const img = document.createElement('img');
-        img.alt = hs.text || 'image';
-        img.src = resolveAsset(hs.contentMedia.src);
-        els.modalBody.appendChild(img);
+    resolveAsset(p){
+      if (!p) return '';
+      if (isAbsoluteUrl(p)) return p;
+      return new URL(p, this.moduleBase).href;
+    }
+
+    async init(){
+      this.initStorage();
+      this.cacheDOM();
+      await this.loadTranscript();
+      this.applyConfigBasics();
+      this.createHotspots();
+      this.buildChapterList();
+      this.wireHotspotClicks();
+      this.applyStatesLinear();
+    }
+
+    buildChapterList(){
+      const moduleList = document.getElementById('moduleList');
+      moduleList.replaceChildren();
+
+      console.log('=== BUILDING CHAPTER LIST ===');
+      console.log('Module Filename:', this.moduleFilename);
+      
+      const match = this.moduleFilename.match(/(\d+)-(\d+)\.json/);
+      let targetModuleNum = null;
+      let targetChapterNum = null;
+      
+      if (match) {
+        targetModuleNum = parseInt(match[1], 10);
+        targetChapterNum = parseInt(match[2], 10);
+        console.log('🎯 DETECTED FROM FILENAME: Module', targetModuleNum, 'Chapter', targetChapterNum);
+      } else {
+        console.warn('⚠️ Could not parse module/chapter from filename:', this.moduleFilename);
+      }
+      
+      const targetModuleId = targetModuleNum ? `module-${targetModuleNum}` : null;
+      const targetChapterId = (targetModuleNum && targetChapterNum) ? `chapter-${targetModuleNum}-${targetChapterNum}` : null;
+      
+      console.log('Target Module ID:', targetModuleId);
+      console.log('Target Chapter ID:', targetChapterId);
+
+      TRAINING_STRUCTURE.forEach((module, modIdx) => {
+        const moduleGroup = el('li', {class: 'module-group'});
+        
+        const moduleHeader = el('div', {
+          class: 'module-header',
+          'data-module-id': module.id
+        }, [
+          el('div', {class: 'module-expand-icon'}, '▶'),
+          el('div', {class: 'module-name'}, module.name)
+        ]);
+        
+        const chapterList = el('ul', {class: 'chapter-list'});
+        
+        module.chapters.forEach((chapter, chapIdx) => {
+          const chapterGroup = el('li', {class: 'chapter-group'});
+          
+          const chapterHeader = el('div', {
+            class: 'chapter-header',
+            'data-chapter-id': chapter.id
+          }, [
+            el('div', {class: 'chapter-expand-icon'}, '▶'),
+            el('div', {class: 'chapter-title'}, chapter.name)
+          ]);
+          
+          const segmentList = el('ul', {class: 'segment-list'});
+          
+          chapter.segments.forEach((segmentName, segIdx) => {
+            const isTargetChapter = (module.id === targetModuleId && chapter.id === targetChapterId);
+            
+            let hotspot = null;
+            if (isTargetChapter) {
+              hotspot = (this.config.hotspots || []).find(h => {
+                const {title} = this.getTitleAndBody(h.content || h.text || '');
+                const name = title || h.label || '';
+                const normalize = (s) => s.toLowerCase().trim().replace(/[^\w\s]/g, '');
+                const match = normalize(name).includes(normalize(segmentName)) || 
+                       normalize(segmentName).includes(normalize(name)) ||
+                       name === segmentName;
+                
+                if (match) {
+                  console.log(`✓ MATCHED: "${segmentName}" (${module.name} > ${chapter.name}) → "${name}" (hotspot ${h.id})`);
+                }
+                
+                return match;
+              });
+            }
+            
+            const segmentId = hotspot ? hotspot.id : `${chapter.id}-seg-${segIdx}`;
+            
+            const segmentItem = el('li', {
+              class: 'segment-item' + (hotspot ? '' : ' not-loaded'),
+              'data-id': segmentId,
+              'data-has-hotspot': hotspot ? 'true' : 'false'
+            }, [
+              el('div', {class: 'segment-badge'}, String(segIdx + 1)),
+              el('div', {class: 'segment-name'}, segmentName)
+            ]);
+            
+            if (hotspot) {
+              segmentItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!segmentItem.classList.contains('locked')) {
+                  const button = this.buttons[hotspot.id];
+                  if (button) this.openFor(button);
+                }
+              });
+            } else {
+              segmentItem.classList.add('locked');
+              segmentItem.style.opacity = '0.3';
+            }
+            
+            segmentList.appendChild(segmentItem);
+          });
+          
+          chapterHeader.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isExpanded = chapterHeader.classList.toggle('expanded');
+            segmentList.classList.toggle('expanded', isExpanded);
+          });
+          
+          chapterGroup.appendChild(chapterHeader);
+          chapterGroup.appendChild(segmentList);
+          chapterList.appendChild(chapterGroup);
+        });
+        
+        moduleHeader.addEventListener('click', () => {
+          const isExpanded = moduleHeader.classList.toggle('expanded');
+          chapterList.classList.toggle('expanded', isExpanded);
+        });
+        
+        moduleGroup.appendChild(moduleHeader);
+        moduleGroup.appendChild(chapterList);
+        moduleList.appendChild(moduleGroup);
+      });
+
+      this.updateChapterList();
+    }
+
+    updateChapterList(){
+      const moduleList = document.getElementById('moduleList');
+      const segmentItems = moduleList.querySelectorAll('.segment-item');
+      const chapterHeaders = moduleList.querySelectorAll('.chapter-header');
+      const moduleHeaders = moduleList.querySelectorAll('.module-header');
+      
+      console.log('=== UPDATE CHAPTER LIST ===');
+      console.log('Total segments in sidebar:', segmentItems.length);
+      console.log('Completed segments:', Array.from(this.done));
+      
+      let foundCurrent = false;
+      let currentSegmentElement = null;
+      
+      segmentItems.forEach((item) => {
+        const hasHotspot = item.getAttribute('data-has-hotspot') === 'true';
+        if (!hasHotspot) return;
+        
+        const id = item.getAttribute('data-id');
+        item.classList.remove('locked', 'current', 'completed');
+        item.style.opacity = '';
+        
+        if (this.done.has(id)) {
+          item.classList.add('completed');
+        } else if (!foundCurrent) {
+          item.classList.add('current');
+          foundCurrent = true;
+          currentSegmentElement = item;
+          
+          const segmentName = item.querySelector('.segment-name').textContent;
+          const chapterHeader = item.closest('.chapter-group').querySelector('.chapter-header');
+          const chapterName = chapterHeader.querySelector('.chapter-title').textContent;
+          const moduleHeader = item.closest('.module-group').querySelector('.module-header');
+          const moduleName = moduleHeader.querySelector('.module-name').textContent;
+          
+          console.log('🎯 CURRENT SEGMENT:', segmentName);
+          console.log('   └─ Chapter:', chapterName);
+          console.log('   └─ Module:', moduleName);
+        } else {
+          item.classList.add('locked');
+        }
+      });
+      
+      chapterHeaders.forEach((header) => {
+        const segmentList = header.nextElementSibling;
+        const segments = Array.from(segmentList.querySelectorAll('.segment-item'))
+          .filter(seg => seg.getAttribute('data-has-hotspot') === 'true');
+        
+        const allCompleted = segments.length > 0 && segments.every(seg => seg.classList.contains('completed'));
+        const hasCurrent = segments.some(seg => seg.classList.contains('current'));
+        
+        header.classList.remove('has-current', 'all-completed', 'expanded');
+        segmentList.classList.remove('expanded');
+        
+        if (hasCurrent) {
+          header.classList.add('has-current', 'expanded');
+          segmentList.classList.add('expanded');
+          const chapterName = header.querySelector('.chapter-title').textContent;
+          console.log('📂 EXPANDING CHAPTER:', chapterName);
+        } else if (allCompleted) {
+          header.classList.add('all-completed');
+        }
+      });
+      
+      moduleHeaders.forEach((header) => {
+        const chapterList = header.nextElementSibling;
+        const chapters = chapterList.querySelectorAll('.chapter-header');
+        
+        const hasCurrentChapter = Array.from(chapters).some(ch => ch.classList.contains('has-current'));
+        
+        header.classList.remove('current-module', 'expanded');
+        chapterList.classList.remove('expanded');
+        
+        if (hasCurrentChapter) {
+          header.classList.add('current-module', 'expanded');
+          chapterList.classList.add('expanded');
+          const moduleName = header.querySelector('.module-name').textContent;
+          console.log('📦 EXPANDING MODULE:', moduleName);
+        }
+      });
+      
+      if (currentSegmentElement) {
+        setTimeout(() => {
+          const sidebar = document.getElementById('sidebar');
+          if (sidebar) {
+            const itemRect = currentSegmentElement.getBoundingClientRect();
+            const sidebarRect = sidebar.getBoundingClientRect();
+            const scrollTop = currentSegmentElement.offsetTop - sidebar.offsetTop - (sidebarRect.height / 2) + (itemRect.height / 2);
+            sidebar.scrollTo({ top: scrollTop, behavior: 'smooth' });
+          }
+        }, 100);
       }
     }
 
-    if (Array.isArray(hs.realLifeExamples) && hs.realLifeExamples.length){
-      for(const ex of hs.realLifeExamples){
-        const img = document.createElement('img');
-        img.alt = 'example';
-        img.src = resolveAsset(ex);
-        img.style.marginTop = '10px';
-        els.modalBody.appendChild(img);
+    async loadTranscript(){
+      if (this.transcriptText) {
+        this.captions = this.parseTranscript(this.transcriptText);
+        console.log('Loaded captions from provided text:', this.captions.length);
+        return;
+      }
+      
+      if (!this.config.transcriptFile) return;
+      
+      try {
+        const transcriptUrl = this.resolveAsset(this.config.transcriptFile);
+        const response = await fetch(transcriptUrl);
+        const text = await response.text();
+        this.captions = this.parseTranscript(text);
+        console.log('Loaded captions from file:', this.captions.length);
+      } catch(e) {
+        console.warn('Failed to load transcript:', e.message);
       }
     }
 
-    els.modal.classList.add('open');
-  }
-  els.modal.addEventListener('click', (e)=> {
-    if (e.target === els.modal) els.modal.classList.remove('open');
-  });
-  els.modalClose.addEventListener('click', ()=> els.modal.classList.remove('open'));
-
-  /*****************
-   * Audio wiring  *
-   *****************/
-  function bindAudio(){
-    const a = els.audio;
-    a.onloadedmetadata = () => {
-      els.dur.textContent = fmtTime(a.duration|0);
-    };
-    a.ontimeupdate = () => {
-      els.cur.textContent = fmtTime(a.currentTime|0);
-      if(a.duration) els.seek.value = (a.currentTime / a.duration).toFixed(3);
-
-      // Active hotspot highlighting
-      let active = -1;
-      for (let i=0;i<state.hotspots.length;i++){
-        const h = state.hotspots[i];
-        const st = tcToSeconds(h.tcStart, state.fps);
-        const en = tcToSeconds(h.tcEnd, state.fps);
-        if (!isNaN(st) && !isNaN(en) && a.currentTime >= st && a.currentTime < en){
-          active = i; break;
+    parseTranscript(text){
+      const captions = [];
+      const lines = text.split('\n');
+      let i = 0;
+      
+      while(i < lines.length){
+        const line = lines[i].trim();
+        
+        if (line.match(/^\d{2};\d{2};\d{2};\d{2}\s*-\s*\d{2};\d{2};\d{2};\d{2}$/)){
+          const [start, end] = line.split('-').map(tc => tcToSeconds(tc.trim(), this.FPS));
+          i++;
+          
+          let captionText = '';
+          while(i < lines.length && !lines[i].match(/^\d{2};\d{2};\d{2};\d{2}\s*-/)){
+            if (lines[i].trim()){
+              captionText += (captionText ? ' ' : '') + lines[i].trim();
+            }
+            i++;
+          }
+          
+          if (captionText){
+            captions.push({ start, end, text: captionText });
+          }
+        } else {
+          i++;
         }
       }
-      setActiveHotspot(active);
+      
+      return captions;
+    }
 
-      // Loop active segment if enabled
-      if (state.loopActive && active >= 0){
-        const h = state.hotspots[active];
-        const en = tcToSeconds(h.tcEnd, state.fps);
-        if (a.currentTime >= en) {
-          const st = tcToSeconds(h.tcStart, state.fps);
-          a.currentTime = st + 0.01;
-          a.play().catch(()=>{});
+    findCaptionsForTime(time){
+      // Filter captions to only those within the current segment
+      if (!this.seg || !this.seg.active) return [];
+      
+      const segmentCaptions = this.captions.filter(cap => 
+        cap.start >= this.seg.start && cap.end <= this.seg.end
+      );
+      
+      // Find all captions that have started (their start time has passed)
+      const activeCaptions = segmentCaptions.filter(cap => time >= cap.start);
+      
+      // Return the last 2 captions that have started (sliding window)
+      // This gives us the "current" and "previous" caption
+      return activeCaptions.slice(-2);
+    }
+
+    updateCaption(time){
+      if (!this.currentCaptionElement) return;
+      
+      const captions = this.findCaptionsForTime(time);
+      
+      if (captions.length > 0){
+        // Join multiple captions with a line break
+        this.currentCaptionElement.innerHTML = captions
+          .map(cap => cap.text)
+          .join('<br><br>');
+        this.currentCaptionElement.style.display = 'inline-block';
+      } else {
+        this.currentCaptionElement.style.display = 'none';
+      }
+    }
+
+    initStorage(){
+      const currentVer = parseInt(localStorage.getItem(this.VER_KEY)||'0',10);
+      if (currentVer !== this.SCHEMA_VERSION){
+        Object.keys(localStorage).forEach(k=>{ if (k.endsWith('_done')) localStorage.removeItem(k); });
+        localStorage.setItem(this.VER_KEY,String(this.SCHEMA_VERSION));
+      }
+      this.moduleKey = `${this.config.id||'default'}_done`;
+      this.done = new Set(JSON.parse(localStorage.getItem(this.moduleKey)||'[]'));
+    }
+    saveDone(){ localStorage.setItem(this.moduleKey, JSON.stringify([...this.done])); }
+
+    cacheDOM(){
+      this.title = document.getElementById('moduleTitle');
+      this.stage = document.getElementById('stage');
+      this.innerWindow = document.getElementById('innerWindow');
+      this.viewer = document.getElementById('viewer');
+      this.viewerTitle = document.getElementById('viewerTitle');
+      this.audio = document.getElementById('vo');
+      this.closeViewerBtn = document.getElementById('closeViewer');
+      this.closeViewerBtn.addEventListener('click', ()=>this.closeViewer());
+      
+      // Initialize GGAudio with the audio element
+      GGAudio.setElement(this.audio);
+    }
+
+    applyConfigBasics(){
+      document.title = this.config.title || 'Training Module';
+      this.title.textContent = this.config.title || 'Training Module';
+
+      const bg = this.resolveAsset(this.config.backgroundImage || '');
+      if (bg){
+        const img = new Image();
+        const withBust = bg + (bg.includes('?') ? '&' : '?') + 'v=' + Date.now();
+        img.onload = ()=>{ this.stage.style.backgroundImage = `url('${withBust}')`; };
+        img.onerror = ()=>{ this.stage.style.backgroundImage = `url('${bg}')`; };
+        img.src = withBust;
+      } else {
+        this.stage.style.backgroundImage = '';
+      }
+
+      const audioSrc = this.resolveAsset(this.config.audioFile || '');
+      if (audioSrc) {
+        // Initialize GGAudio with the audio URL (preloads once for the whole chapter)
+        GGAudio.init(audioSrc).catch(e => console.error('Audio init failed:', e));
+      }
+    }
+
+    createHotspots(){
+      const W = this.config.canvasDimensions?.width || 6000;
+      const H = this.config.canvasDimensions?.height || 4000;
+      this.linearOrder = [];
+      let visualIndex = 0;
+
+      (this.config.hotspots||[]).forEach((h, idx)=>{
+        const b = el('button',{id:h.id, class:'hotspot', 'data-id':h.id, 'data-tcStart':h.tcStart||'00:00:00:00', 'data-tcEnd':h.tcEnd||'00:00:00:01', 'data-order':h.order||''});
+        visualIndex += 1;
+        b.setAttribute('data-number', String(visualIndex));
+
+        const isFirst = idx===0;
+        const isDone = (h.order||'').toLowerCase()==='done';
+        const isPill = isFirst || h.type==='pill' || isDone;
+
+        if (isPill){
+          b.classList.add('pill');
+          const label = isFirst ? 'Start' : (h.label ?? (isDone ? 'Done' : (h.text || 'Action')));
+          b.textContent = label;
+          b.setAttribute('aria-label', label);
+          if (isFirst) b.style.cssText = 'left:3%; bottom:5%; right:auto; top:auto; transform:none;';
+          else if (isDone) b.style.cssText = 'right:3%; bottom:5%; left:auto; top:auto; transform:none;';
+          else {
+            const dock = (h.dock||'right').toLowerCase();
+            b.style.cssText = (dock==='left') ? 'left:3%; bottom:5%; right:auto; top:auto; transform:none;' : 'right:3%; bottom:5%; left:auto; top:auto; transform:none;';
+          }
+        } else {
+          b.classList.add(h.type||'circle');
+          const leftPct   = (h.centerX/W)*100;
+          const topPct    = (h.centerY/H)*100;
+          const widthPct  = (h.width/W)*100;
+          const heightPct = (h.height/H)*100;
+          b.style.cssText = `left:${leftPct}%;top:${topPct}%;width:${widthPct}%;height:${heightPct}%;`;
+        }
+
+        this.stage.appendChild(b);
+        this.linearOrder.push(h.id);
+      });
+
+      this.buttons = {};
+      (this.config.hotspots||[]).forEach(h=>{ this.buttons[h.id] = document.getElementById(h.id); });
+    }
+
+    wireHotspotClicks(){
+      (this.config.hotspots||[]).forEach(h=>{
+        const b = this.buttons[h.id];
+        if (!b) return;
+        b.addEventListener('click', ()=>{
+          if (b.classList.contains('locked')) return;
+          this.openFor(b);
+        });
+      });
+    }
+
+    setState(el, state){
+      el.classList.remove('clickable','locked','done');
+      el.classList.add(state);
+      el.setAttribute('aria-disabled', state==='locked' ? 'true' : 'false');
+    }
+
+    applyStatesLinear(){
+      this.linearOrder.forEach(id=>this.setState(this.buttons[id], 'locked'));
+      let unlockedOne = false;
+      this.linearOrder.forEach(id=>{
+        if (this.done.has(id)) this.setState(this.buttons[id],'done');
+        else if (!unlockedOne){ this.setState(this.buttons[id],'clickable'); unlockedOne=true; }
+      });
+      this.updateChapterList();
+    }
+
+    buildAudioUI(total){
+      const ui = el('div',{class:'audio-ui'},[
+        el('div',{class:'row'},[
+          el('div',{class:'biglabel'},'Narration'),
+          el('div',{class:'time'},[
+            el('span',{id:'tcur'},'0:00'),' / ', el('span',{id:'tlen'},fmt(total))
+          ])
+        ]),
+        el('div',{class:'bar'}, el('div',{class:'fill', id:'fill'})),
+        el('div',{class:'row'},[
+          el('div',{class:'controls'},[
+            el('button',{class:'btn',id:'playPause',title:'Play/Pause'},'▶'),
+            el('button',{class:'btn',id:'replay',title:'Replay'},'⟳'),
+          ]),
+          el('div',{class:'viewer-actions'},[
+            el('span',{class:'time',id:'status'},'Ready'),
+            el('button',{class:'close-btn',id:'closeBtn'},'Close'),
+            el('button',{class:'next-btn',id:'nextBtn',style:'display:none'},'Next'),
+          ])
+        ])
+      ]);
+      return ui;
+    }
+
+    pauseViewer(){
+      if (this.seg.currentVideo) this.seg.currentVideo.pause();
+      if (!GGAudio.paused) GGAudio.pause();
+      const playPause = document.getElementById('playPause');
+      const status = document.getElementById('status');
+      if (playPause) playPause.textContent='▶';
+      if (status) status.textContent='Paused';
+    }
+
+    closeViewer(){
+      this.innerWindow.style.opacity = '0';
+      
+      setTimeout(() => {
+        this.innerWindow.classList.remove('active', 'animating');
+        this.viewer.replaceChildren();
+        if (this.seg.currentVideo){ this.seg.currentVideo.pause(); this.seg.currentVideo=null; }
+        if (!GGAudio.paused) GGAudio.pause();
+        this.seg.active=false; cancelAnimationFrame(this.seg.rafId);
+        this.currentCaptionElement = null;
+        
+        this.innerWindow.style.top = '';
+        this.innerWindow.style.left = '';
+        this.innerWindow.style.width = '';
+        this.innerWindow.style.height = '';
+        this.innerWindow.style.opacity = '';
+        
+        const header = this.innerWindow.querySelector('header');
+        const viewer = this.innerWindow.querySelector('#viewer');
+        if (header) {
+          header.style.transform = '';
+          header.style.opacity = '';
+        }
+        if (viewer) {
+          viewer.style.transform = '';
+          viewer.style.opacity = '';
+        }
+      }, 300);
+    }
+
+    showChapterCompleteDialog(){
+      let overlay = document.querySelector('.chapter-complete-overlay');
+      if (!overlay){
+        overlay = el('div',{class:'chapter-complete-overlay'}, el('div',{class:'chapter-complete-dialog'},[
+          el('h2',{},'Chapter Complete!'),
+          el('p',{},'You\'ve finished this chapter of the training module. Would you like to continue to the next chapter?'),
+          el('div',{class:'actions'},[
+            el('button',{class:'btn',id:'stayBtn'},'Stay Here'),
+            el('button',{class:'btn primary',id:'continueBtn'},'Continue to Next Chapter')
+          ])
+        ]));
+        document.body.appendChild(overlay);
+      }
+      overlay.style.display='grid';
+      overlay.querySelector('#stayBtn').onclick = ()=>{ overlay.style.display='none'; this.closeViewer(); };
+      overlay.querySelector('#continueBtn').onclick = ()=>{ overlay.style.display='none'; this.loadNextModule(); };
+    }
+
+    loadNextModule(){
+      const nextIndex = this.currentModuleIndex + 1;
+      if (nextIndex >= MODULE_SEQUENCE.length){
+        alert('Congratulations! You have completed all training modules.');
+        return;
+      }
+      loadModule(MODULE_SEQUENCE[nextIndex], nextIndex);
+    }
+
+    onSegmentComplete(id){
+      if (!this.done.has(id)){ 
+        this.done.add(id); 
+        this.saveDone(); 
+        this.applyStatesLinear(); 
+        
+        // === API Progress Update ===
+        if (window.GGTrainingAPI && this.moduleFilename) {
+          const parsed = window.GGTrainingAPI.parseFilename(this.moduleFilename);
+          if (parsed) {
+            // Find the completed hotspot index
+            const hotspotIndex = (this.config.hotspots || []).findIndex(h => h.id === id);
+            if (hotspotIndex >= 0) {
+              const totalSegments = (this.config.hotspots || []).length;
+              const nextSegment = hotspotIndex + 1; // Next segment to complete
+              const allCompleted = nextSegment >= totalSegments;
+              
+              console.log(`🎯 Segment complete: ${parsed.module}.${parsed.chapter}.${nextSegment} (${hotspotIndex + 1}/${totalSegments})`);
+              
+              // Post progress to API
+              window.GGTrainingAPI.postProgress(
+                parsed.module,
+                parsed.chapter,
+                nextSegment,
+                totalSegments,
+                allCompleted
+              );
+            }
+          }
         }
       }
-    };
-    a.onplay = ()=> { els.playpause.textContent = 'Pause'; };
-    a.onpause = ()=> { els.playpause.textContent = 'Play'; };
-
-    a.onerror = (ev) => {
-      const err = a.error;
-      const msg = err ? `Media error (code ${err.code})` : 'audio failed to load';
-      els.status.textContent = '[Audio] ' + msg;
-      console.error('[Audio] element error', err || ev);
-      showToast('Audio error: ' + msg, 4000);
-    };
-  }
-  bindAudio();
-
-  els.playpause.addEventListener('click', ()=>{
-    if (els.audio.paused) els.audio.play().catch(()=>{});
-    else els.audio.pause();
-  });
-  els.seek.addEventListener('input', ()=>{
-    if (!isFinite(els.audio.duration)) return;
-    els.audio.currentTime = els.audio.duration * parseFloat(els.seek.value || '0');
-  });
-  els.reload.addEventListener('click', ()=> {
-    if (!state.chapter) return;
-    setAudioSources(state.chapter);
-    els.audio.load();
-    els.audio.play().catch(()=>{});
-  });
-  els.loopHS.addEventListener('change', ()=> state.loopActive = !!els.loopHS.checked);
-
-  /**********************
-   * Chapter load/render
-   **********************/
-  async function loadChapter(path){
-    state.chapterPath = path;
-    const url = resolveAsset(path);
-    const res = await fetch(url, {cache:'no-cache'});
-    if (!res.ok) throw new Error(`Failed to load JSON (${res.status}) at ${url}`);
-    const json = await res.json();
-
-    // basic normalize
-    state.chapter = json;
-    state.fps = (json.timecodeFps && +json.timecodeFps) || 30;
-    state.naturalW = (json.canvasDimensions && json.canvasDimensions.width) || 6000;
-    state.naturalH = (json.canvasDimensions && json.canvasDimensions.height) || 4000;
-
-    renderChapter(json);
-  }
-
-  function setAudioSources(json){
-    const a = els.audio;
-    a.innerHTML = ''; // clear <source> children
-    // Primary WAV
-    if (json.audioFile){
-      const s1 = document.createElement('source');
-      s1.src = resolveAsset(json.audioFile);
-      s1.type = 'audio/wav';
-      a.appendChild(s1);
+      
+      const hotspot = (this.config.hotspots||[]).find(h=>h.id===id);
+      const isDone = (hotspot?.order||'').toLowerCase()==='done';
+      const nextBtn = document.getElementById('nextBtn');
+      if (nextBtn){
+        nextBtn.style.display='block';
+        nextBtn.onclick = ()=>{
+          if (isDone){
+            const isLast = this.currentModuleIndex === MODULE_SEQUENCE.length - 1;
+            if (isLast){ alert('Congratulations! You have completed all training modules.'); this.closeViewer(); }
+            else { this.showChapterCompleteDialog(); }
+          } else {
+            this.closeViewer();
+          }
+        };
+      }
     }
-    // Optional MP3 fallback if your JSON has "audioFileMp3"
-    if (json.audioFileMp3){
-      const s2 = document.createElement('source');
-      s2.src = resolveAsset(json.audioFileMp3);
-      s2.type = 'audio/mpeg';
-      a.appendChild(s2);
+
+    wireAudioSegment(startSec,endSec,id){
+      const total = Math.max(0.01, endSec-startSec);
+      this.seg = {start:startSec,end:endSec,active:true,currentId:id,currentVideo:this.seg.currentVideo,rafId:null};
+      
+      const fill = document.getElementById('fill');
+      const playPause = document.getElementById('playPause');
+      const replay = document.getElementById('replay');
+      const status = document.getElementById('status');
+      const tcur = document.getElementById('tcur');
+      const closeBtn = document.getElementById('closeBtn');
+
+      const syncUI = ()=>{
+        if (!this.seg.active) return;
+        const now = Math.min(Math.max(GGAudio.currentTime, this.seg.start), this.seg.end);
+        const elapsed = now - this.seg.start;
+        if (fill) fill.style.width = `${(elapsed/total)*100}%`;
+        if (tcur) tcur.textContent = fmt(elapsed);
+        
+        this.updateCaption(now);
+        
+        if (now >= this.seg.end - 0.02){
+          GGAudio.pause();
+          if (this.seg.currentVideo) this.seg.currentVideo.pause();
+          if (playPause) playPause.textContent='▶';
+          if (status) status.textContent='Finished';
+          cancelAnimationFrame(this.seg.rafId);
+          this.onSegmentComplete(id);
+          return;
+        }
+        this.seg.rafId = requestAnimationFrame(syncUI);
+      };
+
+      // Convert seconds to timecode format for GGAudio
+      const toTC = (sec) => {
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = Math.floor(sec % 60);
+        const f = Math.floor((sec % 1) * 30);
+        return `${String(h).padStart(2,'0')};${String(m).padStart(2,'0')};${String(s).padStart(2,'0')};${String(f).padStart(2,'0')}`;
+      };
+
+      const startSeg = ()=>{
+        // Use GGAudio to play the segment
+        GGAudio.play(toTC(startSec), toTC(endSec), () => {
+          // This callback runs when the segment completes
+          if (this.seg.currentVideo) this.seg.currentVideo.pause();
+          if (playPause) playPause.textContent='▶';
+          if (status) status.textContent='Finished';
+          cancelAnimationFrame(this.seg.rafId);
+          this.onSegmentComplete(id);
+        }).then(() => {
+          // Start video when audio starts
+          if (this.seg.currentVideo){ 
+            this.seg.currentVideo.play().catch(()=>{}); 
+          }
+          if (playPause) playPause.textContent='⏸';
+          if (status) status.textContent='Playing';
+          cancelAnimationFrame(this.seg.rafId);
+          this.seg.rafId = requestAnimationFrame(syncUI);
+        }).catch(()=>{
+          if (status) status.textContent='Tap Play to start audio';
+        });
+      };
+
+      if (playPause){
+        playPause.onclick = ()=>{
+          if (GGAudio.paused){
+            if (GGAudio.currentTime <= this.seg.start || GGAudio.currentTime >= this.seg.end){ 
+              startSeg(); 
+            } else {
+              GGAudio.element.play().then(()=>{
+                if (this.seg.currentVideo) this.seg.currentVideo.play().catch(()=>{});
+                playPause.textContent='⏸';
+                if (status) status.textContent='Playing';
+                cancelAnimationFrame(this.seg.rafId);
+                this.seg.rafId = requestAnimationFrame(syncUI);
+              });
+            }
+          } else {
+            GGAudio.pause();
+            if (this.seg.currentVideo) this.seg.currentVideo.pause();
+            playPause.textContent='▶';
+            if (status) status.textContent='Paused';
+          }
+        };
+      }
+      if (replay) replay.onclick = ()=> startSeg();
+      if (closeBtn) closeBtn.onclick = ()=>this.closeViewer();
+      
+      // Secret skip button: press 'b' during video playback to skip
+      const skipHandler = (e) => {
+        if (e.key === 'b' || e.key === 'B') {
+          if (this.seg.active && !GGAudio.paused) {
+            // Pause audio and video
+            GGAudio.pause();
+            if (this.seg.currentVideo) this.seg.currentVideo.pause();
+            
+            // Update UI
+            if (playPause) playPause.textContent='▶';
+            if (status) status.textContent='Finished';
+            if (fill) fill.style.width = '100%';
+            if (tcur) tcur.textContent = fmt(total);
+            
+            // Cancel animation frame
+            cancelAnimationFrame(this.seg.rafId);
+            
+            // Trigger completion
+            this.onSegmentComplete(id);
+            
+            // Remove this handler
+            document.removeEventListener('keydown', skipHandler);
+          }
+        }
+      };
+      document.addEventListener('keydown', skipHandler);
+      
+      startSeg();
+    }
+
+    getTitleAndBody(text){
+      const m = (text||'').match(/^\s*\[([^\]]+)\]\s*\n?([\s\S]*)$/);
+      return m ? { title:m[1], body:(m[2]||'').trimStart() } : { title:'Narration', body:text||'' };
+    }
+
+    openFor(button){
+      const id = button.id;
+      const h = (this.config.hotspots||[]).find(x=>x.id===id) || {};
+      const s = tcToSeconds(h.tcStart, this.FPS);
+      const e = tcToSeconds(h.tcEnd, this.FPS);
+      const {title, body} = this.getTitleAndBody(h.content || h.text || '');
+
+      this.viewer.replaceChildren();
+      this.viewerTitle.textContent = title || 'Narration';
+      this.innerWindow.classList.remove('small','large','animating');
+
+      const hasVideo = h.video || (h.contentMedia && h.contentMedia.type === 'video');
+      const hasImage = h.contentMedia && h.contentMedia.type === 'image';
+      const hasCaptions = this.captions.length > 0;
+      
+      const sizeClass = (hasVideo || hasImage) ? 'large' : 'small';
+      
+      if (hasVideo || hasImage){
+        const media = el('div',{class:'mediaArea'});
+        
+        if (hasVideo) {
+          const videoSrc = h.video ? this.resolveAsset(h.video) : this.resolveAsset(h.contentMedia.src);
+          const vid = el('video',{src:videoSrc});
+          vid.muted = true; 
+          vid.playsInline = true; 
+          vid.loop = true; 
+          vid.controls = false;
+          vid.preload = 'auto';
+          // Video will start playing when audio starts in wireAudioSegment()
+          media.appendChild(vid);
+          this.seg.currentVideo = vid;
+        } else if (hasImage) {
+          const imgSrc = this.resolveAsset(h.contentMedia.src);
+          const img = el('img',{src:imgSrc, alt: h.contentMedia.alt || 'Content image'});
+          media.appendChild(img);
+        }
+        
+        if (hasCaptions) {
+          const captionEl = el('div',{class:'caption'}, '');
+          this.currentCaptionElement = captionEl;
+          media.appendChild(captionEl);
+        }
+        this.viewer.appendChild(media);
+      } else {
+        const wrap = el('div',{class:'subs-only', style:'flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;min-height:0;overflow:auto'});
+        
+        if (hasCaptions) {
+          const captionEl = el('div',{class:'caption', style:'position:static;max-width:100%;font-size:20px;line-height:1.6;max-height:100%;overflow-y:auto'}, '');
+          this.currentCaptionElement = captionEl;
+          wrap.appendChild(captionEl);
+        } else {
+          wrap.appendChild(el('div',{class:'subs-text', style:'text-align:center;font-size:18px;line-height:1.6;color:#e9eef5'}, body));
+        }
+        this.viewer.appendChild(wrap);
+      }
+
+      const right = this.innerWindow.querySelector('header .right');
+      right.querySelectorAll('.header-real-life-btn').forEach(btn => btn.remove());
+      if (Array.isArray(h.realLifeExamples) && h.realLifeExamples.length){
+        const btn = el('button',{class:'header-real-life-btn'},'Real Life Example');
+        const imgs = h.realLifeExamples.map(p=>this.resolveAsset(p));
+        btn.onclick = ()=>this.showRealLifePopup(imgs);
+        right.insertBefore(btn, right.firstChild);
+      }
+
+      this.viewer.appendChild(this.buildAudioUI(Math.max(0.01, e - s)));
+      
+      const buttonRect = button.getBoundingClientRect();
+      const stageRect = this.stage.getBoundingClientRect();
+      
+      const buttonCenterX = buttonRect.left + buttonRect.width / 2 - stageRect.left;
+      const buttonCenterY = buttonRect.top + buttonRect.height / 2 - stageRect.top;
+      
+      let finalWidth, finalHeight, finalTop, finalLeft;
+      
+      if (sizeClass === 'large') {
+        finalWidth = stageRect.width * 0.84;
+        finalHeight = stageRect.height * 0.84;
+        finalTop = stageRect.height * 0.08;
+        finalLeft = stageRect.width * 0.08;
+      } else {
+        finalWidth = Math.min(520, stageRect.width * 0.46);
+        finalHeight = stageRect.height * 0.60;
+        finalTop = stageRect.height * 0.34;
+        finalLeft = stageRect.width * 0.51;
+      }
+      
+      this.innerWindow.classList.add('active', sizeClass);
+      
+      const initialTop = `${buttonCenterY - 5}px`;
+      const initialLeft = `${buttonCenterX - 5}px`;
+      
+      this.innerWindow.style.top = initialTop;
+      this.innerWindow.style.left = initialLeft;
+      this.innerWindow.style.width = '10px';
+      this.innerWindow.style.height = '10px';
+      this.innerWindow.style.opacity = '0';
+      
+      const header = this.innerWindow.querySelector('header');
+      const viewer = this.innerWindow.querySelector('#viewer');
+      if (header) {
+        header.style.transform = 'scale(0.01)';
+        header.style.opacity = '0';
+      }
+      if (viewer) {
+        viewer.style.transform = 'scale(0.01)';
+        viewer.style.opacity = '0';
+      }
+      
+      this.innerWindow.offsetHeight;
+      
+      setTimeout(() => {
+        this.innerWindow.style.top = finalTop + 'px';
+        this.innerWindow.style.left = finalLeft + 'px';
+        this.innerWindow.style.width = finalWidth + 'px';
+        this.innerWindow.style.height = finalHeight + 'px';
+        this.innerWindow.style.opacity = '1';
+        this.innerWindow.classList.add('animating');
+        
+        const header = this.innerWindow.querySelector('header');
+        const viewer = this.innerWindow.querySelector('#viewer');
+        if (header) {
+          header.style.transform = 'scale(1)';
+          header.style.opacity = '1';
+        }
+        if (viewer) {
+          viewer.style.transform = 'scale(1)';
+          viewer.style.opacity = '1';
+        }
+        
+        setTimeout(() => {
+          this.wireAudioSegment(s, e, id);
+        }, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000);
+      }, 100);
+
+      this.stage.onclick = (ev)=>{
+        if (ev.target === this.stage) this.pauseViewer();
+      };
+    }
+
+    showRealLifePopup(examples){
+      const imgs = Array.isArray(examples) ? examples.slice() : [];
+      if (!imgs.length) return;
+
+      const existing = document.getElementById('realLifePopup');
+      if (existing) existing.remove();
+
+      let idx = 0;
+
+      const overlay = el('div', {
+        id:'realLifePopup',
+        style:[
+          'position:fixed','inset:0','display:grid','place-items:center',
+          'background:rgba(0,0,0,.7)','z-index:9999'
+        ].join(';')
+      });
+
+      const shell = el('div', {
+        style:[
+          'position:relative',
+          'background:#0f1216','border:1px solid rgba(255,255,255,.2)','border-radius:12px',
+          'max-width:min(90vw,800px)','max-height:min(90vh,600px)',
+          'width:clamp(320px,80vw,800px)','height:clamp(240px,70vh,600px)',
+          'display:flex','flex-direction:column','overflow:hidden'
+        ].join(';')
+      });
+
+      const floatClose = el('button', {
+        'aria-label':'Close',
+        style:[
+          'position:absolute','top:8px','right:8px','z-index:3',
+          'background:#ff4444','color:#fff','border:none',
+          'padding:6px 10px','border-radius:10px','cursor:pointer',
+          'font-weight:800','font-size:16px','line-height:1'
+        ].join(';')
+      }, '✕');
+
+      const header = el('header', {
+        style:'background:#1a1a1a;color:#fff;padding:10px 12px;display:flex;justify-content:center;align-items:center;font-weight:700'
+      }, 'Real Life Example');
+
+      const stage = el('div', {
+        style:'flex:1;display:flex;align-items:center;justify-content:center;padding:12px;background:#000;min-height:0'
+      });
+
+      const img = el('img', {
+        id:'realLifeImg',
+        alt:'Real life example',
+        style:'max-width:100%;max-height:100%;object-fit:contain'
+      });
+
+      const footer = el('div', {
+        style:'display:flex;gap:12px;justify-content:space-between;align-items:center;padding:10px 12px;background:#0f1216;border-top:1px solid rgba(255,255,255,.12)'
+      });
+
+      const prevBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, '‹ Previous');
+      const counter = el('span', { id:'counter', style:'color:#e9eef5' });
+      const nextBtn = el('button', { class:'btn', type:'button', style:'min-width:96px' }, 'Next ›');
+
+      stage.appendChild(img);
+      footer.appendChild(prevBtn);
+      footer.appendChild(counter);
+      footer.appendChild(nextBtn);
+      shell.appendChild(floatClose);
+      shell.appendChild(header);
+      shell.appendChild(stage);
+      if (imgs.length > 1) shell.appendChild(footer);
+      overlay.appendChild(shell);
+      document.body.appendChild(overlay);
+
+      const setDisabled = (el, on)=>{ el.disabled = !!on; el.style.opacity = on ? '.5' : '1'; };
+
+      const render = ()=>{
+        img.src = imgs[idx];
+        counter.textContent = `${idx+1} of ${imgs.length}`;
+        if (imgs.length > 1){
+          setDisabled(prevBtn, idx === 0);
+          setDisabled(nextBtn, idx === imgs.length - 1);
+        }
+      };
+
+      const goPrev = ()=>{ if (idx > 0){ idx--; render(); } };
+      const goNext = ()=>{ if (idx < imgs.length - 1){ idx++; render(); } };
+
+      floatClose.onclick = ()=> overlay.remove();
+      overlay.onclick = (e)=>{ if (e.target === overlay) overlay.remove();  };
+      if (imgs.length > 1){
+        prevBtn.onclick = goPrev;
+        nextBtn.onclick = goNext;
+      }
+
+      const onKey = (e)=>{
+        if (e.key === 'Escape'){ overlay.remove(); }
+        else if (e.key === 'ArrowLeft' && imgs.length > 1){ goPrev(); }
+        else if (e.key === 'ArrowRight' && imgs.length > 1){ goNext(); }
+      };
+      document.addEventListener('keydown', onKey);
+
+      const mo = new MutationObserver(()=>{
+        if (!document.getElementById('realLifePopup')) document.removeEventListener('keydown', onKey);
+      });
+      mo.observe(document.body, { childList:true });
+
+      render();
     }
   }
 
-  function renderChapter(json){
-    // Title / id
-    els.title.textContent = json.title || 'Untitled Chapter';
-    els.chapterId.textContent = json.id ? `ID: ${json.id}` : '';
-
-    // Background
-    const bgUrl = resolveAsset(json.backgroundImage);
-    els.bg.src = bgUrl;
-    els.bg.onload = placeHotspots;
-    els.bg.onerror = () => {
-      console.error('Background failed:', bgUrl);
-      showToast('Background failed to load (404). Check path & repo subfolder.');
-    };
-
-    // Audio
-    setAudioSources(json);
-    els.audio.load();
-
-    // Hotspots
-    clearHotspots();
-    const list = Array.isArray(json.hotspots) ? json.hotspots : [];
-    list.forEach((h,i)=> addHotspot(h,i));
-    state.hotspots = list;
-    placeHotspots();
+  function resetStageShell(){
+    const stage = document.getElementById('stage');
+    stage.replaceChildren(
+      el('div',{id:'innerWindow',class:'inner-window','aria-modal':'true',role:'dialog','aria-label':'Content viewer'},[
+        el('header',{},[
+          el('span',{id:'viewerTitle'},'Narration'),
+          el('div',{class:'right'}, el('button',{id:'closeViewer',class:'btn',title:'Close'},'×'))
+        ]),
+        el('div',{id:'viewer',class:'viewer'})
+      ]),
+      el('audio',{id:'vo',preload:'metadata'})
+    );
   }
 
-  /*****************
-   * Boot sequence *
-   *****************/
-  function getQuery(name){
-    return new URLSearchParams(location.search).get(name);
+  function loadModule(path, idx, transcriptText=null){
+    document.getElementById('moduleTitle').textContent = 'Loading…';
+    fetch(path)
+      .then(r=>{ if(!r.ok) throw new Error(`${r.status} ${r.statusText}`); return r.json(); })
+      .then(cfg=>{
+        resetStageShell();
+        new ModularTrainingSystem(cfg, idx, path, transcriptText);
+      })
+      .catch(err=>{
+        console.error('Failed to load module:', err);
+        alert('Failed to load module: '+ (err?.message || err));
+      });
   }
 
-  async function boot(){
-    const qChapter = getQuery('chapter');
-    const defaultChapter = (qChapter ? `${qChapter}.json` : '2-1.json'); // default fallback
-    els.chapterInput.value = defaultChapter;
+  (function boot(){
+    const title = document.getElementById('moduleTitle');
 
-    try {
-      await loadChapter(defaultChapter);
-    } catch(err){
-      console.error(err);
-      showToast('Failed to load chapter JSON. Check file name & path.');
+    if (LocalDebugMode){
+      const startup = document.getElementById('startup');
+      const configPicker = document.getElementById('configPicker');
+      const transcriptPicker = document.getElementById('transcriptPicker');
+      const pickJsonBtn = document.getElementById('pickJsonBtn');
+      const pickTxtBtn = document.getElementById('pickTxtBtn');
+      const loadBtn = document.getElementById('loadBtn');
+      const drop = document.getElementById('drop');
+      const hint = document.getElementById('hint');
+      const jsonStatus = document.getElementById('jsonStatus');
+      const txtStatus = document.getElementById('txtStatus');
+
+      startup.style.display = 'grid';
+      title.textContent = 'Select module files…';
+
+      let jsonConfig = null;
+      let jsonFilename = null;
+      let transcriptText = null;
+
+      const readFile = (file)=> new Promise((resolve,reject)=>{
+        const r = new FileReader();
+        r.onload = ()=>resolve(String(r.result));
+        r.onerror = ()=>reject(r.error || new Error('Failed to read file'));
+        r.readAsText(file, 'utf-8');
+      });
+
+      const updateLoadButton = () => {
+        loadBtn.disabled = !jsonConfig;
+        if (jsonConfig && transcriptText) {
+          loadBtn.textContent = 'Load Module (with captions)';
+        } else if (jsonConfig) {
+          loadBtn.textContent = 'Load Module (no captions)';
+        } else {
+          loadBtn.textContent = 'Load Module';
+        }
+      };
+
+      pickJsonBtn.addEventListener('click', ()=>{ configPicker.value=''; configPicker.click(); });
+      configPicker.addEventListener('change', async ()=>{
+        const f = configPicker.files && configPicker.files[0];
+        if (!f) return;
+        try { 
+          const text = await readFile(f);
+          jsonConfig = JSON.parse(text);
+          jsonFilename = f.name;
+          console.log('📁 Loaded JSON file:', jsonFilename);
+          jsonStatus.textContent = `✓ ${f.name}`;
+          jsonStatus.classList.add('success');
+          hint.textContent = '';
+          updateLoadButton();
+        }
+        catch(e){ 
+          jsonStatus.textContent = '✗ Invalid JSON';
+          jsonStatus.classList.remove('success');
+          hint.textContent = 'Error: ' + (e?.message || e); 
+        }
+      });
+
+      pickTxtBtn.addEventListener('click', ()=>{ transcriptPicker.value=''; transcriptPicker.click(); });
+      transcriptPicker.addEventListener('change', async ()=>{
+        const f = transcriptPicker.files && transcriptPicker.files[0];
+        if (!f) return;
+        try { 
+          transcriptText = await readFile(f);
+          txtStatus.textContent = `✓ ${f.name}`;
+          txtStatus.classList.add('success');
+          updateLoadButton();
+        }
+        catch(e){ 
+          txtStatus.textContent = '✗ Failed to read';
+          txtStatus.classList.remove('success');
+        }
+      });
+
+      loadBtn.addEventListener('click', ()=>{
+        if (!jsonConfig) return;
+        startup.remove();
+        resetStageShell();
+        new ModularTrainingSystem(jsonConfig, 0, jsonFilename, transcriptText);
+      });
+
+      ['dragenter','dragover'].forEach(ev=>{
+        drop.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); });
+      });
+      ['dragleave','drop'].forEach(ev=>{
+        drop.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); });
+      });
+      drop.addEventListener('drop', async (e)=>{
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!f) return;
+        try { 
+          const text = await readFile(f);
+          jsonConfig = JSON.parse(text);
+          jsonFilename = f.name;
+          console.log('📁 Loaded JSON file (drag & drop):', jsonFilename);
+          jsonStatus.textContent = `✓ ${f.name}`;
+          jsonStatus.classList.add('success');
+          hint.textContent = '';
+          updateLoadButton();
+        }
+        catch(err){ 
+          hint.textContent = 'Failed to read dropped file: ' + (err?.message || err); 
+        }
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const cfgURL = params.get('config');
+      if (cfgURL){
+        hint.textContent = 'Loading config from URL…';
+        const urlFilename = cfgURL.split('/').pop();
+        fetch(cfgURL)
+          .then(r=>{ if(!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.json(); })
+          .then(cfg=>{ 
+            jsonConfig = cfg;
+            jsonFilename = urlFilename;
+            console.log('📁 Loaded JSON from URL:', jsonFilename);
+            jsonStatus.textContent = '✓ Loaded from URL';
+            jsonStatus.classList.add('success');
+            hint.textContent = 'Config loaded! Add transcript or click Load.';
+            updateLoadButton();
+          })
+          .catch(err=>{ hint.textContent = 'Failed to load ?config: ' + (err?.message || err); });
+      } else {
+        hint.textContent = 'Select your JSON and transcript files above.';
+      }
+
+    } else {
+      loadModule(MODULE_SEQUENCE[0], 0);
     }
-  }
+  })();
+  </script>
 
-  els.chapterLoad.addEventListener('click', async ()=>{
-    const p = (els.chapterInput.value || '').trim();
-    if(!p) return;
-    try{
-      await loadChapter(p);
-      showToast('Chapter loaded.');
-    }catch(err){
-      console.error(err);
-      showToast('Failed to load chapter JSON.');
-    }
-  });
+  <!-- ===== NEW: Token wiring / diagnostics script ===== -->
+  <script>
+    (function(){
+      const $ = (id)=>document.getElementById(id);
+      
+      function pickTokenFromString(s){
+        if(!s) return null;
+        try{
+          const u = new URL(s, location.href);
+          const q = u.searchParams.get('temp_token');
+          if(q) return q.trim();
+          if(u.hash){
+            const hp = new URLSearchParams(u.hash.replace(/^#/, ''));
+            const ht = hp.get('temp_token');
+            if(ht) return ht.trim();
+          }
+        }catch(_){}
+        const m = String(s).match(/temp_token\s*=\s*([A-Za-z0-9._\-]+)/);
+        if(m) return m[1].trim();
+        const raw = String(s).trim();
+        return raw.length >= 24 ? raw : null;
+      }
 
-  // Start
-  boot();
+      // Seed token from current location for backend use
+      const initial = pickTokenFromString(location.href) || pickTokenFromString(location.hash);
+      console.log('🔧 Backend token detected:', initial ? 'Yes' : 'No');
+      
+      // Store token for backend API calls if needed
+      if (initial) {
+        sessionStorage.setItem('gg_temp_token', initial);
+      }
+    })();
   </script>
 </body>
 </html>
