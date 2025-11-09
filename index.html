@@ -9,11 +9,8 @@
   <script>
   (() => {
     const isGh = location.hostname.endsWith('github.io');
-    // On GH Pages, path is /<user>.github.io/<repo>/...
-    // repo segment is the first after the leading slash.
     const seg = location.pathname.split('/').filter(Boolean)[0] || '';
     const ghBase = isGh && seg ? `/${seg}/` : './';
-
     let base = document.querySelector('base');
     if (!base) {
       base = document.createElement('base');
@@ -172,13 +169,37 @@
       padding:14px;
     }
     .modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
-    .modal-body{ display:block; }
+    .modal-body{ display:block; position:relative; }
     .modal video, .modal img{ width:100%; height:auto; display:block; border-radius:10px; }
 
     .toast{
       position:fixed; right:16px; bottom:16px; background:#111827; color:#e5e7eb; border:1px solid #1f2937;
       padding:10px 12px; border-radius:10px; box-shadow: var(--shadow); font-size:13px;
       max-width: 420px;
+    }
+
+    /* === Persistent caption overlay (always available) === */
+    .caption-overlay{
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      bottom:20px;
+      max-width:min(90%, 1100px);
+      background: rgba(0,0,0,0.65);
+      border:1px solid rgba(255,255,255,0.18);
+      border-radius:12px;
+      padding:12px 14px;
+      z-index: 900; /* under modal, above stage */
+      font-size: clamp(14px, 1.6vw, 20px);
+      line-height:1.55;
+      color:#e9eef5;
+      text-align:center;
+      box-shadow: 0 10px 28px rgba(0,0,0,.35);
+      display:none;
+      backdrop-filter: blur(4px);
+    }
+    .caption-overlay b{
+      font-weight:700;
     }
   </style>
 </head>
@@ -189,6 +210,9 @@
     <div class="stage-wrap" id="stage">
       <img id="bg" alt="Background" />
       <div class="hotspot-layer" id="hotspots"></div>
+
+      <!-- Persistent captions live here -->
+      <div id="cc" class="caption-overlay" aria-live="polite" aria-atomic="true"></div>
     </div>
 
     <aside class="sidebar">
@@ -261,20 +285,17 @@
   // Turn "Assets/..." or "/Assets/..." into a valid URL under our <base>.
   function resolveAsset(p){
     if(!p) return '';
-    // Full URL? pass through.
-    if(/^([a-z]+:)?\/\//i.test(p)) return p;
-    // Prevent domain-root jumps
+    if(/^([a-z]+:)?\/\//i.test(p)) return p; // absolute
     p = p.replace(/^\/+/, '');
     return new URL(p, document.baseURI).href;
   }
 
-  // Append a cache-bust param when desired
   function withBust(url){ const u = new URL(url, document.baseURI); u.searchParams.set('v', Date.now().toString()); return u.href; }
 
   /*********************
    * Timecode handling *
    *********************/
-  // Parse "HH;MM;SS;FF" -> seconds. We assume 30 fps unless overridden in JSON later.
+  // Parse "HH;MM;SS;FF" -> seconds. Default 30 fps unless overridden in JSON.
   function tcToSeconds(tc, fps=30){
     if(!tc) return 0;
     const m = String(tc).trim().match(/^(\d{2});(\d{2});(\d{2});(\d{2})$/);
@@ -300,6 +321,11 @@
     hotspots: [],
     activeIdx: -1,
     loopActive: false,
+
+    // Captions
+    captions: [],  // {start,end,text}
+    segStart: 0,
+    segEnd: 0,
   };
 
   const els = {
@@ -323,16 +349,13 @@
     modalTitle: document.getElementById('modal-title'),
     modalBody: document.getElementById('modal-body'),
     modalClose: document.getElementById('modal-close'),
+    cc: document.getElementById('cc'),
   };
 
   /********************
    * Layout scaling   *
    ********************/
   function measureContentBox(imgEl){
-    // Because object-fit: contain, we need actual drawn box for overlay scaling.
-    const r = imgEl.getBoundingClientRect();
-    // The image's intrinsic ratio box inside its container will have letterboxing; we can't get that directly.
-    // A simple approach: compute the drawn image size by comparing container and intrinsic ratio.
     const cont = els.stage.getBoundingClientRect();
     const contW = cont.width, contH = cont.height;
     const imgRatio = state.naturalW / state.naturalH;
@@ -340,17 +363,11 @@
 
     let drawW, drawH, left, top;
     if (imgRatio > contRatio) {
-      // limited by width
-      drawW = contW;
-      drawH = contW / imgRatio;
-      left = 0;
-      top = (contH - drawH)/2;
+      drawW = contW; drawH = contW / imgRatio;
+      left = 0; top = (contH - drawH)/2;
     } else {
-      // limited by height
-      drawH = contH;
-      drawW = contH * imgRatio;
-      top = 0;
-      left = (contW - drawW)/2;
+      drawH = contH; drawW = contH * imgRatio;
+      top = 0; left = (contW - drawW)/2;
     }
     return {left, top, width: drawW, height: drawH};
   }
@@ -380,7 +397,6 @@
           : box.left + 16;
         el.style.top = `${y}px`;
         el.style[h.dock === 'right' ? 'right' : 'left'] = `${els.stage.getBoundingClientRect().width - (x + (h.dock === 'right' ? 0 : 0))}px`;
-        // Let content-size define width; minimal base:
         el.style.minWidth = '120px';
         el.style.height = '40px';
         el.style.padding = '10px 14px';
@@ -406,16 +422,9 @@
     el.title = `${hs.text || hs.label || ''}`.trim();
     el.dataset.idx = String(idx);
 
-    // Circle: make it round
-    if(hs.type === 'circle'){
-      el.style.borderRadius = '999px';
-    }
+    if(hs.type === 'circle'){ el.style.borderRadius = '999px'; }
 
-    el.addEventListener('click', () => {
-      // If contentMedia/realLifeExamples exist, open modal
-      openHotspotContent(hs);
-    });
-
+    el.addEventListener('click', () => { openHotspotContent(hs); });
     els.hsLayer.appendChild(el);
 
     // List entry
@@ -451,6 +460,17 @@
     state.hotspots.forEach((h, i)=>{
       if(h._el) h._el.classList.toggle('active', i === idx);
     });
+
+    // Update active segment window for captions
+    if (idx >= 0) {
+      const h = state.hotspots[idx];
+      state.segStart = tcToSeconds(h.tcStart, state.fps);
+      state.segEnd   = tcToSeconds(h.tcEnd, state.fps);
+    } else {
+      state.segStart = 0;
+      state.segEnd = 0;
+      hideCaption();
+    }
   }
 
   /********************
@@ -493,6 +513,71 @@
   els.modalClose.addEventListener('click', ()=> els.modal.classList.remove('open'));
 
   /*****************
+   * Captions      *
+   *****************/
+  function hideCaption(){
+    els.cc.style.display = 'none';
+    els.cc.textContent = '';
+  }
+  function showCaption(html){
+    els.cc.innerHTML = html;
+    els.cc.style.display = 'block';
+  }
+  function findCaptionsForTime(time){
+    if (!state.segEnd || !state.captions.length) return [];
+    const segCaps = state.captions.filter(c => c.start >= state.segStart && c.end <= state.segEnd);
+    const started = segCaps.filter(c => time >= c.start);
+    return started.slice(-2); // previous + current
+  }
+  function updateCaption(time){
+    if (!state.captions.length || !state.segEnd) { hideCaption(); return; }
+    const caps = findCaptionsForTime(time);
+    if (!caps.length) { hideCaption(); return; }
+    const html = caps.map(c => c.text).join('<br><br>');
+    showCaption(html);
+  }
+  async function loadTranscriptIfAny(json){
+    state.captions = [];
+    const path = json && json.transcriptFile;
+    if (!path) return;
+    try{
+      const res = await fetch(resolveAsset(path));
+      if (!res.ok) throw new Error(`Transcript load error ${res.status}`);
+      const text = await res.text();
+      state.captions = parseTranscript(text, state.fps);
+      // If audio is already playing, give captions a nudge to render
+      updateCaption(els.audio.currentTime || 0);
+    }catch(err){
+      console.warn('Transcript failed:', err.message);
+    }
+  }
+  function parseTranscript(text, FPS){
+    const out = [];
+    const lines = String(text||'').split('\n');
+    let i=0;
+    while(i<lines.length){
+      const line = lines[i].trim();
+      const tc = /^\d{2};\d{2};\d{2};\d{2}\s*-\s*\d{2};\d{2};\d{2};\d{2}$/;
+      if (tc.test(line)){
+        const [a,b] = line.split('-').map(s=>s.trim());
+        const start = tcToSeconds(a, FPS);
+        const end   = tcToSeconds(b, FPS);
+        i++;
+        let buf = '';
+        while(i<lines.length && !tc.test(lines[i])){
+          const t = lines[i].trim();
+          if (t) buf += (buf ? ' ' : '') + t;
+          i++;
+        }
+        if (buf) out.push({start,end,text:buf});
+      } else {
+        i++;
+      }
+    }
+    return out;
+  }
+
+  /*****************
    * Audio wiring  *
    *****************/
   function bindAudio(){
@@ -504,7 +589,7 @@
       els.cur.textContent = fmtTime(a.currentTime|0);
       if(a.duration) els.seek.value = (a.currentTime / a.duration).toFixed(3);
 
-      // Active hotspot highlighting
+      // Active hotspot highlighting + segment window
       let active = -1;
       for (let i=0;i<state.hotspots.length;i++){
         const h = state.hotspots[i];
@@ -526,6 +611,9 @@
           a.play().catch(()=>{});
         }
       }
+
+      // Persistent captions
+      updateCaption(a.currentTime || 0);
     };
     a.onplay = ()=> { els.playpause.textContent = 'Pause'; };
     a.onpause = ()=> { els.playpause.textContent = 'Play'; };
@@ -548,7 +636,7 @@
     if (!isFinite(els.audio.duration)) return;
     els.audio.currentTime = els.audio.duration * parseFloat(els.seek.value || '0');
   });
-  els.reload.addEventListener('click', ()=> {
+  els.reload.addEventListener('click', ()=>{
     if (!state.chapter) return;
     setAudioSources(state.chapter);
     els.audio.load();
@@ -571,6 +659,9 @@
     state.fps = (json.timecodeFps && +json.timecodeFps) || 30;
     state.naturalW = (json.canvasDimensions && json.canvasDimensions.width) || 6000;
     state.naturalH = (json.canvasDimensions && json.canvasDimensions.height) || 4000;
+
+    // load transcript (persistent captions)
+    await loadTranscriptIfAny(json);
 
     renderChapter(json);
   }
@@ -618,6 +709,11 @@
     list.forEach((h,i)=> addHotspot(h,i));
     state.hotspots = list;
     placeHotspots();
+
+    // Reset caption window until audio timeupdate sets it
+    state.segStart = 0;
+    state.segEnd = 0;
+    hideCaption();
   }
 
   /*****************
