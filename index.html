@@ -11,6 +11,7 @@
     const isGh = location.hostname.endsWith('github.io');
     const seg = location.pathname.split('/').filter(Boolean)[0] || '';
     const ghBase = isGh && seg ? `/${seg}/` : './';
+
     let base = document.querySelector('base');
     if (!base) {
       base = document.createElement('base');
@@ -75,7 +76,7 @@
     .hotspot-layer{
       position:absolute;
       inset:0;
-      pointer-events:none; /* Each hotspot re-enables pointer events */
+      pointer-events:none;
     }
 
     .hotspot{
@@ -169,7 +170,7 @@
       padding:14px;
     }
     .modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;}
-    .modal-body{ display:block; position:relative; }
+    .modal-body{ display:block; }
     .modal video, .modal img{ width:100%; height:auto; display:block; border-radius:10px; }
 
     .toast{
@@ -178,29 +179,27 @@
       max-width: 420px;
     }
 
-    /* === Persistent caption overlay (always available) === */
-    .caption-overlay{
+    /* === NEW: persistent captions overlay === */
+    #captions{
       position:absolute;
       left:50%;
       transform:translateX(-50%);
-      bottom:20px;
-      max-width:min(90%, 1100px);
-      background: rgba(0,0,0,0.65);
-      border:1px solid rgba(255,255,255,0.18);
+      bottom:18px;
+      max-width:min(90%, 1000px);
+      background:rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
       border-radius:12px;
-      padding:12px 14px;
-      z-index: 900; /* under modal, above stage */
-      font-size: clamp(14px, 1.6vw, 20px);
+      padding:10px 14px;
       line-height:1.55;
+      font-size:18px;
       color:#e9eef5;
-      text-align:center;
-      box-shadow: 0 10px 28px rgba(0,0,0,.35);
-      display:none;
       backdrop-filter: blur(4px);
+      display:none;     /* shown only when we have captions */
+      max-height: 40vh; /* scroll if very long */
+      overflow-y:auto;
     }
-    .caption-overlay b{
-      font-weight:700;
-    }
+    #captions b{ color:#fff }
   </style>
 </head>
 <body>
@@ -210,9 +209,8 @@
     <div class="stage-wrap" id="stage">
       <img id="bg" alt="Background" />
       <div class="hotspot-layer" id="hotspots"></div>
-
-      <!-- Persistent captions live here -->
-      <div id="cc" class="caption-overlay" aria-live="polite" aria-atomic="true"></div>
+      <!-- NEW: persistent captions sit over the stage -->
+      <div id="captions"></div>
     </div>
 
     <aside class="sidebar">
@@ -285,17 +283,20 @@
   // Turn "Assets/..." or "/Assets/..." into a valid URL under our <base>.
   function resolveAsset(p){
     if(!p) return '';
-    if(/^([a-z]+:)?\/\//i.test(p)) return p; // absolute
-    p = p.replace(/^\/+/, '');
+    if(/^([a-z]+:)?\/\//i.test(p)) return p; // absolute URL
+    p = p.replace(/^\/+/, '');               // no domain-root jumps
     return new URL(p, document.baseURI).href;
   }
 
-  function withBust(url){ const u = new URL(url, document.baseURI); u.searchParams.set('v', Date.now().toString()); return u.href; }
+  function withBust(url){
+    const u = new URL(url, document.baseURI);
+    u.searchParams.set('v', Date.now().toString());
+    return u.href;
+  }
 
   /*********************
    * Timecode handling *
    *********************/
-  // Parse "HH;MM;SS;FF" -> seconds. Default 30 fps unless overridden in JSON.
   function tcToSeconds(tc, fps=30){
     if(!tc) return 0;
     const m = String(tc).trim().match(/^(\d{2});(\d{2});(\d{2});(\d{2})$/);
@@ -322,10 +323,9 @@
     activeIdx: -1,
     loopActive: false,
 
-    // Captions
-    captions: [],  // {start,end,text}
-    segStart: 0,
-    segEnd: 0,
+    // NEW: transcript + captions
+    transcriptText: '',
+    captions: [],   // [{start,end,text}]
   };
 
   const els = {
@@ -349,7 +349,7 @@
     modalTitle: document.getElementById('modal-title'),
     modalBody: document.getElementById('modal-body'),
     modalClose: document.getElementById('modal-close'),
-    cc: document.getElementById('cc'),
+    captions: document.getElementById('captions'),
   };
 
   /********************
@@ -363,11 +363,15 @@
 
     let drawW, drawH, left, top;
     if (imgRatio > contRatio) {
-      drawW = contW; drawH = contW / imgRatio;
-      left = 0; top = (contH - drawH)/2;
+      drawW = contW;
+      drawH = contW / imgRatio;
+      left = 0;
+      top = (contH - drawH)/2;
     } else {
-      drawH = contH; drawW = contH * imgRatio;
-      top = 0; left = (contW - drawW)/2;
+      drawH = contH;
+      drawW = contH * imgRatio;
+      top = 0;
+      left = (contW - drawW)/2;
     }
     return {left, top, width: drawW, height: drawH};
   }
@@ -396,7 +400,8 @@
           ? box.left + box.width - 16
           : box.left + 16;
         el.style.top = `${y}px`;
-        el.style[h.dock === 'right' ? 'right' : 'left'] = `${els.stage.getBoundingClientRect().width - (x + (h.dock === 'right' ? 0 : 0))}px`;
+        el.style[h.dock === 'right' ? 'right' : 'left'] =
+          `${els.stage.getBoundingClientRect().width - (x + (h.dock === 'right' ? 0 : 0))}px`;
         el.style.minWidth = '120px';
         el.style.height = '40px';
         el.style.padding = '10px 14px';
@@ -422,12 +427,16 @@
     el.title = `${hs.text || hs.label || ''}`.trim();
     el.dataset.idx = String(idx);
 
-    if(hs.type === 'circle'){ el.style.borderRadius = '999px'; }
+    if(hs.type === 'circle'){
+      el.style.borderRadius = '999px';
+    }
 
-    el.addEventListener('click', () => { openHotspotContent(hs); });
+    el.addEventListener('click', () => {
+      openHotspotContent(hs);
+    });
+
     els.hsLayer.appendChild(el);
 
-    // List entry
     const li = document.createElement('div');
     const start = tcToSeconds(hs.tcStart, state.fps);
     const end   = tcToSeconds(hs.tcEnd, state.fps);
@@ -449,7 +458,6 @@
     });
     els.hsList.appendChild(li);
 
-    // keep references
     hs._el = el;
     hs._listEl = li;
   }
@@ -460,17 +468,6 @@
     state.hotspots.forEach((h, i)=>{
       if(h._el) h._el.classList.toggle('active', i === idx);
     });
-
-    // Update active segment window for captions
-    if (idx >= 0) {
-      const h = state.hotspots[idx];
-      state.segStart = tcToSeconds(h.tcStart, state.fps);
-      state.segEnd   = tcToSeconds(h.tcEnd, state.fps);
-    } else {
-      state.segStart = 0;
-      state.segEnd = 0;
-      hideCaption();
-    }
   }
 
   /********************
@@ -515,74 +512,83 @@
   /*****************
    * Captions      *
    *****************/
-  function hideCaption(){
-    els.cc.style.display = 'none';
-    els.cc.textContent = '';
-  }
-  function showCaption(html){
-    els.cc.innerHTML = html;
-    els.cc.style.display = 'block';
-  }
-  function findCaptionsForTime(time){
-  if (!this.seg || !this.seg.active) return [];
-
-  // Include any caption that overlaps the current segment window
-  const overlapsSegment = (cap) =>
-    cap.start < this.seg.end && cap.end > this.seg.start;
-
-  // Keep all captions that have STARTED by "time" and overlap the segment.
-  // (No slice(...) limiting to 2 — that’s what made them non-persistent.)
-  return this.captions
-    .filter(overlapsSegment)
-    .filter(cap => time >= cap.start);
-}
-
-  function updateCaption(time){
-    if (!state.captions.length || !state.segEnd) { hideCaption(); return; }
-    const caps = findCaptionsForTime(time);
-    if (!caps.length) { hideCaption(); return; }
-    const html = caps.map(c => c.text).join('<br><br>');
-    showCaption(html);
-  }
-  async function loadTranscriptIfAny(json){
-    state.captions = [];
-    const path = json && json.transcriptFile;
-    if (!path) return;
-    try{
-      const res = await fetch(resolveAsset(path));
-      if (!res.ok) throw new Error(`Transcript load error ${res.status}`);
-      const text = await res.text();
-      state.captions = parseTranscript(text, state.fps);
-      // If audio is already playing, give captions a nudge to render
-      updateCaption(els.audio.currentTime || 0);
-    }catch(err){
-      console.warn('Transcript failed:', err.message);
-    }
-  }
-  function parseTranscript(text, FPS){
+  // Parse transcript blocks of the form:
+  //  "HH;MM;SS;FF - HH;MM;SS;FF"
+  //   <one or more lines of text>
+  function parseTranscript(text, fps){
+    const lines = String(text||'').split(/\r?\n/);
     const out = [];
-    const lines = String(text||'').split('\n');
-    let i=0;
-    while(i<lines.length){
-      const line = lines[i].trim();
-      const tc = /^\d{2};\d{2};\d{2};\d{2}\s*-\s*\d{2};\d{2};\d{2};\d{2}$/;
-      if (tc.test(line)){
+    let i = 0;
+    const tcLine = /^\s*\d{2};\d{2};\d{2};\d{2}\s*-\s*\d{2};\d{2};\d{2};\d{2}\s*$/;
+
+    while(i < lines.length){
+      const line = lines[i];
+      if(tcLine.test(line)){
         const [a,b] = line.split('-').map(s=>s.trim());
-        const start = tcToSeconds(a, FPS);
-        const end   = tcToSeconds(b, FPS);
+        const start = tcToSeconds(a, fps);
+        const end   = tcToSeconds(b, fps);
         i++;
-        let buf = '';
-        while(i<lines.length && !tc.test(lines[i])){
+        let textBlock = '';
+        while(i < lines.length && !tcLine.test(lines[i])){
           const t = lines[i].trim();
-          if (t) buf += (buf ? ' ' : '') + t;
+          if(t) textBlock += (textBlock ? ' ' : '') + t;
           i++;
         }
-        if (buf) out.push({start,end,text:buf});
-      } else {
+        if (textBlock) out.push({start, end, text: textBlock});
+      }else{
         i++;
       }
     }
     return out;
+  }
+
+  // Find active hotspot index for current time
+  function activeHotspotIndexAt(t){
+    for (let i=0;i<state.hotspots.length;i++){
+      const h = state.hotspots[i];
+      const st = tcToSeconds(h.tcStart, state.fps);
+      const en = tcToSeconds(h.tcEnd, state.fps);
+      if (!isNaN(st) && !isNaN(en) && t >= st && t < en) return i;
+    }
+    return -1;
+  }
+
+  // Persistent captions within active hotspot:
+  // show ALL caption lines whose intervals overlap the hotspot segment
+  // and have started by "t". (No dropping older lines inside the same segment.)
+  function updateCaptions(t){
+    if (!state.captions.length){
+      els.captions.style.display = 'none';
+      els.captions.innerHTML = '';
+      return;
+    }
+
+    const idx = activeHotspotIndexAt(t);
+    if (idx < 0){
+      els.captions.style.display = 'none';
+      els.captions.innerHTML = '';
+      return;
+    }
+
+    const h = state.hotspots[idx];
+    const segStart = tcToSeconds(h.tcStart, state.fps);
+    const segEnd   = tcToSeconds(h.tcEnd, state.fps);
+
+    // Keep any caption that overlaps the hotspot segment window,
+    // and has started by time t (persistent accumulation).
+    const overlapsSeg = (c) => c.start < segEnd && c.end > segStart;
+    const started = (c) => t >= c.start;
+
+    const list = state.captions.filter(overlapsSeg).filter(started);
+
+    if (!list.length){
+      els.captions.style.display = 'none';
+      els.captions.innerHTML = '';
+      return;
+    }
+
+    els.captions.style.display = 'block';
+    els.captions.innerHTML = list.map(c => c.text).join('<br><br>');
   }
 
   /*****************
@@ -597,17 +603,12 @@
       els.cur.textContent = fmtTime(a.currentTime|0);
       if(a.duration) els.seek.value = (a.currentTime / a.duration).toFixed(3);
 
-      // Active hotspot highlighting + segment window
-      let active = -1;
-      for (let i=0;i<state.hotspots.length;i++){
-        const h = state.hotspots[i];
-        const st = tcToSeconds(h.tcStart, state.fps);
-        const en = tcToSeconds(h.tcEnd, state.fps);
-        if (!isNaN(st) && !isNaN(en) && a.currentTime >= st && a.currentTime < en){
-          active = i; break;
-        }
-      }
+      // Active hotspot highlighting
+      const active = activeHotspotIndexAt(a.currentTime);
       setActiveHotspot(active);
+
+      // NEW: persistent captions update
+      updateCaptions(a.currentTime);
 
       // Loop active segment if enabled
       if (state.loopActive && active >= 0){
@@ -619,9 +620,6 @@
           a.play().catch(()=>{});
         }
       }
-
-      // Persistent captions
-      updateCaption(a.currentTime || 0);
     };
     a.onplay = ()=> { els.playpause.textContent = 'Pause'; };
     a.onpause = ()=> { els.playpause.textContent = 'Play'; };
@@ -644,7 +642,7 @@
     if (!isFinite(els.audio.duration)) return;
     els.audio.currentTime = els.audio.duration * parseFloat(els.seek.value || '0');
   });
-  els.reload.addEventListener('click', ()=>{
+  els.reload.addEventListener('click', ()=> {
     if (!state.chapter) return;
     setAudioSources(state.chapter);
     els.audio.load();
@@ -662,29 +660,36 @@
     if (!res.ok) throw new Error(`Failed to load JSON (${res.status}) at ${url}`);
     const json = await res.json();
 
-    // basic normalize
     state.chapter = json;
     state.fps = (json.timecodeFps && +json.timecodeFps) || 30;
     state.naturalW = (json.canvasDimensions && json.canvasDimensions.width) || 6000;
     state.naturalH = (json.canvasDimensions && json.canvasDimensions.height) || 4000;
 
-    // load transcript (persistent captions)
-    await loadTranscriptIfAny(json);
+    // Load transcript if provided
+    state.captions = [];
+    if (json.transcriptFile){
+      try{
+        const txUrl = resolveAsset(json.transcriptFile);
+        const tx = await (await fetch(txUrl, {cache:'no-cache'})).text();
+        state.transcriptText = tx;
+        state.captions = parseTranscript(tx, state.fps);
+      }catch(e){
+        console.warn('Transcript failed to load:', e);
+      }
+    }
 
     renderChapter(json);
   }
 
   function setAudioSources(json){
     const a = els.audio;
-    a.innerHTML = ''; // clear <source> children
-    // Primary WAV
+    a.innerHTML = '';
     if (json.audioFile){
       const s1 = document.createElement('source');
       s1.src = resolveAsset(json.audioFile);
       s1.type = 'audio/wav';
       a.appendChild(s1);
     }
-    // Optional MP3 fallback if your JSON has "audioFileMp3"
     if (json.audioFileMp3){
       const s2 = document.createElement('source');
       s2.src = resolveAsset(json.audioFileMp3);
@@ -718,10 +723,9 @@
     state.hotspots = list;
     placeHotspots();
 
-    // Reset caption window until audio timeupdate sets it
-    state.segStart = 0;
-    state.segEnd = 0;
-    hideCaption();
+    // Captions visibility reset
+    els.captions.style.display = state.captions.length ? 'block' : 'none';
+    els.captions.innerHTML = '';
   }
 
   /*****************
@@ -733,7 +737,7 @@
 
   async function boot(){
     const qChapter = getQuery('chapter');
-    const defaultChapter = (qChapter ? `${qChapter}.json` : '2-1.json'); // default fallback
+    const defaultChapter = (qChapter ? `${qChapter}.json` : '2-1.json');
     els.chapterInput.value = defaultChapter;
 
     try {
@@ -756,7 +760,6 @@
     }
   });
 
-  // Start
   boot();
   </script>
 </body>
