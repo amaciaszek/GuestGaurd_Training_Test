@@ -210,32 +210,78 @@
     }
   }
 
+  // Parse JWT to get expiry
+  function parseJWT(token) {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => 
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error('JWT parse error:', e);
+      return null;
+    }
+  }
+
   async function exchangeTempToken() {
     const token = $('tempToken').value.trim();
+    
     if (!token) {
       log('No temp token provided', true);
       return;
     }
 
-    try {
-      log('Exchanging temp token...');
-      const resp = await fetch(`${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(token)}`);
-      
-      if (!resp.ok) {
-        throw new Error(`Exchange failed: ${resp.status} ${resp.statusText}`);
-      }
+    log('Exchanging temp token...');
+    log(`Token: ${token.substring(0, 20)}...`);
+    log(`URL: ${API_BASE}/api/training-auth`);
 
+    try {
+      const url = `${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(token)}`;
+      const resp = await fetch(url);
+      
+      log(`Response status: ${resp.status} ${resp.statusText}`);
+      
       const data = await resp.json();
       $('apiResponse').value = JSON.stringify(data, null, 2);
       
-      if (data.access_token && data.refresh_token && data.expires_at) {
-        saveAuth(data.access_token, data.refresh_token, data.expires_at);
-        log('Token exchange successful!');
-      } else {
-        throw new Error('Invalid response format');
+      if (!resp.ok) {
+        log(`API Error: ${JSON.stringify(data)}`, true);
+        throw new Error(`API returned ${resp.status}: ${JSON.stringify(data)}`);
       }
+      
+      // Check we got tokens
+      if (!data.access_token) {
+        log('Missing access_token in response', true);
+        throw new Error('No access_token in response');
+      }
+      
+      if (!data.refresh_token) {
+        log('Missing refresh_token in response', true);
+        throw new Error('No refresh_token in response');
+      }
+      
+      log('✓ Got access_token and refresh_token');
+      
+      // Parse expiry from JWT
+      let expiresAt = null;
+      const jwt = parseJWT(data.access_token);
+      
+      if (jwt && jwt.exp) {
+        expiresAt = jwt.exp * 1000; // Convert to milliseconds
+        log(`✓ Parsed expiry: ${new Date(expiresAt).toLocaleString()}`);
+      } else {
+        expiresAt = Date.now() + (3600 * 1000); // 1 hour default
+        log('⚠ Using 1 hour default expiry');
+      }
+      
+      saveAuth(data.access_token, data.refresh_token, expiresAt);
+      log('✓ Token exchange successful!');
+      
     } catch (e) {
-      log(`Token exchange error: ${e.message}`, true);
+      log(`ERROR: ${e.message}`, true);
+      console.error('Full error:', e);
     }
   }
 

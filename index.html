@@ -9,7 +9,7 @@
 
   <!-- === Launcher / Token Panel (new) === -->
   <style>
-    /* Floating API Test Button (kept for backend compatibility) */
+    /* Floating API Test Button (from original) */
     .api-test-button {
       position: fixed;
       bottom: 20px;
@@ -26,12 +26,132 @@
       z-index: 1000;
       transition: all 0.3s ease;
       text-decoration: none;
-      display: none; /* Hidden in UI */
+      display: inline-block;
+    }
+    .api-test-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    /* ===== Token / Diagnostics Bar (new) ===== */
+    :root{
+      --gg-bg:#0b0f14;
+      --gg-surface:#0f141b;
+      --gg-border:#1d2733;
+      --gg-ink:#d7e2f1;
+      --gg-ink-dim:#9fb0c5;
+      --gg-accent:#00e0ff;
+      --gg-accent-2:#7cf6c9;
+      --gg-bad:#ff6b6b;
+      --gg-good:#7CFCB5;
+      --gg-mono:'Courier New', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .launcher-wrap{
+      position: sticky; top: 0; z-index: 1100;
+      background: linear-gradient(180deg, rgba(11,15,20,.95), rgba(11,15,20,.85));
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--gg-border);
+      color: var(--gg-ink);
+      font-family: var(--gg-mono);
+    }
+    .launcher{
+      max-width: 1200px; margin: 0 auto; padding: 12px 16px;
+      display: grid; gap: 10px;
+    }
+    .launcher h1{
+      font-size: 16px; line-height: 1; font-weight: 700; letter-spacing: .02em;
+      color: var(--gg-accent);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .launcher .rows{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .box{
+      background: var(--gg-surface);
+      border: 1px solid var(--gg-border);
+      border-radius: 8px; padding: 10px; display: grid; gap: 8px;
+    }
+    .kv{display:grid;gap:4px}
+    .kv div{font-size:12px;color:var(--gg-ink-dim)}
+    .kv strong{color:var(--gg-ink);font-weight:700}
+    .label{font-size:12px;color:var(--gg-ink-dim);margin-bottom:4px}
+    .row{display:flex;gap:8px;align-items:stretch}
+    .col{flex:1 1 0}
+    textarea,input{
+      width:100%; background:#05080c; color:var(--gg-ink);
+      border:1px solid var(--gg-border); border-radius:6px; padding:8px 10px;
+      font-family:var(--gg-mono); font-size:12px; line-height:1.5;
+      outline:none;
+    }
+    textarea{min-height:60px; resize:vertical}
+    .btn, a.btn{
+      display:inline-block; text-decoration:none; cursor:pointer;
+      padding:9px 14px; border-radius:7px; font-weight:700; font-size:12px;
+      color:#001014; background:var(--gg-accent);
+      border:1px solid #00bbff55;
+    }
+    .btn.alt{ background:#0b2233; color:var(--gg-ink); border-color:#14405e }
+    .btn.warn{ background:#221013; color:#ffd6db; border-color:#5e141f }
+    .status{font-size:12px}
+    .status .ok{color:var(--gg-good);font-weight:700}
+    .status .bad{color:var(--gg-bad);font-weight:700}
+    code.badge{
+      background:#061018; border:1px solid #133044; color:#bfe8ff;
+      border-radius:4px; padding:2px 6px; font-size:12px; font-family:var(--gg-mono)
+    }
+    .tiny{opacity:.8; font-size:12px}
+    @media (max-width: 900px){
+      .launcher .rows{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
+  <!-- ===== NEW: Launcher / Token Panel ===== -->
+  <div class="launcher-wrap" role="region" aria-label="Diagnostics and Token Tools">
+    <div class="launcher">
+      <h1>🚀 GuestGuard • Launcher</h1>
+      <div class="rows">
+        <div class="box">
+          <div class="kv">
+            <div><strong>Current Origin:</strong> <span id="origin"></span></div>
+            <div><strong>Current URL:</strong> <span id="fullurl" class="tiny"></span></div>
+            <div><strong>User Agent:</strong> <span id="ua" class="tiny"></span></div>
+          </div>
+        </div>
+        <div class="box">
+          <div class="status">
+            <strong>Token status:</strong> <span id="tokStatus" class="bad">no token detected</span>
+          </div>
+          <div><strong>Detected token:</strong> <code id="tokPreview" class="badge">(none)</code></div>
+        </div>
+      </div>
 
+      <div class="rows">
+        <div class="box">
+          <div class="label">Paste a full URL or just a token:</div>
+          <textarea id="tokenInput" placeholder="https://site/page?temp_token=...  OR  raw: 5e915e24-..."></textarea>
+        </div>
+        <div class="box">
+          <div class="label">Normalized token:</div>
+          <input id="normalizedToken" placeholder="auto-filled here" />
+          <div class="tiny" style="margin-top:6px">Tip: press <kbd>Enter</kbd> after pasting to apply &amp; update links.</div>
+          <div class="row" style="margin-top:8px">
+            <button id="applyBtn" class="btn">Apply</button>
+            <button id="clearBtn" class="btn alt">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="row" style="flex-wrap:wrap;gap:8px">
+          <a id="apiBtn" class="btn" target="_blank" href="apitest.html">Open Diagnostics</a>
+          <a id="apiBtnSame" class="btn alt" href="apitest.html">Open Diagnostics (same tab)</a>
+          <button id="copyLinkBtn" class="btn alt">Copy Diagnostics Link</button>
+          <button id="autoOpenToggle" class="btn warn" title="If a token is present in the URL, automatically open diagnostics in a new tab.">Auto-open on load: ON</button>
+        </div>
+        <div class="tiny" style="margin-top:6px">Buttons and links include <code>?temp_token=…</code> automatically when available.</div>
+      </div>
+    </div>
+  </div>
+  <!-- ===== /Launcher ===== -->
 
   <!-- ===== Your existing Training UI ===== -->
   <main class="frame" role="main" aria-label="Training Module">
@@ -131,153 +251,12 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   ">📊 Progress</button>
 
+  <!-- API Testing Button (now wired to token below) -->
+  <a id="apiFloatBtn" href="apitest.html" target="_blank" class="api-test-button" title="Open API Diagnostics">
+    🔧 API Testing
+  </a>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- ===== Singleton Audio Manager ===== -->
-  <script>
-  const GGAudio = (() => {
-    const GG_FPS = 30;
-    let audioElement = null;
-    let src = null;
-    let loaded = false;
-    let loadPromise = null;
-    let seg = null;
-    let rafId = null;
-    let onCompleteCallback = null;
-
-    function tcToSeconds(tc) {
-      if (typeof tc === 'number') return tc;
-      if (!tc || typeof tc !== 'string') return 0;
-      const [hh, mm, ss, ff] = tc.split(/[;:]/).map(v => parseInt(v, 10) || 0);
-      return hh*3600 + mm*60 + ss + (ff / GG_FPS);
-    }
-
-    function ensureHandlers() {
-      if (!audioElement || audioElement.__ggHandlersAttached) return;
-      
-      audioElement.addEventListener('timeupdate', () => {
-        if (!seg) return;
-        if (audioElement.currentTime < seg.start - 0.02) {
-          audioElement.currentTime = seg.start;
-          return;
-        }
-        if (audioElement.currentTime >= seg.end - 0.02) {
-          audioElement.pause();
-          audioElement.currentTime = seg.end;
-          if (onCompleteCallback) {
-            onCompleteCallback();
-            onCompleteCallback = null;
-          }
-          seg = null;
-        }
-      });
-      
-      audioElement.__ggHandlersAttached = true;
-    }
-
-    function loadOnce(url) {
-      ensureHandlers();
-      if (loaded && src === url) return loadPromise || Promise.resolve();
-      if (loadPromise && src === url) return loadPromise;
-
-      src = url;
-      loaded = false;
-      audioElement.src = src;
-      audioElement.load();
-
-      loadPromise = new Promise((resolve, reject) => {
-        const onReady = () => {
-          audioElement.removeEventListener('canplay', onReady);
-          audioElement.removeEventListener('canplaythrough', onReady);
-          loaded = true;
-          console.log('✅ Audio ready');
-          resolve();
-        };
-        const onErr = () => {
-          audioElement.removeEventListener('error', onErr);
-          reject(new Error('audio failed to load'));
-        };
-        audioElement.addEventListener('canplay', onReady, { once: true });
-        audioElement.addEventListener('canplaythrough', onReady, { once: true });
-        audioElement.addEventListener('error', onErr, { once: true });
-      });
-      return loadPromise;
-    }
-
-    async function playSegment(tcStart, tcEnd, onComplete) {
-      const start = tcToSeconds(tcStart);
-      const end = tcToSeconds(tcEnd);
-      if (!(start < end)) {
-        console.warn('Bad segment times:', start, end);
-        return;
-      }
-      
-      seg = { start, end };
-      onCompleteCallback = onComplete;
-
-      const doSeekAndPlay = () => {
-        try { 
-          audioElement.currentTime = start; 
-        } catch(e) {
-          console.warn('Seek failed:', e);
-        }
-        
-        const tryPlay = () => {
-          audioElement.play()
-            .then(() => console.log(`▶️ Playing ${start.toFixed(2)} → ${end.toFixed(2)}`))
-            .catch(e => console.warn('Play failed:', e));
-        };
-        
-        if (audioElement.readyState >= 2) {
-          tryPlay();
-        } else {
-          const onCp = () => {
-            audioElement.removeEventListener('canplay', onCp);
-            tryPlay();
-          };
-          audioElement.addEventListener('canplay', onCp, { once: true });
-        }
-      };
-
-      if (audioElement.readyState >= 2) {
-        doSeekAndPlay();
-      } else {
-        await (loadPromise || Promise.resolve());
-        doSeekAndPlay();
-      }
-    }
-
-    return {
-      setElement(el) {
-        audioElement = el;
-      },
-      async init(audioUrl) {
-        if (!audioUrl) {
-          console.warn('No audio URL provided');
-          return;
-        }
-        if (!audioElement) {
-          console.error('Audio element not set');
-          return;
-        }
-        await loadOnce(audioUrl);
-      },
-      play: playSegment,
-      pause() {
-        if (audioElement) audioElement.pause();
-      },
-      get element() {
-        return audioElement;
-      },
-      get currentTime() {
-        return audioElement ? audioElement.currentTime : 0;
-      },
-      get paused() {
-        return audioElement ? audioElement.paused : true;
-      }
-    };
-  })();
-  </script>
   
   <script>
   // ===== GuestGuard Training API Integration =====
@@ -309,6 +288,20 @@
         }
       },
       
+      // Helper to parse JWT and extract exp claim
+      parseJWT(token) {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => 
+            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          ).join(''));
+          return JSON.parse(jsonPayload);
+        } catch (e) {
+          return null;
+        }
+      },
+      
       loadStoredAuth() {
         this.accessToken = localStorage.getItem('gg_access_token');
         this.refreshToken = localStorage.getItem('gg_refresh_token');
@@ -332,11 +325,31 @@
           if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
           
           const data = await resp.json();
-          if (data.access_token && data.refresh_token && data.expires_at) {
-            this.saveAuth(data.access_token, data.refresh_token, data.expires_at);
-            console.log('✅ Token exchange successful');
-            await this.pullProgress();
+          
+          if (!data.access_token || !data.refresh_token) {
+            throw new Error('Invalid response: missing tokens');
           }
+          
+          // Get expires_at - either from response or parse from JWT
+          let expiresAt = data.expires_at;
+          if (!expiresAt && data.access_token) {
+            const jwt = this.parseJWT(data.access_token);
+            if (jwt && jwt.exp) {
+              // JWT exp is in seconds, convert to milliseconds
+              expiresAt = jwt.exp * 1000;
+              console.log(`📅 Parsed expiry from JWT: ${new Date(expiresAt).toLocaleString()}`);
+            }
+          }
+          
+          if (!expiresAt) {
+            // Default to 1 hour from now if we can't determine expiry
+            expiresAt = Date.now() + (3600 * 1000);
+            console.log('⚠️ Could not determine token expiry, using 1 hour default');
+          }
+          
+          this.saveAuth(data.access_token, data.refresh_token, expiresAt);
+          console.log('✅ Token exchange successful');
+          await this.pullProgress();
         } catch (e) {
           console.error('❌ Token exchange failed:', e.message);
         }
@@ -726,7 +739,7 @@
     setupVisibilityHandler(){
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-          if (this.seg.active && !GGAudio.paused) {
+          if (this.seg.active && !this.audio.paused) {
             this.pauseViewer();
           }
         }
@@ -1017,32 +1030,16 @@
       return captions;
     }
 
-    findCaptionsForTime(time){
-      // Filter captions to only those within the current segment
-      if (!this.seg || !this.seg.active) return [];
-      
-      const segmentCaptions = this.captions.filter(cap => 
-        cap.start >= this.seg.start && cap.end <= this.seg.end
-      );
-      
-      // Find all captions that have started (their start time has passed)
-      const activeCaptions = segmentCaptions.filter(cap => time >= cap.start);
-      
-      // Return the last 2 captions that have started (sliding window)
-      // This gives us the "current" and "previous" caption
-      return activeCaptions.slice(-2);
+    findCaptionForTime(time){
+      return this.captions.find(cap => time >= cap.start && time < cap.end);
     }
 
     updateCaption(time){
       if (!this.currentCaptionElement) return;
       
-      const captions = this.findCaptionsForTime(time);
-      
-      if (captions.length > 0){
-        // Join multiple captions with a line break
-        this.currentCaptionElement.innerHTML = captions
-          .map(cap => cap.text)
-          .join('<br><br>');
+      const caption = this.findCaptionForTime(time);
+      if (caption){
+        this.currentCaptionElement.textContent = caption.text;
         this.currentCaptionElement.style.display = 'inline-block';
       } else {
         this.currentCaptionElement.style.display = 'none';
@@ -1069,9 +1066,6 @@
       this.audio = document.getElementById('vo');
       this.closeViewerBtn = document.getElementById('closeViewer');
       this.closeViewerBtn.addEventListener('click', ()=>this.closeViewer());
-      
-      // Initialize GGAudio with the audio element
-      GGAudio.setElement(this.audio);
     }
 
     applyConfigBasics(){
@@ -1091,8 +1085,10 @@
 
       const audioSrc = this.resolveAsset(this.config.audioFile || '');
       if (audioSrc) {
-        // Initialize GGAudio with the audio URL (preloads once for the whole chapter)
-        GGAudio.init(audioSrc).catch(e => console.error('Audio init failed:', e));
+        this.audio.src = audioSrc;
+        this.audio.addEventListener('error', (e) => console.error('Audio error:', e, this.audio.error));
+      } else {
+        this.audio.removeAttribute('src');
       }
     }
 
@@ -1192,7 +1188,7 @@
 
     pauseViewer(){
       if (this.seg.currentVideo) this.seg.currentVideo.pause();
-      if (!GGAudio.paused) GGAudio.pause();
+      if (!this.audio.paused) this.audio.pause();
       const playPause = document.getElementById('playPause');
       const status = document.getElementById('status');
       if (playPause) playPause.textContent='▶';
@@ -1206,7 +1202,7 @@
         this.innerWindow.classList.remove('active', 'animating');
         this.viewer.replaceChildren();
         if (this.seg.currentVideo){ this.seg.currentVideo.pause(); this.seg.currentVideo=null; }
-        if (!GGAudio.paused) GGAudio.pause();
+        if (!this.audio.paused) this.audio.pause();
         this.seg.active=false; cancelAnimationFrame(this.seg.rafId);
         this.currentCaptionElement = null;
         
@@ -1318,7 +1314,7 @@
 
       const syncUI = ()=>{
         if (!this.seg.active) return;
-        const now = Math.min(Math.max(GGAudio.currentTime, this.seg.start), this.seg.end);
+        const now = Math.min(Math.max(this.audio.currentTime, this.seg.start), this.seg.end);
         const elapsed = now - this.seg.start;
         if (fill) fill.style.width = `${(elapsed/total)*100}%`;
         if (tcur) tcur.textContent = fmt(elapsed);
@@ -1326,7 +1322,7 @@
         this.updateCaption(now);
         
         if (now >= this.seg.end - 0.02){
-          GGAudio.pause();
+          this.audio.pause();
           if (this.seg.currentVideo) this.seg.currentVideo.pause();
           if (playPause) playPause.textContent='▶';
           if (status) status.textContent='Finished';
@@ -1337,26 +1333,9 @@
         this.seg.rafId = requestAnimationFrame(syncUI);
       };
 
-      // Convert seconds to timecode format for GGAudio
-      const toTC = (sec) => {
-        const h = Math.floor(sec / 3600);
-        const m = Math.floor((sec % 3600) / 60);
-        const s = Math.floor(sec % 60);
-        const f = Math.floor((sec % 1) * 30);
-        return `${String(h).padStart(2,'0')};${String(m).padStart(2,'0')};${String(s).padStart(2,'0')};${String(f).padStart(2,'0')}`;
-      };
-
       const startSeg = ()=>{
-        // Use GGAudio to play the segment
-        GGAudio.play(toTC(startSec), toTC(endSec), () => {
-          // This callback runs when the segment completes
-          if (this.seg.currentVideo) this.seg.currentVideo.pause();
-          if (playPause) playPause.textContent='▶';
-          if (status) status.textContent='Finished';
-          cancelAnimationFrame(this.seg.rafId);
-          this.onSegmentComplete(id);
-        }).then(() => {
-          // Start video when audio starts
+        this.audio.currentTime = startSec;
+        this.audio.play().then(()=>{
           if (this.seg.currentVideo){ 
             this.seg.currentVideo.play().catch(()=>{}); 
           }
@@ -1369,13 +1348,19 @@
         });
       };
 
+      this.audio.ontimeupdate = ()=>{
+        if (!this.seg.active) return;
+        if (this.audio.currentTime < this.seg.start) this.audio.currentTime = this.seg.start;
+        if (this.audio.currentTime > this.seg.end) this.audio.currentTime = this.seg.end;
+      };
+
       if (playPause){
         playPause.onclick = ()=>{
-          if (GGAudio.paused){
-            if (GGAudio.currentTime <= this.seg.start || GGAudio.currentTime >= this.seg.end){ 
+          if (this.audio.paused){
+            if (this.audio.currentTime <= this.seg.start || this.audio.currentTime >= this.seg.end){ 
               startSeg(); 
             } else {
-              GGAudio.element.play().then(()=>{
+              this.audio.play().then(()=>{
                 if (this.seg.currentVideo) this.seg.currentVideo.play().catch(()=>{});
                 playPause.textContent='⏸';
                 if (status) status.textContent='Playing';
@@ -1384,7 +1369,7 @@
               });
             }
           } else {
-            GGAudio.pause();
+            this.audio.pause();
             if (this.seg.currentVideo) this.seg.currentVideo.pause();
             playPause.textContent='▶';
             if (status) status.textContent='Paused';
@@ -1393,34 +1378,6 @@
       }
       if (replay) replay.onclick = ()=> startSeg();
       if (closeBtn) closeBtn.onclick = ()=>this.closeViewer();
-      
-      // Secret skip button: press 'b' during video playback to skip
-      const skipHandler = (e) => {
-        if (e.key === 'b' || e.key === 'B') {
-          if (this.seg.active && !GGAudio.paused) {
-            // Pause audio and video
-            GGAudio.pause();
-            if (this.seg.currentVideo) this.seg.currentVideo.pause();
-            
-            // Update UI
-            if (playPause) playPause.textContent='▶';
-            if (status) status.textContent='Finished';
-            if (fill) fill.style.width = '100%';
-            if (tcur) tcur.textContent = fmt(total);
-            
-            // Cancel animation frame
-            cancelAnimationFrame(this.seg.rafId);
-            
-            // Trigger completion
-            this.onSegmentComplete(id);
-            
-            // Remove this handler
-            document.removeEventListener('keydown', skipHandler);
-          }
-        }
-      };
-      document.addEventListener('keydown', skipHandler);
-      
       startSeg();
     }
 
@@ -1436,6 +1393,9 @@
       const e = tcToSeconds(h.tcEnd, this.FPS);
       const {title, body} = this.getTitleAndBody(h.content || h.text || '');
 
+      console.log('=== ANIMATION DEBUG START ===');
+      console.log('Button clicked:', button.id);
+
       this.viewer.replaceChildren();
       this.viewerTitle.textContent = title || 'Narration';
       this.innerWindow.classList.remove('small','large','animating');
@@ -1445,6 +1405,7 @@
       const hasCaptions = this.captions.length > 0;
       
       const sizeClass = (hasVideo || hasImage) ? 'large' : 'small';
+      console.log('Window size class:', sizeClass);
       
       if (hasVideo || hasImage){
         const media = el('div',{class:'mediaArea'});
@@ -1452,12 +1413,8 @@
         if (hasVideo) {
           const videoSrc = h.video ? this.resolveAsset(h.video) : this.resolveAsset(h.contentMedia.src);
           const vid = el('video',{src:videoSrc});
-          vid.muted = true; 
-          vid.playsInline = true; 
-          vid.loop = true; 
-          vid.controls = false;
-          vid.preload = 'auto';
-          // Video will start playing when audio starts in wireAudioSegment()
+          vid.autoplay = true; vid.muted = true; vid.playsInline = true; vid.loop = true; vid.controls = false;
+          vid.addEventListener('loadedmetadata',()=>{ vid.play().catch(()=>{}); });
           media.appendChild(vid);
           this.seg.currentVideo = vid;
         } else if (hasImage) {
@@ -1473,10 +1430,10 @@
         }
         this.viewer.appendChild(media);
       } else {
-        const wrap = el('div',{class:'subs-only', style:'flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;min-height:0;overflow:auto'});
+        const wrap = el('div',{class:'subs-only', style:'flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative'});
         
         if (hasCaptions) {
-          const captionEl = el('div',{class:'caption', style:'position:static;max-width:100%;font-size:20px;line-height:1.6;max-height:100%;overflow-y:auto'}, '');
+          const captionEl = el('div',{class:'caption', style:'position:static;max-width:100%;font-size:20px;line-height:1.6'}, '');
           this.currentCaptionElement = captionEl;
           wrap.appendChild(captionEl);
         } else {
@@ -1499,8 +1456,23 @@
       const buttonRect = button.getBoundingClientRect();
       const stageRect = this.stage.getBoundingClientRect();
       
+      console.log('Button rect:', {
+        left: buttonRect.left,
+        top: buttonRect.top,
+        width: buttonRect.width,
+        height: buttonRect.height
+      });
+      console.log('Stage rect:', {
+        left: stageRect.left,
+        top: stageRect.top,
+        width: stageRect.width,
+        height: stageRect.height
+      });
+      
       const buttonCenterX = buttonRect.left + buttonRect.width / 2 - stageRect.left;
       const buttonCenterY = buttonRect.top + buttonRect.height / 2 - stageRect.top;
+      
+      console.log('Button center relative to stage:', {x: buttonCenterX, y: buttonCenterY});
       
       let finalWidth, finalHeight, finalTop, finalLeft;
       
@@ -1516,10 +1488,24 @@
         finalLeft = stageRect.width * 0.51;
       }
       
+      console.log('Calculated final dimensions:', {
+        width: finalWidth + 'px',
+        height: finalHeight + 'px',
+        top: finalTop + 'px',
+        left: finalLeft + 'px'
+      });
+      
       this.innerWindow.classList.add('active', sizeClass);
       
       const initialTop = `${buttonCenterY - 5}px`;
       const initialLeft = `${buttonCenterX - 5}px`;
+      
+      console.log('Initial position (10px at button):', {
+        top: initialTop,
+        left: initialLeft,
+        width: '10px',
+        height: '10px'
+      });
       
       this.innerWindow.style.top = initialTop;
       this.innerWindow.style.left = initialLeft;
@@ -1540,7 +1526,17 @@
       
       this.innerWindow.offsetHeight;
       
+      console.log('Starting LINEAR animation in 100ms...');
+      console.log('Window AND content should grow from 10px to full size');
+      
       setTimeout(() => {
+        console.log('Animating to final position:', {
+          top: finalTop + 'px',
+          left: finalLeft + 'px',
+          width: finalWidth + 'px',
+          height: finalHeight + 'px'
+        });
+        
         this.innerWindow.style.top = finalTop + 'px';
         this.innerWindow.style.left = finalLeft + 'px';
         this.innerWindow.style.width = finalWidth + 'px';
@@ -1559,10 +1555,15 @@
           viewer.style.opacity = '1';
         }
         
+        console.log('LINEAR Animation triggered!');
+        
         setTimeout(() => {
+          console.log('Animation complete! Starting audio/video now...');
           this.wireAudioSegment(s, e, id);
         }, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000);
       }, 100);
+      
+      console.log('=== ANIMATION DEBUG END ===');
 
       this.stage.onclick = (ev)=>{
         if (ev.target === this.stage) this.pauseViewer();
@@ -1843,7 +1844,11 @@
   <script>
     (function(){
       const $ = (id)=>document.getElementById(id);
-      
+      const origin = location.origin;
+      $('origin').textContent = origin;
+      $('fullurl').textContent = location.href;
+      $('ua').textContent = navigator.userAgent;
+
       function pickTokenFromString(s){
         if(!s) return null;
         try{
@@ -1862,14 +1867,101 @@
         return raw.length >= 24 ? raw : null;
       }
 
-      // Seed token from current location for backend use
-      const initial = pickTokenFromString(location.href) || pickTokenFromString(location.hash);
-      console.log('🔧 Backend token detected:', initial ? 'Yes' : 'No');
-      
-      // Store token for backend API calls if needed
-      if (initial) {
-        sessionStorage.setItem('gg_temp_token', initial);
+      function summarize(tok){
+        if(!tok) return '(none)';
+        return tok.length>16 ? (tok.slice(0,8)+'...'+tok.slice(-8)) : tok;
       }
+
+      function setStatus(tok){
+        console.log('🔧 setStatus called with token:', tok);
+        $('normalizedToken').value = tok || '';
+        $('tokPreview').textContent = summarize(tok);
+        const st = $('tokStatus');
+        if (tok){ st.textContent = 'token detected'; st.classList.remove('bad'); st.classList.add('ok'); }
+        else { st.textContent = 'no token detected'; st.classList.remove('ok'); st.classList.add('bad'); }
+        const diag = tok ? `apitest.html?temp_token=${encodeURIComponent(tok)}` : 'apitest.html';
+        console.log('🔗 Updating button hrefs to:', diag);
+        $('apiBtn').href = diag;
+        $('apiBtnSame').href = diag;
+        $('apiFloatBtn').href = diag;
+        console.log('✅ Updated hrefs - apiBtn:', $('apiBtn').href, 'apiFloatBtn:', $('apiFloatBtn').href);
+      }
+
+      function currentToken(){
+        return $('normalizedToken').value.trim() || null;
+      }
+
+      // Seed from current location
+      const initial = pickTokenFromString(location.href) || pickTokenFromString(location.hash);
+      setStatus(initial);
+
+      // Auto-open toggle (persisted)
+      const KEY='auto_open_apitest';
+      const btnAuto = $('autoOpenToggle');
+      const getAuto = ()=> localStorage.getItem(KEY)!=='0';
+      const setAuto = (on)=> localStorage.setItem(KEY, on?'1':'0');
+      const refreshAuto = ()=>{
+        const on = getAuto();
+        btnAuto.textContent = `Auto-open on load: ${on?'ON':'OFF'}`;
+        btnAuto.className = 'btn ' + (on?'warn':'alt');
+      };
+      btnAuto.addEventListener('click', ()=>{ setAuto(!getAuto()); refreshAuto(); });
+      if(localStorage.getItem(KEY)===null) setAuto(true); // default ON
+      refreshAuto();
+
+      // Auto-open diagnostics if token present & enabled
+      if(initial && getAuto()){
+        try{ window.open(`apitest.html?temp_token=${encodeURIComponent(initial)}`, '_blank', 'noopener'); }catch(_){}
+      }
+
+      // Controls
+      $('applyBtn').addEventListener('click', ()=>{
+        const cand = $('tokenInput').value.trim();
+        console.log('👆 Apply button clicked, raw input:', cand);
+        const tok = pickTokenFromString(cand);
+        console.log('🔍 Extracted token:', tok);
+        setStatus(tok);
+      });
+      $('clearBtn').addEventListener('click', ()=>{
+        $('tokenInput').value = '';
+        setStatus(null);
+      });
+      $('tokenInput').addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter'){
+          e.preventDefault();
+          $('applyBtn').click();
+        }
+      });
+      $('normalizedToken').addEventListener('input', ()=>{
+        const val = $('normalizedToken').value.trim() || null;
+        console.log('⌨️ Normalized token field changed, value:', val);
+        setStatus(val);
+      });
+
+      $('copyLinkBtn').addEventListener('click', async()=>{
+        const tok = currentToken();
+        const url = tok
+          ? new URL(`apitest.html?temp_token=${encodeURIComponent(tok)}`, location.href).href
+          : new URL('apitest.html', location.href).href;
+        try{
+          await navigator.clipboard.writeText(url);
+          $('copyLinkBtn').textContent = 'Copied!';
+          setTimeout(()=>$('copyLinkBtn').textContent='Copy Diagnostics Link', 1000);
+        }catch(_){
+          alert('Could not copy to clipboard. Link:\n' + url);
+        }
+      });
+
+      // Add click logging to diagnostic buttons
+      $('apiBtn').addEventListener('click', (e)=>{
+        console.log('🖱️ API Diagnostics button clicked (new tab), href:', e.target.href);
+      });
+      $('apiBtnSame').addEventListener('click', (e)=>{
+        console.log('🖱️ API Diagnostics button clicked (same tab), href:', e.target.href);
+      });
+      $('apiFloatBtn').addEventListener('click', (e)=>{
+        console.log('🖱️ Floating API Test button clicked, href:', e.target.href);
+      });
     })();
   </script>
 </body>

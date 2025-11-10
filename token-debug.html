@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Token Exchange Debug</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #0b0f14; color: #d7e2f1; }
+    input, button { padding: 10px; margin: 10px 0; font-size: 14px; width: 100%; max-width: 600px; }
+    button { background: #00e0ff; color: #000; border: none; cursor: pointer; font-weight: bold; }
+    .log { background: #05080c; padding: 15px; margin: 10px 0; border: 1px solid #1d2733; border-radius: 8px; white-space: pre-wrap; max-width: 800px; }
+    .success { color: #7CFCB5; }
+    .error { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Token Exchange Debugger</h1>
+  
+  <label>Temp Token:</label>
+  <input id="tempToken" placeholder="Paste your temp_token here">
+  
+  <button onclick="testExchange()">Test Exchange</button>
+  
+  <div id="log" class="log">Waiting...</div>
+  
+  <script>
+    async function testExchange() {
+      const token = document.getElementById('tempToken').value.trim();
+      const logEl = document.getElementById('log');
+      
+      function log(msg, isError = false) {
+        const time = new Date().toLocaleTimeString();
+        const color = isError ? 'error' : 'success';
+        logEl.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
+      }
+      
+      logEl.innerHTML = '';
+      
+      if (!token) {
+        log('❌ No token provided', true);
+        return;
+      }
+      
+      log('🔍 Testing token exchange...');
+      log(`Token (first 30 chars): ${token.substring(0, 30)}...`);
+      
+      const url = `https://guestguard-platform.vercel.app/api/training-auth?temp_token=${encodeURIComponent(token)}`;
+      log(`URL: ${url.substring(0, 80)}...`);
+      
+      try {
+        log('📤 Sending request...');
+        
+        const response = await fetch(url);
+        
+        log(`📥 Response status: ${response.status} ${response.statusText}`);
+        
+        const data = await response.json();
+        
+        log('📦 Response body:');
+        log(JSON.stringify(data, null, 2));
+        
+        if (!response.ok) {
+          log(`❌ API returned error status: ${response.status}`, true);
+          if (response.status === 401) {
+            log('❌ 401 = Unauthorized. Possible reasons:', true);
+            log('  - Token expired (most common)', true);
+            log('  - Token already used', true);
+            log('  - Token invalid', true);
+            log('  - User lacks permissions', true);
+          }
+          return;
+        }
+        
+        if (data.access_token && data.refresh_token) {
+          log('✅ SUCCESS! Got both tokens');
+          
+          // Parse JWT
+          try {
+            const base64Url = data.access_token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => 
+              '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+            ).join(''));
+            const jwt = JSON.parse(jsonPayload);
+            
+            log(`✅ JWT parsed successfully`);
+            log(`  - exp: ${jwt.exp} (${new Date(jwt.exp * 1000).toLocaleString()})`);
+            log(`  - user: ${jwt.sub}`);
+            log(`  - email: ${jwt.email}`);
+            
+            // Save to localStorage
+            localStorage.setItem('gg_access_token', data.access_token);
+            localStorage.setItem('gg_refresh_token', data.refresh_token);
+            localStorage.setItem('gg_expires_at', jwt.exp * 1000);
+            
+            log('✅ Saved to localStorage!');
+            log('');
+            log('🎉 YOU CAN NOW USE chapter-test.html');
+            log('   Just reload it and click "Show Stored Auth"');
+            
+          } catch (e) {
+            log(`⚠️ Could not parse JWT: ${e.message}`);
+          }
+        } else {
+          log('❌ Response missing tokens', true);
+        }
+        
+      } catch (e) {
+        log(`❌ Fetch error: ${e.message}`, true);
+        console.error(e);
+      }
+    }
+  </script>
+</body>
+</html>
