@@ -64,32 +64,26 @@ comfortable and prevents dangerous electrical issues.
 00;01;25;12 - 00;01;27;15
 Don't overlook water.
 
-00;01;27;15 - 00;01;30;29
-Guests should always have access to drinking water on the property.
+00;01;27;15 - 00;01;32;00
+Guests should always have access to drinking water in communal areas and bedrooms
 
-00;01;31;08 - 00;01;34;04
-And if you can provide water bottles in communal areas
+00;01;31;08 - 00;01;35;27
+and bedrooms whether through bottled water, filtration systems or pitchers,
 
-00;01;34;04 - 00;01;37;09
-and bedrooms like hotels do, that works great as well.
-
-00;01;37;27 - 00;01;41;15
-Whether through bottled water, filtration systems or pitchers,
-
-00;01;41;20 - 00;01;45;02
+00;01;36;02 - 00;01;39;15
 this simple step enhances comfort and convenience.
 
-00;01;45;16 - 00;01;48;15
-Let's talk about WiFi In today's world.
+00;01;40;03 - 00;01;42;12
+Finally let's talk about WiFi.
 
-00;01;48;17 - 00;01;51;17
-Reliable Internet is considered table stakes.
+00;01;42;22 - 00;01;46;27
+In today's world, reliable internet is considered table stakes.
 
-00;01;51;19 - 00;01;53;22
+00;01;47;03 - 00;01;48;24 
 Every guest expects it.
 
-00;01;53;22 - 00;01;57;07
-If your property is meant to have WiFi, we want to make sure
+00;01;49;03 - 00;01;57;07
+Its not optional If your property is meant to have WiFi, we want to make sure
 
 00;01;57;07 - 00;01;59;05
 that it's up to guests standards.
