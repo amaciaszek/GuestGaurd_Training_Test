@@ -1,13 +1,13 @@
 {
-  "id": "fire_safety_facility_safety_and_general_maintenance",
-  "title": "Fire Safety - Facility Safety and General Maintenance",
-  "audioFile": "/Assets/Module 1/Chapter 5/Audio/1.5 Fire Safety_Facility Safety and General Maintenance.mp3",
-  "transcriptFile": "/Assets/Module 1/Chapter 5/Info/1.5 Fire Safety_Facility Safety and General Maintenance.txt",
-  "backgroundImage": "/Assets/Module 1/Chapter 5/Background/1_5.jpg",
+  "id": "fire_safety_alarm_systems",
+  "title": "Fire Safety - Alarm Systems",
+  "audioFile": "/Assets/Module 1/Chapter 4/Audio/1.4 Fire Safety_Alarm Systems.wav",
+  "transcriptFile": "/Assets/Module 1/Chapter 4/Info/1.4 Fire Safety_Alarm Systems.txt",
+  "backgroundImage": "/Assets/Module 1/Chapter 4/Background/1_4.jpg",
   "canvasDimensions": {
     "width": 6000,
-    "height": 4000  
-},
+    "height": 4000
+  },
   "hotspots": [
     {
       "id": "b1",
@@ -24,16 +24,16 @@
       "id": "b2",
       "tcStart": "00;00;12;26",
       "tcEnd": "00;00;35;20",
-      "realLifeExamples": ["/Assets/Module 1/Chapter 5/Segment 1/Examples/1.5 Breaker Box Close-Up.jpg","/Assets/Module 1/Chapter 5/Segment 1/Examples/1.5 Breaker Box, Messy Labelling.jpg","/Assets/Module 1/Chapter 5/Segment 1/Examples/1.5 Breaker Box, Obstructed.jpg","/Assets/Module 1/Chapter 5/Segment 1/Examples/1.5 Breaker Box, Unobstructed.jpg"],
+      "realLifeExamples": [],
       "type": "circle",
       "centerX": 960,
       "centerY": 2764,
       "width": 940,
       "height": 940,
-      "text": "[Electrical Systems & Breaker Boxes]",
+      "text": "[What They Look Like & Where to Place Them]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 1/Chapter 5/Segment 1/1.5.1 Electrical Systems & Breaker Boxes.mov"
+        "src": "/Assets/Module 1/Chapter 4/Segment 1/1.4.1 What They Look Like & Where to Place Them.mov"
       }
     },
     {
@@ -46,10 +46,13 @@
       "centerY": 1515,
       "width": 940,
       "height": 940,
-      "text": "[Outlets]",
+      "text": "[Local vs. Interconnected Systems]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 1/Chapter 5/Segment 2/1.5.2 Outlets.mov"
+        "src": [
+          "/Assets/Module 1/Chapter 4/Segment 2/1.4.2.A Local vs. Interconnected Systems.mov",
+          "/Assets/Module 1/Chapter 4/Segment 2/1.4.2.B Local vs. Interconnected Systems.mov"
+        ]
       }
     },
     {
@@ -62,26 +65,22 @@
       "centerY": 683,
       "width": 940,
       "height": 940,
-      "text": "[Heating Types in the Home]",
-      "contentMedia": {
-        "type": "video",
-        "src": "/Assets/Module 1/Chapter 5/Segment 3/1.5.3 Heating Types in the Home.mov"
-      }
+      "text": "[Common Brands]"
     },
     {
       "id": "b5",
       "tcStart": "00;01;37;15",
       "tcEnd": "00;01;58;10",
-      "realLifeExamples": ["/Assets/Module 1/Chapter 5/Segment 1/Examples/1.5 Common Area Fireplace Curiosities.jpg"],
+      "realLifeExamples": [],
       "type": "circle",
       "centerX": 4049,
       "centerY": 683,
       "width": 940,
       "height": 940,
-      "text": "[Standards for Open Flames]",
+      "text": "[Testing & Monitoring Requirements]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 1/Chapter 5/Segment 4/1.5.4 Standards for Open Flames.mov"
+        "src": "/Assets/Module 1/Chapter 4/Segment 4/1.4.4 Testing & Monitoring Requirements.mov"
       }
     },
     {
@@ -94,10 +93,10 @@
       "centerY": 1517,
       "width": 940,
       "height": 940,
-      "text": "[Certification & Training]",
+      "text": "[Showing Detectors to Inspectors]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 1/Chapter 5/Segment 5/1.5.5 Certification & Training.mov"
+        "src": "/Assets/Module 1/Chapter 4/Segment 5/1.4.5 Showing Detectors to Inspectors.mov"
       }
     },
     {
@@ -110,11 +109,7 @@
       "centerY": 2758,
       "width": 940,
       "height": 940,
-      "text": "[Flammable Gas Storage]",
-      "contentMedia": {
-        "type": "video",
-        "src": "/Assets/Module 1/Chapter 5/Segment 6/1.5.6 Flammable Gas Storage.mov"
-      }
+      "text": "[Hypothetical Example]"
     },
     {
       "id": "b9",

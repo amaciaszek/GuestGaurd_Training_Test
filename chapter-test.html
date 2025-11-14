@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>GuestGuard • Chapter 2-1 Progress Test</title>
+  <title>GuestGuard • Training Progress Manager</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <link rel="icon" href="data:,">
   <style>
@@ -30,6 +30,7 @@
     .status{padding:8px 12px;border-radius:8px;margin:10px 0;border:1px solid var(--border)}
     .status.ok{background:#133523;border-color:#1c7741;color:var(--good)}
     .status.bad{background:#351318;border-color:#5e141f;color:var(--bad)}
+    .status.info{background:#0a1822;border-color:#0aa3c8;color:#bfe8ff}
     .segment-item{
       background:#05080c;border:1px solid var(--border);border-radius:8px;
       padding:12px;margin:8px 0;display:flex;justify-content:space-between;align-items:center
@@ -42,12 +43,20 @@
     .log{background:#05080c;border:1px dashed var(--border);border-radius:10px;padding:12px;
          white-space:pre-wrap;font-size:11px;max-height:300px;overflow-y:auto;margin:10px 0}
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .chapter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:10px 0}
+    .chapter-card{
+      background:#05080c;border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center;font-size:12px;
+      cursor:pointer; /* NEW: make chapter cards clickable */
+    }
+    .chapter-card.loaded{border-color:#1c7741}
+    .chapter-card.current{border-color:var(--accent);background:#0a1822}
+    .chapter-card.has-progress{border-color:#0aa3c8}
     @media (max-width:900px){.grid-2{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>🧪 Chapter 2-1 Progress Test</h1>
+  <h1>🧪 Training Progress Manager</h1>
   
   <!-- Auth Section -->
   <div class="box">
@@ -69,39 +78,40 @@
     </details>
   </div>
 
-  <!-- JSON Loader -->
+  <!-- Chapter Overview -->
   <div class="box">
-    <h2>2. Load Chapter JSON</h2>
-    <label style="font-size:13px;color:var(--dim)">Upload or fetch 2-1.json:</label>
+    <h2>2. Chapter Overview</h2>
+    <div id="loadingStatus" class="status info">Click "Load All Chapters" after authenticating</div>
     
     <div class="row">
-      <input type="file" id="jsonFile" accept=".json" style="flex:1"/>
-      <button id="btnLoadJson" class="btn good">Load JSON</button>
+      <button id="btnLoadAll" class="btn good" disabled>Load All Chapters</button>
+      <button id="btnRefreshProgress" class="btn" disabled>Refresh Progress from Server</button>
     </div>
     
-    <div style="margin-top:10px">
-      <label style="font-size:13px;color:var(--dim)">Or paste JSON URL:</label>
-      <input id="jsonUrl" placeholder="https://example.com/2-1.json"/>
-      <button id="btnFetchJson" class="btn" style="margin-top:6px">Fetch from URL</button>
+    <div style="margin-top:12px">
+      <strong style="color:var(--accent)">Current Chapter: <span id="currentChapterDisplay" style="color:var(--good)">-</span></strong>
+      <div style="font-size:12px;color:var(--dim);margin-top:4px">
+        Most recent progress will determine your current chapter, or click any chapter card to jump and add progress there.
+      </div>
     </div>
     
-    <div id="jsonStatus" class="status bad" style="display:none">No JSON loaded</div>
-    <div id="segmentInfo" style="margin-top:12px;color:var(--dim);font-size:13px"></div>
+    <div class="chapter-grid" id="chapterGrid"></div>
   </div>
 
   <!-- Progress Simulator -->
   <div class="box">
-    <h2>3. Segment Progress Simulator</h2>
+    <h2>3. Active Chapter Progress</h2>
     
     <div class="grid-2">
       <div>
         <strong style="color:var(--accent)">Current State:</strong>
         <div style="margin:10px 0;font-size:14px">
-          <div>Module: <code id="currModule">2</code></div>
-          <div>Chapter: <code id="currChapter">0</code> (0-based)</div>
-          <div>Segment: <code id="currSegment">0</code> (0-based)</div>
-          <div>Pointer: <code id="currPtr">2.0.0</code></div>
-          <div>Progress: <code id="currPercent">0%</code></div>
+          <div>Chapter: <code id="currChapterLabel">-</code></div>
+          <div>Module: <code id="currModule">-</code></div>
+          <div>Chapter (0-based): <code id="currChapter">-</code></div>
+          <div>Segment: <code id="currSegment">-</code> (0-based)</div>
+          <div>Pointer: <code id="currPtr">-</code></div>
+          <div>Progress: <code id="currPercent">-</code></div>
         </div>
       </div>
       
@@ -109,8 +119,8 @@
         <strong style="color:var(--accent)">Controls:</strong>
         <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">
           <button id="btnNextSegment" class="btn good" disabled>Complete Current Segment</button>
-          <button id="btnResetProgress" class="btn warn">Reset to Start</button>
-          <button id="btnPullServer" class="btn">Pull from Server</button>
+          <button id="btnResetChapter" class="btn warn" disabled>Reset Current Chapter</button>
+          <button id="btnResetAll" class="btn warn" disabled>Reset All Progress</button>
         </div>
       </div>
     </div>
@@ -126,7 +136,6 @@
     <h2>4. API Activity Log</h2>
     <div class="row">
       <button id="btnClearLog" class="btn">Clear Log</button>
-      <button id="btnGetProgress" class="btn">GET Current Progress</button>
     </div>
     <div id="apiLog" class="log">Ready. Exchange token to begin.</div>
   </div>
@@ -138,7 +147,6 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   const $ = (id) => document.getElementById(id);
@@ -146,20 +154,26 @@
   // Config
   const API_BASE = 'https://guestguard-platform.vercel.app';
   const SUPABASE_URL = 'https://uwbwaujbvqctmcpgqhds.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3YndhVWpiVnFjdG1jcGdxaGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNjU2NDksImV4cCI6MjA2NDk0MTY0OX0.sb_publishable_4thWdEYtuLNTZ0R0F9Bw1w_tzYEyH9R';
+  const SUPABASE_ANON = 'sb_publishable_4thWdEYtuLNTZ0R0F9Bw1w_tzYEyH9R';
   
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  // All chapter files
+  const CHAPTER_FILES = [
+    "1-1.json","1-2.json","1-3.json","1-4.json","1-5.json",
+    "2-1.json","2-2.json","2-3.json",
+    "3-1.json","3-2.json",
+    "4-1.json","4-2.json",
+    "5-1.json","5-2.json","5-3.json",
+    "6-1.json"
+  ];
   
   // State
   const state = {
     accessToken: null,
     refreshToken: null,
     expiresAt: null,
-    jsonData: null,
-    totalSegments: 0,
-    currentSegment: 0, // 0-based
-    moduleNum: 2,
-    chapterNum: 0 // 0-based (Chapter 1 = 0)
+    chapters: {}, // key: "1-1", value: { data: {...}, progress: {...} }
+    currentChapterKey: null, // e.g. "2-1"
+    allProgress: {} // All progress from server
   };
 
   // Logging
@@ -204,9 +218,11 @@
       const expiresIn = stored.expires ? Math.floor((stored.expires - Date.now()) / 1000) : 0;
       $('authStatus').className = 'status ok';
       $('authStatus').textContent = `✓ Authenticated (expires in ${expiresIn}s)`;
+      $('btnLoadAll').disabled = false;
     } else {
       $('authStatus').className = 'status bad';
       $('authStatus').textContent = '✗ Not authenticated';
+      $('btnLoadAll').disabled = true;
     }
   }
 
@@ -225,157 +241,286 @@
     }
   }
 
+  // Fetch with auth
+  async function fetchWithAuth(url, options = {}) {
+    const stored = getStoredAuth();
+    if (!stored.access) {
+      throw new Error('Not authenticated');
+    }
+
+    // Add auth header
+    theaders = {
+      ...options.headers,
+      'Authorization': `Bearer ${stored.access}`
+    };
+
+    return fetch(url, { ...options, headers: theaders });
+  }
+
+  // Exchange temp token
   async function exchangeTempToken() {
-    const token = $('tempToken').value.trim();
-    
-    if (!token) {
+    const tempToken = $('tempToken').value.trim();
+    if (!tempToken) {
       log('No temp token provided', true);
       return;
     }
 
-    log('Exchanging temp token...');
-    log(`Token: ${token.substring(0, 20)}...`);
-    log(`URL: ${API_BASE}/api/training-auth`);
+    try {
+      const url = `${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(tempToken)}`;
+      log(`Exchanging temp token via ${url}`);
+      
+      const res = await fetch(url, { method: 'GET' });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(`${res.status} ${res.statusText}: ${JSON.stringify(data)}`);
+      }
+
+      // Map common field names defensively
+      const accessToken = data.access_token || data.auth_token || null;
+      const refreshToken = data.refresh_token || null;
+      const userId = data.user_id || null;
+
+      if (!accessToken) {
+        throw new Error('No access token returned from exchange');
+      }
+
+      // Parse JWT to get expiry
+      const payload = parseJWT(accessToken);
+      const expiresAt = payload ? payload.exp * 1000 : Date.now() + 3600000;
+
+      saveAuth(accessToken, refreshToken, expiresAt);
+      log(`✓ Token exchanged successfully (userId: ${userId || 'unknown'})`);
+      $('apiResponse').value = JSON.stringify(data, null, 2);
+    } catch (e) {
+      log(`Exchange failed: ${e.message}`, true);
+      $('apiResponse').value = JSON.stringify({ error: e.message }, null, 2);
+    }
+  }
+
+  // Parse chapter key to get module and chapter numbers
+  function parseChapterKey(key) {
+    const [modStr, chapStr] = key.split('-');
+    return {
+      module: parseInt(modStr),
+      chapter: parseInt(chapStr) - 1 // Convert to 0-based
+    };
+  }
+
+  // Get next chapter key
+  function getNextChapterKey(currentKey) {
+    const idx = CHAPTER_FILES.indexOf(currentKey + '.json');
+    if (idx === -1 || idx === CHAPTER_FILES.length - 1) return null;
+    return CHAPTER_FILES[idx + 1].replace('.json', '');
+  }
+
+  // Load all chapter JSONs
+  async function loadAllChapters() {
+    log('Loading all chapter JSONs...');
+    $('loadingStatus').className = 'status info';
+    $('loadingStatus').textContent = 'Loading chapters...';
+    
+    let loaded = 0;
+    let failed = 0;
+
+    for (const filename of CHAPTER_FILES) {
+      const key = filename.replace('.json', '');
+      try {
+        const response = await fetch(`./${filename}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        state.chapters[key] = {
+          data: data,
+          progress: {
+            currentSegment: 0,
+            totalSegments: data.hotspots?.length || 0,
+            completed: false,
+            lastUpdated: null
+          }
+        };
+        loaded++;
+        log(`✓ Loaded ${filename} (${data.hotspots?.length || 0} segments)`);
+      } catch (e) {
+        failed++;
+        log(`✗ Failed to load ${filename}: ${e.message}`, true);
+      }
+    }
+
+    $('loadingStatus').className = loaded > 0 ? 'status ok' : 'status bad';
+    $('loadingStatus').textContent = `✓ Loaded ${loaded}/${CHAPTER_FILES.length} chapters${failed > 0 ? ` (${failed} failed)` : ''}`;
+    
+    if (loaded > 0) {
+      $('btnRefreshProgress').disabled = false;
+      await loadProgressFromServer();
+      renderChapterGrid();
+      determineCurrentChapter();
+    }
+  }
+
+  // Load progress from server
+  async function loadProgressFromServer() {
+    const stored = getStoredAuth();
+    if (!stored.access) {
+      log('Not authenticated', true);
+      return;
+    }
 
     try {
-      const url = `${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(token)}`;
-      const resp = await fetch(url);
-      
-      log(`Response status: ${resp.status} ${resp.statusText}`);
-      
-      const data = await resp.json();
-      $('apiResponse').value = JSON.stringify(data, null, 2);
+      log('Fetching progress from server...');
+      const resp = await fetchWithAuth(`${API_BASE}/api/training-progress`);
       
       if (!resp.ok) {
-        log(`API Error: ${JSON.stringify(data)}`, true);
-        throw new Error(`API returned ${resp.status}: ${JSON.stringify(data)}`);
+        throw new Error(`${resp.status} ${resp.statusText}`);
       }
+
+      const data = await resp.json();
+      state.allProgress = data.training_progress || {};
+      $('apiResponse').value = JSON.stringify(data, null, 2);
+      log('✓ Progress retrieved from server');
+
+      // Apply server progress to chapters
+      applyServerProgress();
+    } catch (e) {
+      log(`GET error: ${e.message}`, true);
+    }
+  }
+
+  // Apply server progress to local chapter state
+  function applyServerProgress() {
+    const modules = state.allProgress.modules || {};
+    
+    for (const key in state.chapters) {
+      const { module, chapter } = parseChapterKey(key);
+      const modData = modules[module.toString()];
       
-      // Check we got tokens
-      if (!data.access_token) {
-        log('Missing access_token in response', true);
-        throw new Error('No access_token in response');
-      }
-      
-      if (!data.refresh_token) {
-        log('Missing refresh_token in response', true);
-        throw new Error('No refresh_token in response');
-      }
-      
-      log('✓ Got access_token and refresh_token');
-      
-      // Parse expiry from JWT
-      let expiresAt = null;
-      const jwt = parseJWT(data.access_token);
-      
-      if (jwt && jwt.exp) {
-        expiresAt = jwt.exp * 1000; // Convert to milliseconds
-        log(`✓ Parsed expiry: ${new Date(expiresAt).toLocaleString()}`);
+      if (modData && modData.chapters && modData.chapters[chapter]) {
+        const chapProgress = modData.chapters[chapter];
+        state.chapters[key].progress = {
+          currentSegment: chapProgress.currentSegment || 0,
+          totalSegments: state.chapters[key].data.hotspots?.length || 0,
+          completed: chapProgress.completed || false,
+          lastUpdated: chapProgress.lastUpdated || null
+        };
+        log(`Applied progress for ${key}: segment ${chapProgress.currentSegment}`);
       } else {
-        expiresAt = Date.now() + (3600 * 1000); // 1 hour default
-        log('⚠ Using 1 hour default expiry');
+        // Ensure lastUpdated is null for chapters with no progress
+        state.chapters[key].progress.lastUpdated = null;
       }
-      
-      saveAuth(data.access_token, data.refresh_token, expiresAt);
-      log('✓ Token exchange successful!');
-      
-    } catch (e) {
-      log(`ERROR: ${e.message}`, true);
-      console.error('Full error:', e);
-    }
-  }
-
-  async function refreshAccessToken() {
-    const stored = getStoredAuth();
-    if (!stored.refresh) {
-      throw new Error('No refresh token available');
     }
 
-    log('Refreshing access token...');
-    const { data, error } = await supabase.auth.refreshSession({
-      refresh_token: stored.refresh
-    });
-
-    if (error) throw error;
-    if (!data.session) throw new Error('No session returned');
-
-    saveAuth(
-      data.session.access_token,
-      data.session.refresh_token,
-      Date.now() + (data.session.expires_in * 1000)
-    );
-    log('Access token refreshed');
+    renderChapterGrid();
   }
 
-  async function fetchWithAuth(url, options = {}) {
-    const stored = getStoredAuth();
-    
-    // Check if token needs refresh (1 min before expiry)
-    if (stored.expires && (stored.expires - Date.now() < 60000)) {
-      await refreshAccessToken();
-    }
+  // Determine current chapter based on most recent progress
+  function determineCurrentChapter() {
+    let mostRecentKey = null;
+    let mostRecentTime = null;
 
-    const headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${state.accessToken || stored.access}`
-    };
-
-    return fetch(url, { ...options, headers });
-  }
-
-  // JSON Loading
-  function loadJsonFromFile(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const json = JSON.parse(e.target.result);
-        processJsonData(json);
-      } catch (err) {
-        log(`JSON parse error: ${err.message}`, true);
+    // Find the most recently updated chapter
+    for (const key in state.chapters) {
+      const progress = state.chapters[key].progress;
+      if (progress.lastUpdated) {
+        const time = new Date(progress.lastUpdated).getTime();
+        if (!mostRecentTime || time > mostRecentTime) {
+          mostRecentTime = time;
+          mostRecentKey = key;
+        }
       }
-    };
-    reader.readAsText(file);
-  }
-
-  async function fetchJsonFromUrl(url) {
-    try {
-      log(`Fetching JSON from ${url}...`);
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
-      const json = await resp.json();
-      processJsonData(json);
-    } catch (e) {
-      log(`Fetch error: ${e.message}`, true);
     }
+
+    if (mostRecentKey) {
+      const progress = state.chapters[mostRecentKey].progress;
+      
+      // If the most recent chapter is completed, move to next chapter
+      if (progress.currentSegment >= progress.totalSegments) {
+        const nextKey = getNextChapterKey(mostRecentKey);
+        if (nextKey) {
+          state.currentChapterKey = nextKey;
+          log(`Most recent chapter ${mostRecentKey} completed, advancing to ${nextKey}`);
+        } else {
+          state.currentChapterKey = mostRecentKey;
+          log(`All chapters completed! Staying on ${mostRecentKey}`);
+        }
+      } else {
+        state.currentChapterKey = mostRecentKey;
+        log(`Resuming chapter ${mostRecentKey}`);
+      }
+    } else {
+      // No progress anywhere, start at first chapter
+      state.currentChapterKey = '1-1';
+      log('No previous progress, starting at 1-1');
+    }
+
+    loadCurrentChapter();
   }
 
-  function processJsonData(json) {
-    state.jsonData = json;
+  // Load the current chapter for viewing/interaction
+  function loadCurrentChapter() {
+    if (!state.currentChapterKey) return;
+
+    const chapter = state.chapters[state.currentChapterKey];
+    if (!chapter) return;
+
+    $('currentChapterDisplay').textContent = state.currentChapterKey;
     
-    // Count segments (hotspots)
-    const hotspots = json.hotspots || [];
-    state.totalSegments = hotspots.length;
+    const { module, chapter: chapNum } = parseChapterKey(state.currentChapterKey);
+    $('currChapterLabel').textContent = state.currentChapterKey;
+    $('currModule').textContent = module;
+    $('currChapter').textContent = chapNum;
     
-    log(`Loaded JSON: ${state.totalSegments} segments found`);
-    
-    $('jsonStatus').style.display = 'block';
-    $('jsonStatus').className = 'status ok';
-    $('jsonStatus').textContent = `✓ Loaded: ${state.totalSegments} segments`;
-    
-    $('segmentInfo').textContent = `Chapter 2-1 loaded with ${state.totalSegments} segments. Module: 2, Chapter: 0 (0-based)`;
-    
-    renderSegmentList();
     updateProgress();
+    renderSegmentList();
+    
     $('btnNextSegment').disabled = false;
+    $('btnResetChapter').disabled = false;
+    $('btnResetAll').disabled = false;
+    
+    renderChapterGrid();
   }
 
-  function renderSegmentList() {
-    if (!state.jsonData || !state.jsonData.hotspots) return;
+  // Render chapter grid
+  function renderChapterGrid() {
+    const html = CHAPTER_FILES.map(filename => {
+      const key = filename.replace('.json', '');
+      const chapter = state.chapters[key];
+      const isCurrent = key === state.currentChapterKey;
+      const hasProgress = chapter && chapter.progress.lastUpdated !== null;
+      const isLoaded = chapter !== undefined;
+      
+      let className = 'chapter-card';
+      if (isCurrent) className += ' current';
+      else if (hasProgress) className += ' has-progress';
+      else if (isLoaded) className += ' loaded';
+      
+      const status = isCurrent ? '→' : (hasProgress ? '✓' : '○');
+      
+      return `
+        <div class="${className}" data-chapter-key="${key}">
+          <div style="font-weight:700;color:var(--accent)">${status} ${key}</div>
+          ${chapter ? `<div style="font-size:10px;color:var(--dim)">${chapter.data.hotspots?.length || 0} segments</div>` : ''}
+          ${hasProgress ? `<div style="font-size:10px;color:var(--dim)">${chapter.progress.currentSegment}/${chapter.progress.totalSegments}</div>` : ''}
+        </div>
+      `;
+    }).join('');
     
-    const html = state.jsonData.hotspots.map((hs, idx) => {
-      const ptr = `2.0.${idx}`;
-      const isCurrent = idx === state.currentSegment;
-      const isCompleted = idx < state.currentSegment;
+    $('chapterGrid').innerHTML = html;
+  }
+
+  // Render segment list for current chapter
+  function renderSegmentList() {
+    if (!state.currentChapterKey) return;
+    
+    const chapter = state.chapters[state.currentChapterKey];
+    if (!chapter || !chapter.data.hotspots) return;
+    
+    const { module, chapter: chapNum } = parseChapterKey(state.currentChapterKey);
+    const currentSeg = chapter.progress.currentSegment;
+    
+    const html = chapter.data.hotspots.map((hs, idx) => {
+      const ptr = `${module}.${chapNum}.${idx}`;
+      const isCurrent = idx === currentSeg;
+      const isCompleted = idx < currentSeg;
       const className = isCurrent ? 'current' : (isCompleted ? 'completed' : '');
       const status = isCompleted ? '✓' : (isCurrent ? '→' : '○');
       
@@ -393,68 +538,90 @@
     $('segmentList').innerHTML = html;
   }
 
+  // Update progress display
   function updateProgress() {
-    const ptr = `${state.moduleNum}.${state.chapterNum}.${state.currentSegment}`;
-    const percent = state.totalSegments > 0 
-      ? Math.round((state.currentSegment / state.totalSegments) * 100)
-      : 0;
+    if (!state.currentChapterKey) return;
     
-    $('currModule').textContent = state.moduleNum;
-    $('currChapter').textContent = state.chapterNum;
-    $('currSegment').textContent = state.currentSegment;
+    const chapter = state.chapters[state.currentChapterKey];
+    if (!chapter) return;
+    
+    const { module, chapter: chapNum } = parseChapterKey(state.currentChapterKey);
+    const currentSeg = chapter.progress.currentSegment;
+    const totalSegs = chapter.progress.totalSegments;
+    const ptr = `${module}.${chapNum}.${currentSeg}`;
+    const percent = totalSegs > 0 ? Math.round((currentSeg / totalSegs) * 100) : 0;
+    
+    $('currSegment').textContent = currentSeg;
     $('currPtr').textContent = ptr;
     $('currPercent').textContent = `${percent}%`;
     
     renderSegmentList();
   }
 
+  // Complete current segment
   async function completeCurrentSegment() {
-    if (!state.jsonData) {
-      log('No JSON loaded', true);
-      return;
-    }
-
-    if (state.currentSegment >= state.totalSegments) {
-      log('All segments completed!', true);
+    if (!state.currentChapterKey) return;
+    
+    const chapter = state.chapters[state.currentChapterKey];
+    if (!chapter) return;
+    
+    const { module, chapter: chapNum } = parseChapterKey(state.currentChapterKey);
+    const oldSeg = chapter.progress.currentSegment;
+    
+    if (oldSeg >= chapter.progress.totalSegments) {
+      log('All segments in this chapter completed!', true);
       return;
     }
 
     const stored = getStoredAuth();
     if (!stored.access) {
-      log('Not authenticated - please exchange token first', true);
+      log('Not authenticated', true);
       return;
     }
 
-    const oldPtr = `${state.moduleNum}.${state.chapterNum}.${state.currentSegment}`;
-    
     // Advance segment
-    state.currentSegment++;
-    const newPtr = `${state.moduleNum}.${state.chapterNum}.${state.currentSegment}`;
-    const percent = Math.round((state.currentSegment / state.totalSegments) * 100);
-    const completed = state.currentSegment >= state.totalSegments;
+    chapter.progress.currentSegment++;
+    const newSeg = chapter.progress.currentSegment;
+    const percent = Math.round((newSeg / chapter.progress.totalSegments) * 100);
+    const completed = newSeg >= chapter.progress.totalSegments;
+    chapter.progress.completed = completed;
+    chapter.progress.lastUpdated = new Date().toISOString();
+
+    const oldPtr = `${module}.${chapNum}.${oldSeg}`;
+    const newPtr = `${module}.${chapNum}.${newSeg}`;
 
     log(`Segment completed: ${oldPtr} → ${newPtr}`);
-    
     updateProgress();
+
+    // Build updated modules object for server
+    const modulesData = {};
+    
+    for (const key in state.chapters) {
+      const { module: m, chapter: c } = parseChapterKey(key);
+      const prog = state.chapters[key].progress;
+      
+      if (!modulesData[m]) {
+        modulesData[m] = { chapters: {} };
+      }
+      
+      modulesData[m].chapters[c] = {
+        currentSegment: prog.currentSegment,
+        totalSegments: prog.totalSegments,
+        completed: prog.completed,
+        lastUpdated: prog.lastUpdated
+      };
+    }
 
     // POST to API
     try {
       const payload = {
         training_progress: {
-          modules: {
-            "2": {
-              ptr: newPtr,
-              percent: percent,
-              completed: completed,
-              updated_at: new Date().toISOString()
-            }
-          },
-          overall_progress: Math.round((2 + (percent / 100)) / 6 * 100), // Assuming 6 total modules
+          modules: modulesData,
           last_updated: new Date().toISOString()
         }
       };
 
-      log(`POSTing progress update...`);
+      log(`POSTing progress update for ${state.currentChapterKey}...`);
       const resp = await fetchWithAuth(`${API_BASE}/api/training-progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -470,48 +637,134 @@
       log(`✓ Progress saved: ${newPtr} (${percent}%)`);
 
       if (completed) {
-        log('🎉 Chapter 2-1 completed!');
-        $('btnNextSegment').disabled = true;
+        log(`🎉 Chapter ${state.currentChapterKey} completed!`);
+        
+        // Auto-load next chapter
+        const nextKey = getNextChapterKey(state.currentChapterKey);
+        if (nextKey) {
+          log(`Auto-loading next chapter: ${nextKey}`);
+          state.currentChapterKey = nextKey;
+          loadCurrentChapter();
+        } else {
+          log('🎓 All chapters completed!');
+          $('btnNextSegment').disabled = true;
+        }
       }
+      
+      renderChapterGrid();
     } catch (e) {
       log(`POST error: ${e.message}`, true);
     }
   }
 
-  async function getProgress() {
-    const stored = getStoredAuth();
-    if (!stored.access) {
-      log('Not authenticated', true);
-      return;
+  // Reset current chapter progress
+  async function resetChapterProgress() {
+    if (!state.currentChapterKey) return;
+    if (!confirm(`Reset progress for chapter ${state.currentChapterKey}?`)) return;
+
+    const chapter = state.chapters[state.currentChapterKey];
+    if (!chapter) return;
+
+    chapter.progress.currentSegment = 0;
+    chapter.progress.completed = false;
+    chapter.progress.lastUpdated = null;
+
+    updateProgress();
+    renderChapterGrid();
+    
+    // Update server
+    const { module, chapter: chapNum } = parseChapterKey(state.currentChapterKey);
+    const modulesData = {};
+    
+    for (const key in state.chapters) {
+      const { module: m, chapter: c } = parseChapterKey(key);
+      const prog = state.chapters[key].progress;
+      
+      if (!modulesData[m]) {
+        modulesData[m] = { chapters: {} };
+      }
+      
+      modulesData[m].chapters[c] = {
+        currentSegment: prog.currentSegment,
+        totalSegments: prog.totalSegments,
+        completed: prog.completed,
+        lastUpdated: prog.lastUpdated
+      };
     }
 
     try {
-      log('Fetching current progress from server...');
-      const resp = await fetchWithAuth(`${API_BASE}/api/training-progress`);
+      const payload = {
+        training_progress: {
+          modules: modulesData,
+          last_updated: new Date().toISOString()
+        }
+      };
+
+      const resp = await fetchWithAuth(`${API_BASE}/api/training-progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
       
-      if (!resp.ok) {
-        throw new Error(`${resp.status} ${resp.statusText}`);
-      }
-
-      const data = await resp.json();
-      $('apiResponse').value = JSON.stringify(data, null, 2);
-      log('✓ Progress retrieved');
-
-      // Parse server progress for Module 2
-      const mod2 = data.training_progress?.modules?.["2"];
-      if (mod2 && mod2.ptr) {
-        log(`Server has Module 2 at: ${mod2.ptr} (${mod2.percent}%)`);
-      }
+      log(`✓ Chapter ${state.currentChapterKey} reset`);
     } catch (e) {
-      log(`GET error: ${e.message}`, true);
+      log(`Reset error: ${e.message}`, true);
     }
   }
 
-  function resetProgress() {
-    state.currentSegment = 0;
-    updateProgress();
-    $('btnNextSegment').disabled = state.jsonData ? false : true;
-    log('Progress reset to segment 0');
+  // Reset all progress
+  async function resetAllProgress() {
+    if (!confirm('Reset ALL progress across ALL chapters? This cannot be undone!')) return;
+
+    for (const key in state.chapters) {
+      state.chapters[key].progress.currentSegment = 0;
+      state.chapters[key].progress.completed = false;
+      state.chapters[key].progress.lastUpdated = null;
+    }
+
+    state.currentChapterKey = '1-1';
+    loadCurrentChapter();
+
+    // Update server with empty progress
+    const modulesData = {};
+    
+    for (const key in state.chapters) {
+      const { module: m, chapter: c } = parseChapterKey(key);
+      
+      if (!modulesData[m]) {
+        modulesData[m] = { chapters: {} };
+      }
+      
+      modulesData[m].chapters[c] = {
+        currentSegment: 0,
+        totalSegments: state.chapters[key].progress.totalSegments,
+        completed: false,
+        lastUpdated: null
+      };
+    }
+
+    try {
+      const payload = {
+        training_progress: {
+          modules: modulesData,
+          last_updated: new Date().toISOString()
+        }
+      };
+
+      const resp = await fetchWithAuth(`${API_BASE}/api/training-progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+      
+      log('✓ All progress reset');
+    } catch (e) {
+      log(`Reset error: ${e.message}`, true);
+    }
   }
 
   // Event Listeners
@@ -532,27 +785,29 @@
     log('Auth cleared');
   });
 
-  $('jsonFile').addEventListener('change', (e) => {
-    const file = e.target.files?.[0];
-    if (file) loadJsonFromFile(file);
-  });
-
-  $('btnLoadJson').addEventListener('click', () => {
-    $('jsonFile').click();
-  });
-
-  $('btnFetchJson').addEventListener('click', () => {
-    const url = $('jsonUrl').value.trim();
-    if (url) fetchJsonFromUrl(url);
-  });
-
+  $('btnLoadAll').addEventListener('click', loadAllChapters);
+  $('btnRefreshProgress').addEventListener('click', loadProgressFromServer);
   $('btnNextSegment').addEventListener('click', completeCurrentSegment);
-  $('btnResetProgress').addEventListener('click', resetProgress);
-  $('btnPullServer').addEventListener('click', getProgress);
-  $('btnGetProgress').addEventListener('click', getProgress);
+  $('btnResetChapter').addEventListener('click', resetChapterProgress);
+  $('btnResetAll').addEventListener('click', resetAllProgress);
   
   $('btnClearLog').addEventListener('click', () => {
     $('apiLog').textContent = 'Log cleared.\n';
+  });
+
+  // NEW: click any chapter card to jump and edit progress for that chapter
+  $('chapterGrid').addEventListener('click', (e) => {
+    const card = e.target.closest('.chapter-card');
+    if (!card) return;
+    const key = card.getAttribute('data-chapter-key');
+    if (!key) return;
+    if (!state.chapters[key]) {
+      log(`Chapter ${key} not loaded yet`, true);
+      return;
+    }
+    state.currentChapterKey = key;
+    log(`Manually switched to chapter ${key}`);
+    loadCurrentChapter();
   });
 
   // Initialize
@@ -574,8 +829,6 @@
       updateAuthStatus();
       log('Loaded stored authentication');
     }
-
-    updateProgress();
   })();
 })();
 </script>
