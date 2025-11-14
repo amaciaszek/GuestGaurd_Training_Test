@@ -214,8 +214,8 @@ const TIMING_TOTALS = {
   '4-2': 123,
   '5-1': 262,
   '5-2': 149,
-  '5-3': 0,  // No timing data yet
-  '6-1': 0   // No timing data yet
+  '5-3': 115, 
+  '6-1': 517
 };
 
 // Total training time: 2883 seconds (48 minutes, 3 seconds) for completed chapters
