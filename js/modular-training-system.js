@@ -163,7 +163,7 @@
       });
     }
 
-    resolveAsset(p){
+resolveAsset(p){
       if (!p) return '';
       
       // If it's already a full URL (http://, https://), return as-is
@@ -178,10 +178,16 @@
         console.log(`🔧 Converted root-relative to relative: ${p} → ${adjustedPath}`);
       }
       
+      // URL encode the path components to handle spaces and special characters
+      // This fixes: "4.1 Personal Safety.wav" → "4.1%20Personal%20Safety.wav"
+      const pathParts = adjustedPath.split('/');
+      const encodedParts = pathParts.map(part => encodeURIComponent(part));
+      const encodedPath = encodedParts.join('/');
+      
       // Use browser's native URL resolution - works EVERYWHERE!
       // This resolves relative to the current page location automatically
       try {
-        const resolved = new URL(adjustedPath, window.location.href).href;
+        const resolved = new URL(encodedPath, window.location.href).href;
         console.log(`🔗 Resolved: ${adjustedPath} → ${resolved}`);
         return resolved;
       } catch (e) {
