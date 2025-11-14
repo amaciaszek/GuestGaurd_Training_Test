@@ -169,11 +169,20 @@
       // If it's already a full URL (http://, https://), return as-is
       if (isAbsoluteUrl(p)) return p;
       
+      // CRITICAL FIX: Convert root-relative paths (starting with /) to relative paths
+      // This makes them work on localhost, GitHub Pages, Cloudflare, and any server
+      // Example: /Assets/file.jpg → Assets/file.jpg (relative to current page)
+      let adjustedPath = p;
+      if (p.startsWith('/')) {
+        adjustedPath = p.substring(1); // Remove leading slash
+        console.log(`🔧 Converted root-relative to relative: ${p} → ${adjustedPath}`);
+      }
+      
       // Use browser's native URL resolution - works EVERYWHERE!
       // This resolves relative to the current page location automatically
       try {
-        const resolved = new URL(p, window.location.href).href;
-        console.log(`🔗 Resolved: ${p} → ${resolved}`);
+        const resolved = new URL(adjustedPath, window.location.href).href;
+        console.log(`🔗 Resolved: ${adjustedPath} → ${resolved}`);
         return resolved;
       } catch (e) {
         console.error(`❌ Failed to resolve: ${p}`, e);
