@@ -585,28 +585,59 @@ resolveAsset(p){
       return captions;
     }
 
-    initStorage(){
-      const currentVer = parseInt(localStorage.getItem(this.VER_KEY)||'0',10);
-      if (currentVer !== this.SCHEMA_VERSION){
-        Object.keys(localStorage).forEach(k=>{ if (k.endsWith('_done')) localStorage.removeItem(k); });
-        localStorage.setItem(this.VER_KEY,String(this.SCHEMA_VERSION));
-      }
-      this.moduleKey = `${this.config.id||'default'}_done`;
-      this.done = new Set(JSON.parse(localStorage.getItem(this.moduleKey)||'[]'));
-      
-      // Mark segments as done based on startingSegment from API progress
-      if (this.startingSegment > 0 && this.config.hotspots) {
-        console.log(`📍 Resuming from segment ${this.startingSegment}`);
-        for (let i = 0; i < this.startingSegment && i < this.config.hotspots.length; i++) {
-          const hotspot = this.config.hotspots[i];
-          if (hotspot && hotspot.id) {
-            this.done.add(hotspot.id);
-          }
-        }
-        this.saveDone();
+initStorage(){
+  const usingServerProgress = !!(window.GGTrainingAPI && window.GGTrainingAPI.accessToken);
+
+  this.moduleKey = `${this.config.id || 'default'}_done`;
+
+  if (usingServerProgress) {
+    // 🚫 API mode: do NOT trust or load any local "_done" data.
+    // The only source of truth is `startingSegment` from the server.
+    console.log('🧠 API mode: ignoring localStorage done state for', this.moduleKey);
+    this.done = new Set();
+  } else {
+    // 🧱 Local-only mode (no API): keep old behavior
+    const currentVer = parseInt(localStorage.getItem(this.VER_KEY) || '0', 10);
+    if (currentVer !== this.SCHEMA_VERSION){
+      Object.keys(localStorage).forEach(k => {
+        if (k.endsWith('_done')) localStorage.removeItem(k);
+      });
+      localStorage.setItem(this.VER_KEY, String(this.SCHEMA_VERSION));
+    }
+
+    this.done = new Set(
+      JSON.parse(localStorage.getItem(this.moduleKey) || '[]')
+    );
+  }
+
+  // Apply startingSegment from API (or other caller) by lighting up the first N hotspots
+  if (this.startingSegment > 0 && this.config.hotspots) {
+    console.log(`📍 Resuming from segment ${this.startingSegment}`);
+    for (let i = 0; i < this.startingSegment && i < this.config.hotspots.length; i++) {
+      const hotspot = this.config.hotspots[i];
+      if (hotspot && hotspot.id) {
+        this.done.add(hotspot.id);
       }
     }
-    saveDone(){ localStorage.setItem(this.moduleKey, JSON.stringify([...this.done])); }
+    this.saveDone();  // will be a no-op in API mode
+  }
+}
+
+    saveDone(){
+  const usingServerProgress = !!(window.GGTrainingAPI && window.GGTrainingAPI.accessToken);
+
+  // In API mode we *never* persist local "_done" – server is the source of truth.
+  if (usingServerProgress) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(this.moduleKey, JSON.stringify([...this.done]));
+  } catch (e) {
+    console.warn('⚠️ Failed to save local progress:', e.message);
+  }
+}
+
 
     cacheDOM(){
       this.title = document.getElementById('moduleTitle');
