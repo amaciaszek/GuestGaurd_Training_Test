@@ -165,8 +165,20 @@
 
     resolveAsset(p){
       if (!p) return '';
+      
+      // If it's already a full URL (http://, https://), return as-is
       if (isAbsoluteUrl(p)) return p;
-      return new URL(p, this.moduleBase).href;
+      
+      // Use browser's native URL resolution - works EVERYWHERE!
+      // This resolves relative to the current page location automatically
+      try {
+        const resolved = new URL(p, window.location.href).href;
+        console.log(`🔗 Resolved: ${p} → ${resolved}`);
+        return resolved;
+      } catch (e) {
+        console.error(`❌ Failed to resolve: ${p}`, e);
+        return p;
+      }
     }
 
     async init(){

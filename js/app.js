@@ -39,8 +39,8 @@ function el(tag, attrs={}, children=[]){
   return n;
 }
 
-// URL checker
-const isAbsoluteUrl = (p) => /^([a-z]+:)?\/\//i.test(p) || p.startsWith('/');
+// URL checker - purely relative paths work everywhere
+const isAbsoluteUrl = (p) => /^([a-z]+:)?\/\//i.test(p);
 
 // Reset stage shell function
 window.resetStageShell = function(){
