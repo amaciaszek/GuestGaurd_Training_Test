@@ -429,80 +429,58 @@ body {
   display: grid;
   place-items: center;
   background: #22c55e;
-  color: #fff;
+  color: #000;
   border-radius: 50%;
   font-size: 12px;
   font-weight: 700;
   z-index: 2;
-  pointer-events: none;
-}
-
-.hotspot.pill::before {
-  top: -2px;
-  left: -2px;
-}
-
-.hotspot.pill.done::after {
-  top: -2px;
-  right: -2px;
 }
 
 @keyframes megaPulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(248, 250, 252, .8), 0 0 20px 4px rgba(248, 250, 252, .6);
-  }
-  50% {
-    box-shadow: 0 0 0 12px rgba(248, 250, 252, 0), 0 0 35px 12px rgba(248, 250, 252, .9);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(248, 250, 252, 0), 0 0 20px 4px rgba(248, 250, 252, .6);
-  }
+  0% { box-shadow: 0 0 0 0 rgba(248, 250, 252, 0.6); }
+  50% { box-shadow: 0 0 0 15px rgba(248, 250, 252, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(248, 250, 252, 0); }
 }
 
 /* ============================================
-   INNER WINDOW (Animated Popup)
+   VIEWER WINDOW (Inner Window)
    ============================================ */
 .inner-window {
   position: absolute;
+  /* No default position - JavaScript controls all positioning via inline styles */
+  z-index: 999;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .8);
   display: none;
   flex-direction: column;
-  z-index: 20;
-  background: #000;
-  border-radius: 16px;
-  box-shadow: 0 0 40px rgba(0, 0, 0, .8);
-  overflow: hidden;
-  transition: top var(--animation-duration) linear, 
-              left var(--animation-duration) linear, 
-              width var(--animation-duration) linear, 
-              height var(--animation-duration) linear, 
-              opacity var(--animation-duration) linear;
+  transition: all var(--animation-duration) linear;
   opacity: 0;
-  will-change: top, left, width, height, opacity;
-  /* NEW: Prevent overflow beyond viewport */
-  max-height: 90vh;
-  max-width: 95vw;
 }
 
 .inner-window.active {
   display: flex;
 }
 
-.inner-window.animating {
-  opacity: 1;
-}
+/* No size overrides - JavaScript controls all sizing via inline styles */
 
 .inner-window header {
   background: #1a1a1a;
-  color: #fff;
-  padding: 10px 12px;
-  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, .1);
+  padding: 10px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  transition: transform var(--animation-duration) linear, 
-              opacity var(--animation-duration) linear;
+  font-weight: 600;
+  transition: all var(--animation-duration) linear;
   transform-origin: top left;
+}
+
+#viewerTitle {
+  font-size: 14px;
+  color: #00e0ff;
 }
 
 .inner-window header .right {
@@ -511,14 +489,27 @@ body {
   align-items: center;
 }
 
-.header-real-life-btn {
-  background: rgba(0, 0, 0, .8);
+#closeViewer {
+  background: #ff4444;
   color: #fff;
-  border: 2px solid #00e0ff;
+  border: none;
+  padding: 4px 10px;
   border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
   cursor: pointer;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.header-real-life-btn {
+  background: rgba(0, 224, 255, .1);
+  color: #00e0ff;
+  border: 1px solid rgba(0, 224, 255, .3);
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
   transition: all .2s ease;
 }
 
@@ -526,9 +517,6 @@ body {
   background: rgba(0, 224, 255, .2);
 }
 
-/* ============================================
-   VIEWER (Content Area)
-   ============================================ */
 /* ============================================
    VIEWER (Content Area)
    ============================================ */
@@ -545,7 +533,7 @@ body {
   transition: transform var(--animation-duration) linear, 
               opacity var(--animation-duration) linear;
   transform-origin: top left;
-  /* NEW: Enable scrolling for overflow content */
+  /* Enable scrolling for overflow content */
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -554,8 +542,10 @@ body {
   position: relative;
   flex: 1;
   min-height: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   border-radius: 10px;
   background: #000;
@@ -569,7 +559,8 @@ body {
 }
 
 .mediaArea video {
-  width: 100%;
+  /* FIXED: Ensure full video height is visible with black bars on sides if needed */
+  width: auto;
   height: 100%;
   display: block;
   object-fit: contain;
@@ -610,11 +601,15 @@ body {
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
+  /* Comfortable reading size - not too large */
+  font-size: 18px;
+  line-height: 1.6;
 }
 
 /* Wrapper for subs-only content */
 .subs-only {
-  overflow-y: auto;
+  /* HIDE SCROLLBAR: No longer needed with larger box */
+  overflow-y: hidden;
   max-height: 100%;
 }
 
@@ -623,6 +618,9 @@ body {
   word-wrap: break-word;
   overflow-wrap: break-word;
   hyphens: auto;
+  /* Comfortable reading size for narration text */
+  font-size: 18px;
+  line-height: 1.6;
 }
 
 /* ============================================
@@ -931,6 +929,16 @@ input[type="file"] {
 .viewer {
   scrollbar-width: thin;
   scrollbar-color: #404040 #1a1a1a;
+}
+
+/* HIDE SCROLLBAR for narration-only content */
+.subs-only::-webkit-scrollbar {
+  display: none;
+}
+
+.subs-only {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 /* ============================================

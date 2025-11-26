@@ -361,7 +361,8 @@
     
     // Resume from last progress
     resumeFromLastProgress() {
-      console.log('\n🔍 ===== DETERMINING WHICH CHAPTER TO LOAD =====');
+      console.log('\n🔍 ===== AUTO-RESUME: DETERMINING WHICH CHAPTER TO LOAD =====');
+      console.log('This system automatically takes you to your last active chapter');
       
       // Separate chapters into categories
       const incompleteWithProgress = [];
@@ -407,7 +408,10 @@
         });
         
         targetKey = incompleteWithProgress[0].key;
-        reason = `Most recent incomplete chapter (${incompleteWithProgress[0].currentSegment}/${incompleteWithProgress[0].totalSegments} segments, last updated: ${new Date(incompleteWithProgress[0].lastUpdated).toLocaleString()})`;
+        const lastUpdate = incompleteWithProgress[0].lastUpdated 
+          ? new Date(incompleteWithProgress[0].lastUpdated).toLocaleString()
+          : 'unknown';
+        reason = `📍 RESUMING: Most recent incomplete chapter (${incompleteWithProgress[0].currentSegment}/${incompleteWithProgress[0].totalSegments} segments, last updated: ${lastUpdate})`;
       }
       // Priority 2: Start first not-started chapter
       else if (notStarted.length > 0) {
@@ -418,24 +422,24 @@
         
         if (ordered.length > 0) {
           targetKey = ordered[0].replace('.json', '');
-          reason = 'First chapter with no progress';
+          reason = '🆕 Starting first chapter with no progress';
         }
       }
       // Priority 3: All chapters completed - go to first chapter
       else if (completed.length > 0) {
         targetKey = '1-1';
-        reason = 'All chapters completed - returning to start';
+        reason = '🎉 All chapters completed - returning to start';
         console.log('🎉 Congratulations! All chapters completed!');
       }
       // Fallback: Start from beginning
       else {
         targetKey = '1-1';
-        reason = 'No progress data - starting from beginning';
+        reason = '🆕 No progress data - starting from beginning';
       }
       
-      console.log(`\n✅ DECISION: Load ${targetKey}`);
-      console.log(`   Reason: ${reason}`);
-      console.log('===== END CHAPTER SELECTION =====\n');
+      console.log(`\n✅ AUTO-RESUME DECISION: Load ${targetKey}`);
+      console.log(`   ${reason}`);
+      console.log('===== END AUTO-RESUME =====\n');
       
       this.currentChapterKey = targetKey;
       this.loadCurrentChapter();

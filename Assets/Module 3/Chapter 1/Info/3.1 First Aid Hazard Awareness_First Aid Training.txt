@@ -1,7 +1,7 @@
 00;00;00;18 - 00;00;04;24
 Emergencies don’t always come in the form of fire or natural hazards.
 00;00;05;05 - 00;00;09;25
-Sometimes, they’re medical a cut, a fall, or something more serious.
+Sometimes, they’re medical; a cut, a fall, or something more serious.
 00;00;10;07 - 00;00;13;26
 That’s why every host should understand the basics of first aid.
 00;00;14;13 - 00;00;18;06

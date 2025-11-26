@@ -84,8 +84,12 @@ Because you prepared clear egress routes,
 provided tools, and kept pathways visible,
 00;02;21;07 - 00;02;24;06
 they make it out calmly and without injury.
-00;02;24;16 - 00;02;30;10
-In short, emergency egress is about creating clear, safe, and visible
+00;02;24;16 - 00;02;28;22
+In short, emergency egress is about creating clear, safe, 
+00;02;28;24 - 00;02;30;08
+and visible exit routes;
+00;02;30;16 - 00;02;34;03
+and keep hallways open provide fire ladders where needed,
 00;02;34;09 - 00;02;39;14
 mark exits properly, supply flashlights, and make sure your property is well lit.
 00;02;39;23 - 00;02;44;06

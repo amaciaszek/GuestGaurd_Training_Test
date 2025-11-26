@@ -39,7 +39,7 @@
     {
       "id": "b3",
       "tcStart": "00;00;42;06",
-      "tcEnd": "00;01;30;05",
+      "tcEnd": "00;01;29;18",
       "realLifeExamples": [
         "/Assets/Module 2/Chapter 3/Segment 2/Examples/Noise Testing (Shutterstock).jpg"
       ],
@@ -51,12 +51,12 @@
       "text": "[Noise Levels & Standards]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 2/Chapter 3/Segment 2/Noise Levels and Standards.mov"
+        "src": ["/Assets/Module 2/Chapter 3/Segment 2/Noise Levels and Standards.mov","/Assets/Module 2/Chapter 3/Segment 2/Facility Planning, Other Considerations, Noise Levels Video 2.mov"]
       }
     },
     {
       "id": "b4",
-      "tcStart": "00;01;30;05",
+      "tcStart": "00;01;29;18",
       "tcEnd": "00;01;55;23",
       "realLifeExamples": [],
       "type": "circle",

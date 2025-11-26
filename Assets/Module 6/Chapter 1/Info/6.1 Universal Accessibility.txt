@@ -139,7 +139,7 @@ In the bedroom, bed height matters.
 00;04;23;09 - 00;04;26;16
 Ideally, it matches wheelchair seat height,
 00;04;26;21 - 00;04;28;28
-
+which is 18 to 22 inches.
 00;04;29;12 - 00;04;31;28
 Too low requires strength to lift;
 00;04;32;07 - 00;04;34;13

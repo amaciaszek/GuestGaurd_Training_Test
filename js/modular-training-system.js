@@ -1,4 +1,4 @@
-  class ModularTrainingSystem {
+class ModularTrainingSystem {
 
   // === [Captions Helpers] ===
   findCaptionsForTime(time){
@@ -129,6 +129,13 @@
       this.captions = [];
       this.currentCaptionElement = null;
       this.transcriptText = transcriptText;
+      
+      // Track multiple video state for alternating playback
+      this.videoState = {
+        videos: null,           // Array of video sources (resolved URLs)
+        currentIndex: 0,        // Which video is playing (0 or 1)
+        playCount: [0, 0]       // How many times each video has played
+      };
 
       // NEW: track whether we’ve already auto-expanded the “current” module/chapter once
       this.sidebarInitialized = false;
@@ -788,6 +795,11 @@ initStorage(){
         this.seg.active=false; cancelAnimationFrame(this.seg.rafId);
         this.currentCaptionElement = null;
         
+        // Reset video state for multiple videos
+        this.videoState.videos = null;
+        this.videoState.currentIndex = 0;
+        this.videoState.playCount = [0, 0];
+        
         this.innerWindow.style.top = '';
         this.innerWindow.style.left = '';
         this.innerWindow.style.width = '';
@@ -859,17 +871,94 @@ initStorage(){
         }
       }
       
+      // Check if ALL segments in this chapter are complete
+      const totalSegments = (this.config.hotspots || []).length;
+      const completedCount = Array.from(this.done).filter(doneId => 
+        (this.config.hotspots || []).some(h => h.id === doneId)
+      ).length;
+      const isChapterComplete = completedCount >= totalSegments;
+      
+      console.log(`📊 Chapter progress: ${completedCount}/${totalSegments} segments complete`);
+      
       const hotspot = (this.config.hotspots||[]).find(h=>h.id===id);
-      const isDone = (hotspot?.order||'').toLowerCase()==='done';
+      const isLastSegment = (hotspot?.order||'').toLowerCase()==='done';
+      
+      // Find the next segment in sequence
+      console.log('🔍 Looking for next segment...');
+      console.log('  linearOrder:', this.linearOrder);
+      console.log('  Current id:', id);
+      
+      const currentIndex = this.linearOrder.indexOf(id);
+      console.log('  Current index:', currentIndex);
+      
+      const nextIndex = currentIndex + 1;
+      console.log('  Next index:', nextIndex);
+      
+      const hasNextSegment = nextIndex < this.linearOrder.length;
+      console.log('  Has next segment?', hasNextSegment);
+      
+      const nextSegmentId = hasNextSegment ? this.linearOrder[nextIndex] : null;
+      console.log('  Next segment ID:', nextSegmentId);
+      
+      const nextButton = nextSegmentId ? this.buttons[nextSegmentId] : null;
+      console.log('  Next button element:', nextButton);
+      
+      if (nextButton) {
+        console.log('  Next button classes:', nextButton.className);
+        console.log('  Next button clickable?', nextButton.classList.contains('clickable'));
+      }
+      
       const nextBtn = document.getElementById('nextBtn');
       if (nextBtn){
         nextBtn.style.display='block';
         nextBtn.onclick = ()=>{
-          if (isDone){
-            const isLast = this.currentModuleIndex === MODULE_SEQUENCE.length - 1;
-            if (isLast){ alert('Congratulations! You have completed all training modules.'); this.closeViewer(); }
-            else { this.showChapterCompleteDialog(); }
+          console.log('🔘 Next button clicked!');
+          console.log('  isChapterComplete:', isChapterComplete);
+          console.log('  isLastSegment:', isLastSegment);
+          console.log('  hasNextSegment:', hasNextSegment);
+          console.log('  nextButton exists:', !!nextButton);
+          
+          // Show chapter complete dialog if ALL segments are done
+          if (isChapterComplete || isLastSegment){
+            console.log('🎉 Chapter Complete! Showing dialog...');
+            const isLastChapter = this.currentModuleIndex === MODULE_SEQUENCE.length - 1;
+            if (isLastChapter){ 
+              alert('Congratulations! You have completed all training modules.'); 
+              this.closeViewer(); 
+            } else { 
+              this.showChapterCompleteDialog(); 
+            }
+          } else if (hasNextSegment && nextButton) {
+            // Close viewer, wait, then open next segment with animation
+            console.log(`➡️ AUTO-ADVANCE: Moving to next segment: ${nextSegmentId}`);
+            this.closeViewer();
+            
+            // Wait the configured delay, then open next segment
+            const delay = typeof SEGMENT_TRANSITION_DELAY !== 'undefined' ? SEGMENT_TRANSITION_DELAY : 300;
+            console.log(`⏱️ Waiting ${delay}ms before opening next segment...`);
+            
+            setTimeout(() => {
+              console.log(`🎬 Opening next segment "${nextSegmentId}" now!`);
+              console.log('  Button element:', nextButton);
+              console.log('  Button ID:', nextButton.id);
+              console.log('  Button classes:', nextButton.className);
+              
+              // Make absolutely sure the button is clickable before clicking
+              if (nextButton.classList.contains('locked')) {
+                console.error('❌ Next button is locked! This should not happen.');
+                console.log('  Forcing button to clickable state...');
+                this.setState(nextButton, 'clickable');
+              }
+              
+              console.log('  Clicking button...');
+              nextButton.click();
+              console.log('  Button clicked!');
+            }, delay);
           } else {
+            // Fallback: just close if no next segment found
+            console.warn('⚠️ No next segment found, just closing viewer');
+            console.log('  hasNextSegment:', hasNextSegment);
+            console.log('  nextButton:', nextButton);
             this.closeViewer();
           }
         };
@@ -1019,12 +1108,74 @@ const id = button.id;
         const media = el('div',{class:'mediaArea'});
         
         if (hasVideo) {
-          const videoSrc = h.video ? this.resolveAsset(h.video) : this.resolveAsset(h.contentMedia.src);
-          const vid = el('video',{src:videoSrc});
-          vid.autoplay = true; vid.muted = true; vid.playsInline = true; vid.loop = true; vid.controls = false;
-          vid.addEventListener('loadedmetadata',()=>{ vid.play().catch(()=>{}); });
-          media.appendChild(vid);
-          this.seg.currentVideo = vid;
+          // Reset video state for new hotspot
+          this.videoState.videos = null;
+          this.videoState.currentIndex = 0;
+          this.videoState.playCount = [0, 0];
+          
+          // Get video source(s) - could be string or array
+          const rawVideoSrc = h.video || h.contentMedia.src;
+          
+          // Check if we have multiple videos
+          if (Array.isArray(rawVideoSrc)) {
+            // Multiple videos - resolve all URLs and store them
+            this.videoState.videos = rawVideoSrc.map(src => this.resolveAsset(src));
+            console.log('📹 Multiple videos detected:', this.videoState.videos);
+            
+            // Start with the first video
+            const vid = el('video', {src: this.videoState.videos[0]});
+            vid.autoplay = true; 
+            vid.muted = true; 
+            vid.playsInline = true; 
+            vid.loop = false; // Don't loop - we'll handle switching manually
+            vid.controls = false;
+            
+            // Set up alternating playback when video ends
+            vid.addEventListener('ended', () => {
+              console.log(`📹 Video ${this.videoState.currentIndex + 1} ended (play count: ${this.videoState.playCount[this.videoState.currentIndex] + 1})`);
+              
+              // Increment play count for current video
+              this.videoState.playCount[this.videoState.currentIndex]++;
+              
+              // Switch to the other video
+              this.videoState.currentIndex = 1 - this.videoState.currentIndex; // Toggle between 0 and 1
+              
+              // Load and play the next video
+              const nextVideoSrc = this.videoState.videos[this.videoState.currentIndex];
+              console.log(`📹 Switching to video ${this.videoState.currentIndex + 1}:`, nextVideoSrc);
+              
+              vid.src = nextVideoSrc;
+              vid.load();
+              
+              // Only play if the audio segment is still active
+              if (this.seg.active && !this.audio.paused) {
+                vid.play().catch(err => console.error('Error playing next video:', err));
+              }
+            });
+            
+            vid.addEventListener('loadedmetadata', () => {
+              vid.play().catch(() => {});
+            });
+            
+            media.appendChild(vid);
+            this.seg.currentVideo = vid;
+            
+          } else {
+            // Single video - original behavior
+            const videoSrc = this.resolveAsset(rawVideoSrc);
+            const vid = el('video', {src: videoSrc});
+            vid.autoplay = true; 
+            vid.muted = true; 
+            vid.playsInline = true; 
+            vid.loop = true; 
+            vid.controls = false;
+            vid.addEventListener('loadedmetadata', () => { 
+              vid.play().catch(() => {}); 
+            });
+            media.appendChild(vid);
+            this.seg.currentVideo = vid;
+          }
+          
         } else if (hasImage) {
           const imgSrc = this.resolveAsset(h.contentMedia.src);
           const img = el('img',{src:imgSrc, alt: h.contentMedia.alt || 'Content image'});
@@ -1041,7 +1192,7 @@ const id = button.id;
         const wrap = el('div',{class:'subs-only', style:'flex:1;display:flex;align-items:center;justify-content:center;padding:20px;position:relative'});
         
         if (hasCaptions) {
-          const captionEl = el('div',{class:'caption', style:'position:static;max-width:100%;font-size:20px;line-height:1.6'}, '');
+          const captionEl = el('div',{class:'caption', style:'position:static;max-width:100%;font-size:18px;line-height:1.6'}, '');
           this.currentCaptionElement = captionEl;
           wrap.appendChild(captionEl);
         } else {
@@ -1111,10 +1262,11 @@ const id = button.id;
         finalTop = stageHeight * 0.08;
         finalLeft = stageWidth * 0.08;
       } else {
-        finalWidth = Math.min(520, stageWidth * 0.46);
-        finalHeight = stageHeight * 0.60;
-        finalTop = stageHeight * 0.34;
-        finalLeft = stageWidth * 0.51;
+        // Small window (narration only) - use original positioning logic but bigger size
+        finalWidth = Math.min(600, stageWidth * 0.52);  // Increased from 520px/0.46
+        finalHeight = stageHeight * 0.65;                // Increased from 0.60
+        finalTop = stageHeight * 0.20;                   // Adjusted slightly from 0.34 to center better
+        finalLeft = stageWidth * 0.24;                   // Centered: 0.52 width at 0.24 left
       }
 
       console.log('Calculated final dimensions:', {

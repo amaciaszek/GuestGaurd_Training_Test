@@ -154,11 +154,11 @@ Instead of distractions or concerns,
 00;03;00;07 - 00;03;03;07
 the guest can simply relax and enjoy their stay.
 
-00;03;03;26 - 00;03;07;10
-To recap: identify and remove hazards like lead 
+00;03;03;26 - 00;03;07;23
+To recap: identify and remove hazards like lead paint,
 
-00;03;07;10 - 00;03;10;10
-paint, mold, foul odors, and pests. 
+00;03;07;27 - 00;03;10;10
+mold, foul odors, and pests. 
 
 00;03;10;14 - 00;03;12;21
 Maintain a weathertight property, 
@@ -169,5 +169,8 @@ ensure your sewer system works properly, and enforce
 00;03;16;07 - 00;03;20;05
 clear odor and smoking policies. 
 
-00;03;20;06 - 00;03;25;10
-your property stays safe and guests feel confident and comfortable in their stay.
+00;03;18;27 - 00;03;21;27
+When hazards are managed your property stays safe
+
+00;03;22;07 - 00;03;25;10
+and guests feel confident and comfortable in their stay.

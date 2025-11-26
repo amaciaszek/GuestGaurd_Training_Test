@@ -80,9 +80,11 @@ which has the fire department’s number already listed.
 Because everything was clear, simple, and well-marked,
 00;02;12;09 - 00;02;16;14
 they leave calmly and safely  without confusion or panic.
-00;02;16;29 - 00;02;22;27
-By preparing evacuation steps, providing a plan, adding signage, and documenting procedures,
-00;02;23;01 - 00;02;26;17
-you create a safer environment for everyone. And you show
-00;02;26;17 - 00;02;29;24
-that your property is managed with care and professionalism.
+00;02;16;29 - 00;02;20;04
+By preparing evacuation steps, providing a plan, 
+00;02;20;09 - 00;02;23;00
+adding signage, and documenting procedures,
+00;02;23;01 - 00;02;25;21
+you create a safer environment for everyone. 
+00;02;25;27 - 00;02;29;24
+And you show that your property is managed with care and professionalism.

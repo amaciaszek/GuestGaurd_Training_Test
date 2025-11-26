@@ -64,11 +64,7 @@
       "centerY": 1129,
       "width": 940,
       "height": 940,
-      "text": "[Hypothetical Example]",
-      "contentMedia": {
-        "type": "video",
-        "src": "/Assets/Module 4/Chapter 2/Segment 3/4.2.3 Party Rules.mov"
-      }
+      "text": "[Hypothetical Example]"
     },
     {
       "id": "b5",
@@ -80,7 +76,11 @@
       "centerY": 2362,
       "width": 940,
       "height": 940,
-      "text": "[Party Rules]"
+      "text": "[Party Rules]",
+      "contentMedia": {
+        "type": "video",
+        "src": "/Assets/Module 4/Chapter 2/Segment 3/4.2.3 Party Rules.mov"
+      }
     },
     {
       "id": "b9",

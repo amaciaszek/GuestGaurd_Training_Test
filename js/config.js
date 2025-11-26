@@ -3,6 +3,11 @@
 const LocalDebugMode = false;
 const MODULE_SEQUENCE = ['2-1.json','2-2.json','2-3.json'];
 
+// ===== Segment Transition Configuration =====
+// Time (in milliseconds) to wait after closing a segment before opening the next one
+// This creates a brief pause to show the background between segments
+const SEGMENT_TRANSITION_DELAY = 300; // 300ms = 0.3 seconds (fast but visible)
+
 const TRAINING_STRUCTURE = [
   {
     id: 'module-1',
@@ -204,7 +209,7 @@ const TIMING_TOTALS = {
   '1-2': 158,
   '1-3': 163,
   '1-4': 199,
-  '1-5': 187,
+  '1-5': 207,
   '2-1': 192,
   '2-2': 255,
   '2-3': 181,
