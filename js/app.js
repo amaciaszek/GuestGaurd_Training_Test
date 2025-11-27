@@ -62,6 +62,16 @@ window.resetStageShell = function(){
   'use strict';
   
   document.addEventListener('DOMContentLoaded', () => {
+    // Hide auth box if configured
+    if (typeof HIDE_AUTH_BOX !== 'undefined' && HIDE_AUTH_BOX === true) {
+      const authWrap = document.querySelector('.auth-wrap');
+      if (authWrap) {
+        authWrap.style.display = 'none';
+        console.log('🔒 Authentication box hidden (HIDE_AUTH_BOX = true)');
+      }
+      return; // Skip all auth UI setup if hidden
+    }
+    
     const toggleBtn = document.getElementById('toggleAuth');
     const authContent = document.getElementById('authContent');
     const authWrap = document.querySelector('.auth-wrap');

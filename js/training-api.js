@@ -472,11 +472,11 @@
     async postSegmentProgress(segmentNum, completed = false) {
       if (!this.accessToken || !this.currentChapterKey) {
         console.warn('⚠️ Cannot post progress: not authenticated or no current chapter');
-        return;
+        return false;
       }
       
       const chapter = this.allChapters[this.currentChapterKey];
-      if (!chapter) return;
+      if (!chapter) return false;
       
       // Update local progress
       chapter.progress.currentSegment = segmentNum;
@@ -534,8 +534,25 @@
           this.moveToNextChapter();
         }
         
+        return true;
+        
       } catch (e) {
         console.error('❌ Failed to post progress:', e.message);
+        
+        // Show error popup asking user to reload
+        const shouldReload = confirm(
+          '⚠️ Server Communication Issue\n\n' +
+          'Failed to save your progress to the server.\n' +
+          'Your progress may not be synchronized.\n\n' +
+          'Would you like to reload the page to restore connection?\n\n' +
+          'Click OK to reload, or Cancel to continue (progress may be lost).'
+        );
+        
+        if (shouldReload) {
+          window.location.reload();
+        }
+        
+        return false;
       }
     },
     

@@ -3,6 +3,9 @@
 const LocalDebugMode = false;
 const MODULE_SEQUENCE = ['2-1.json','2-2.json','2-3.json'];
 
+// Set to true to hide authentication box (for production)
+const HIDE_AUTH_BOX = true;
+
 // ===== Segment Transition Configuration =====
 // Time (in milliseconds) to wait after closing a segment before opening the next one
 // This creates a brief pause to show the background between segments
@@ -139,86 +142,86 @@ const CAPTION_DEBUG = true;
 const SEGMENT_TIMINGS = {
   '1-1': {
     segments: ['Intro', 'Evacuation Basics', 'Host & Guest Plan', 'Exit Signage', 'Emergency Manual', 'Hypothetical Example', 'Closing'],
-    durations: [26, 20, 14, 36, 34, 13, 17]
+    durations: [7, 26, 20, 14, 36, 34, 13]
   },
   '1-2': {
     segments: ['Intro', 'Keeping Exit Paths Clear', 'Fire Ladders', 'Exit Signage', 'Flashlights', 'Lighting the Property', 'Hypothetical Example', 'Closing'],
-    durations: [21, 16, 20, 16, 23, 31, 11, 20]
+    durations: [17, 21, 16, 20, 16, 23, 31, 20]
   },
   '1-3': {
     segments: ['Intro', 'Accessibility & Placement', 'Compliance, Tagging & Condition', 'Types of Extinguishers', 'Hypothetical Example', 'Closing'],
-    durations: [31, 41, 27, 29, 22, 13]
+    durations: [11, 31, 41, 27, 29, 22]
   },
   '1-4': {
     segments: ['Intro', 'What They Look Like & Where to Place Them', 'Local vs. Interconnected Systems', 'Common Brands', 'Testing & Monitoring Requirements', 'Showing Detectors to Inspectors', 'Hypothetical Example', 'Closing'],
-    durations: [23, 46, 16, 21, 13, 28, 22, 30]
+    durations: [13, 23, 46, 16, 21, 13, 28, 22]
   },
   '1-5': {
     segments: ['Intro', 'Electrical Systems & Breaker Boxes', 'Outlets', 'Heating Types in the Home', 'Standards for Open Flames', 'Certification & Training', 'Flammable Gas Storage', 'Closing'],
-    durations: [38, 28, 24, 27, 22, 24, 22, 22]
+    durations: [14, 30, 36, 28, 24, 27, 22, 24] 
   },
   '2-1': {
     segments: ['Intro', 'What Utilities Are & Why They Matter', 'Alternative Heating Sources', 'Air Conditioning Units', 'Water Availability', 'WiFi Access & Standards', 'Hypothetical Example', 'Closing'],
-    durations: [32, 18, 23, 37, 20, 15, 14, 33]
+    durations: [16, 22, 25, 22, 15, 28, 31, 22]
   },
   '2-2': {
     segments: ['Intro', 'Common Hazards in Homes', 'What Hazards Are & How to Identify Them', 'Weathertight Properties', 'Sewer Systems', 'Pests & Pest Programs', 'Odor & Smoking Policies', 'Hypothetical Example', 'Closing'],
-    durations: [31, 27, 23, 28, 34, 22, 48, 26, 16]
+    durations: [13, 16, 39, 15, 18, 29, 20, 34, 22]
   },
   '2-3': {
     segments: ['Intro', 'Safe Spaces in the Home', 'Noise Levels & Standards', 'Hypothetical Example', 'Closing'],
-    durations: [42, 46, 35, 32, 26]
+    durations: [15, 28, 47, 26, 16]
   },
   '3-1': {
     segments: ['Intro', 'First Aid Kits', 'The GuestGuard First Aid Logbook', 'Hypothetical Example', 'Closing'],
-    durations: [19, 22, 24, 21, 22]
+    durations: [42, 46, 35, 32, 26]
   },
   '3-2': {
     segments: ['Intro', 'Understanding General Hazards', 'Walkways & Pathways', 'Landscaping & Security Risks', 'Hypothetical Example', 'Closing'],
-    durations: [22, 18, 23, 37, 15, 56]
+    durations: [19, 22, 24, 21, 24, 22]
   },
   '4-1': {
     segments: ['Intro', 'Types of Locks', 'Guest Safes', 'Exterior Considerations', 'Hypothetical Example', 'Closing'],
-    durations: [40, 8, 24, 19, 30, 24]
+    durations: [22, 40, 18, 23, 37, 20]
   },
   '4-2': {
     segments: ['Intro', 'Privacy & Facilities', 'Deeper', 'Hypothetical Example', 'Party Rules', 'Closing'],
-    durations: [16, 11, 29, 14, 35, 18]
+    durations: [15, 14, 32, 31, 27, 21]
   },
   '5-1': {
     segments: ['Intro', 'Why Amenities Matter', 'Specific Amenities for Hosts to Consider', 'Hypothetical Example', 'Closing'],
-    durations: [27, 128, 38, 51, 18]
+    durations: [23, 15, 56, 40, 8]
   },
   '5-2': {
     segments: ['Intro', 'Benefits of Allowing Pets', 'What to Communicate', 'Hypothetical Example', 'Closing'],
-    durations: [55, 50, 44, 0, 0]
+    durations: [24, 19, 30, 24, 16]
   },
   '5-3': {
     segments: ['Intro', 'Key Appliances in a Property', 'Furnace and Boiler Systems', 'Safety & Utilities Reminder', 'Closing'],
-    durations: [0, 0, 0, 0, 0]
+    durations: [11, 29, 24, 35, 16]
   },
   '6-1': {
     segments: ['Intro', 'Measurements', 'Accessible Bathroom', 'Accessible Bedroom', 'Accessible Common Spaces', 'Parking Considerations', 'Host Access', 'Additional Items', 'Closing'],
-    durations: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    durations: [105, 27, 128, 39, 51, 18, 55, 50, 44]
   }
 };
 
 // Calculate totals for reference
 const TIMING_TOTALS = {
-  '1-1': 160,
-  '1-2': 158,
-  '1-3': 163,
-  '1-4': 199,
-  '1-5': 207,
-  '2-1': 192,
-  '2-2': 255,
-  '2-3': 181,
-  '3-1': 108,
-  '3-2': 171,
-  '4-1': 145,
-  '4-2': 123,
-  '5-1': 262,
-  '5-2': 149,
+  '1-1': 150,
+  '1-2': 164,
+  '1-3': 161,
+  '1-4': 182,
+  '1-5': 205,
+  '2-1': 181,
+  '2-2': 206,
+  '2-3': 132,
+  '3-1': 181,
+  '3-2': 132,
+  '4-1': 160,
+  '4-2': 140,
+  '5-1': 142,
+  '5-2': 113,
   '5-3': 115, 
   '6-1': 517
 };

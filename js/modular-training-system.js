@@ -744,11 +744,31 @@ initStorage(){
     applyStatesLinear(){
       this.linearOrder.forEach(id=>this.setState(this.buttons[id], 'locked'));
       let unlockedOne = false;
+      let firstUnlockedId = null;
       this.linearOrder.forEach(id=>{
         if (this.done.has(id)) this.setState(this.buttons[id],'done');
-        else if (!unlockedOne){ this.setState(this.buttons[id],'clickable'); unlockedOne=true; }
+        else if (!unlockedOne){ 
+          this.setState(this.buttons[id],'clickable'); 
+          unlockedOne=true;
+          firstUnlockedId = id;
+        }
       });
       this.updateChapterList();
+      
+      // Auto-open the next segment when resuming from progress
+      // Only auto-open if we have completed segments (startingSegment > 0) and there's a next segment to open
+      if (this.startingSegment > 0 && firstUnlockedId && !this._hasAutoOpened) {
+        this._hasAutoOpened = true; // Prevent multiple auto-opens
+        console.log(`🎬 Auto-opening next segment: ${firstUnlockedId} (resuming from segment ${this.startingSegment})`);
+        
+        // Auto-open after a short delay to ensure UI is ready
+        setTimeout(() => {
+          const button = this.buttons[firstUnlockedId];
+          if (button && button.classList.contains('clickable')) {
+            this.openFor(button);
+          }
+        }, 500);
+      }
     }
 
     buildAudioUI(total){
@@ -848,7 +868,7 @@ initStorage(){
       }
     }
 
-    onSegmentComplete(id){
+    async onSegmentComplete(id){
       if (!this.done.has(id)){ 
         this.done.add(id); 
         this.saveDone(); 
@@ -865,8 +885,17 @@ initStorage(){
             
             console.log(`🎯 Segment ${hotspotIndex + 1}/${totalSegments} complete`);
             
-            // Post progress to API
-            window.GGTrainingAPI.postSegmentProgress(nextSegment, allCompleted);
+            // Post progress to API and wait for confirmation
+            const success = await window.GGTrainingAPI.postSegmentProgress(nextSegment, allCompleted);
+            
+            if (!success) {
+              console.error('❌ Progress POST failed - user will be prompted to reload');
+              // The postSegmentProgress function already shows an error popup
+              // Don't continue with the next segment logic if POST failed
+              return;
+            } else {
+              console.log('✅ Progress POST successful, continuing...');
+            }
           }
         }
       }
