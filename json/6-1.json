@@ -21,7 +21,7 @@
       "text": "[Intro]",      
       "contentMedia": {
       "type": "video",
-        "src": "/Assets/Module 6/Chapter 1/Segment 1/6.1.1 Accessibility Intro.mov"
+        "src": ["/Assets/Module 6/Chapter 1/Segment 1/6.1.1 Accessibility Intro.mov","/Assets/Module 6/Chapter 1/Segment 1/6.1.1 (Universal Accessibility Intro) Video 2.mov","/Assets/Module 6/Chapter 1/Segment 1/6.1.1 (Universal Accessibility Intro) Video 3.mov"]
       }
     },
     {
@@ -53,19 +53,14 @@
       "text": "[Accessible Bathroom]",
       "contentMedia": {
         "type": "video",
-        "src": [
-          "/Assets/Module 6/Chapter 1/Segment 3/6.1.3.A Accessible Bathroom.mov",
-          "/Assets/Module 6/Chapter 1/Segment 3/6.1.3.B Accessible Bathroom.mov"
-        ]
+        "src": ["/Assets/Module 6/Chapter 1/Segment 3/6.1.3.A Accessible Bathroom.mov","/Assets/Module 6/Chapter 1/Segment 3/6.1.3.B Accessible Bathroom.mov","/Assets/Module 6/Chapter 1/Segment 3/6.1.3 (Accessible Bathroom) Video 3.mov"]
       }
     },
     {
       "id": "b4",
       "tcStart": "00;04;20;11",
       "tcEnd": "00;04;59;16",
-      "realLifeExamples": [
-        "/Assets/Module 6/Chapter 1/Segment 3/Examples/6.1 Guest Bathroom (Railing).jpg"
-      ],
+      "realLifeExamples": [],
       "type": "circle",
       "centerX": 1713,
       "centerY": 767,

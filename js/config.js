@@ -1,6 +1,6 @@
 // ===== Configuration and Constants =====
 
-const LocalDebugMode = false;
+const LocalDebugMode = true;
 const MODULE_SEQUENCE = ['2-1.json','2-2.json','2-3.json'];
 
 // Set to true to hide authentication box (for production)
