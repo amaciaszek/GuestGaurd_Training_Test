@@ -1,15 +1,26 @@
 // ===== Configuration and Constants =====
 
-const LocalDebugMode = true;
+const LocalDebugMode = false;
 const MODULE_SEQUENCE = ['2-1.json','2-2.json','2-3.json'];
 
 // Set to true to hide authentication box (for production)
 const HIDE_AUTH_BOX = true;
 
+// ===== Audio Playback Speed Configuration =====
+// Set to true to enable speed-up mode for faster training playback
+const AUDIO_SPEEDUP_ENABLED = false; // Set to true to enable speed-up mode
+const AUDIO_SPEEDUP_RATE = 1.0; // Playback speed multiplier (1.0 = normal, 2.0 = 2x, 7.0 = 7x)
+
 // ===== Segment Transition Configuration =====
 // Time (in milliseconds) to wait after closing a segment before opening the next one
 // This creates a brief pause to show the background between segments
 const SEGMENT_TRANSITION_DELAY = 300; // 300ms = 0.3 seconds (fast but visible)
+
+// ===== Server Communication Configuration =====
+// Number of retry attempts when server communication fails
+const SERVER_RETRY_ATTEMPTS = 3; // Try 3 times before giving up
+// Delay between retries in milliseconds (uses exponential backoff)
+const SERVER_RETRY_BASE_DELAY = 1000; // Start with 1 second, doubles each retry
 
 const TRAINING_STRUCTURE = [
   {

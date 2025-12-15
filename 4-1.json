@@ -1,6 +1,6 @@
 {
   "id": "personal_safety_and_weapons_entry_to_property",
-  "title": "Personal Safety and Weapons - Entry to Property",
+  "title": "Personal Safety - Entry to Property",
   "audioFile": "/Assets/Module 4/Chapter 1/Audio/4.1 Personal Safety and Weapons_Entry to Property.wav",
   "transcriptFile": "/Assets/Module 4/Chapter 1/Info/4.1 Personal Safety and Weapons_Entry to Property.txt",
   "backgroundImage": "/Assets/Module 4/Chapter 1/Background/4_1.jpg",
@@ -37,7 +37,7 @@
       "text": "[Types of Locks]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 4/Chapter 1/Segment 1/4.1.1 Types of Locks.mp4"
+        "src": ["/Assets/Module 4/Chapter 1/Segment 1/4.1.2 (Types of Locks) Video 1.mov","/Assets/Module 4/Chapter 1/Segment 1/4.1.2 (Types of Locks) Video 2.mov"]
       }
     },
     {

@@ -1,6 +1,6 @@
 {
   "id": "first_aid_hazard_awareness_first_aid_training",
-  "title": "First Aid Hazard Awareness - First Aid Training",
+  "title": "First Aid Hazard Awareness - General Considerations",
   "audioFile": "/Assets/Module 3/Chapter 2/Audio/3.2 First Aid Hazard Awareness_General Considerations.wav",
   "transcriptFile": "/Assets/Module 3/Chapter 2/Info/3.2 First Aid Hazard Awareness_General Considerations.txt",
   "backgroundImage": "/Assets/Module 3/Chapter 2/Background/3_2.jpg",
@@ -84,7 +84,11 @@
       "centerY": 2362,
       "width": 940,
       "height": 940,
-      "text": "[Hypothetical Example]"
+      "text": "[Hypothetical Example]",
+      "contentMedia": {
+        "type": "video",
+        "src": "/Assets/Module 3/Chapter 2/Segment 4/3.2.5.mov"
+      }
     },
     {
       "id": "b9",

@@ -47,6 +47,39 @@
       }
     },
     
+    // Retry wrapper for fetch operations with exponential backoff
+    async fetchWithRetry(fetchFn, maxRetries = null, operation = 'Operation') {
+      const retries = maxRetries !== null ? maxRetries : (typeof SERVER_RETRY_ATTEMPTS !== 'undefined' ? SERVER_RETRY_ATTEMPTS : 3);
+      const baseDelay = typeof SERVER_RETRY_BASE_DELAY !== 'undefined' ? SERVER_RETRY_BASE_DELAY : 1000;
+      
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          console.log(`🔄 ${operation} - Attempt ${attempt}/${retries}`);
+          const result = await fetchFn();
+          
+          if (attempt > 1) {
+            console.log(`✅ ${operation} succeeded on attempt ${attempt}`);
+          }
+          
+          return { success: true, data: result };
+        } catch (error) {
+          console.error(`❌ ${operation} failed on attempt ${attempt}:`, error.message);
+          
+          if (attempt < retries) {
+            // Calculate exponential backoff delay: baseDelay * 2^(attempt-1)
+            const delay = baseDelay * Math.pow(2, attempt - 1);
+            console.log(`⏳ Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            console.error(`💥 ${operation} failed after ${retries} attempts`);
+            return { success: false, error: error.message };
+          }
+        }
+      }
+      
+      return { success: false, error: 'Max retries exceeded' };
+    },
+    
     // Load stored authentication from localStorage
     loadStoredAuth() {
       const access = localStorage.getItem('gg_access_token');
@@ -468,6 +501,174 @@
       );
     },
     
+    // Show blocking sync failure dialog with retry option
+    showSyncFailureDialog(segmentNum, completed, error) {
+      // Remove any existing dialog
+      const existing = document.getElementById('syncFailureDialog');
+      if (existing) existing.remove();
+      
+      const overlay = document.createElement('div');
+      overlay.id = 'syncFailureDialog';
+      overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 999999;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(4px);
+      `;
+      
+      const dialog = document.createElement('div');
+      dialog.style.cssText = `
+        background: linear-gradient(135deg, #1a1f2e, #0f1419);
+        border: 2px solid #ff6b6b;
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 500px;
+        box-shadow: 0 8px 32px rgba(255, 107, 107, 0.4);
+        font-family: ui-monospace, monospace;
+      `;
+      
+      dialog.innerHTML = `
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="font-size: 64px; margin-bottom: 16px;">⚠️</div>
+          <h2 style="margin: 0 0 12px 0; color: #ff6b6b; font-size: 24px; font-weight: 700;">
+            Server Connection Failed
+          </h2>
+          <p style="margin: 0 0 8px 0; color: #9fb0c5; font-size: 14px; line-height: 1.6;">
+            Your progress could not be saved to the server after multiple attempts.
+          </p>
+          <p style="margin: 0; color: #7cf6c9; font-size: 13px; font-weight: 600;">
+            ✓ Your segment completion is preserved in memory
+          </p>
+        </div>
+        
+        <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); 
+                    border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <div style="font-size: 11px; color: #ff9999; font-weight: 700; margin-bottom: 8px;">
+            ERROR DETAILS
+          </div>
+          <div style="font-size: 12px; color: #d7e2f1; font-family: monospace; word-break: break-word;">
+            ${error}
+          </div>
+        </div>
+        
+        <div style="background: rgba(124, 246, 201, 0.1); border: 1px solid rgba(124, 246, 201, 0.3);
+                    border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <div style="font-size: 11px; color: #7cf6c9; font-weight: 700; margin-bottom: 8px;">
+            WHAT THIS MEANS
+          </div>
+          <ul style="margin: 0; padding-left: 20px; color: #9fb0c5; font-size: 13px; line-height: 1.8;">
+            <li>You won't need to re-watch this segment</li>
+            <li>But you cannot proceed until the server confirms your progress</li>
+            <li>This ensures your training completion is properly recorded</li>
+          </ul>
+        </div>
+        
+        <div style="display: flex; gap: 12px;">
+          <button id="retrySync" style="
+            flex: 1;
+            background: linear-gradient(135deg, #00e0ff, #0099cc);
+            color: #001014;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: ui-monospace, monospace;
+          ">
+            🔄 Retry Connection
+          </button>
+          <button id="cancelSync" style="
+            background: rgba(159, 176, 197, 0.1);
+            color: #9fb0c5;
+            border: 1px solid rgba(159, 176, 197, 0.3);
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: ui-monospace, monospace;
+          ">
+            Cancel
+          </button>
+        </div>
+        
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(159, 176, 197, 0.2);">
+          <p style="margin: 0; font-size: 11px; color: #6b7a8f; text-align: center; line-height: 1.5;">
+            💡 TIP: Check your internet connection, then click "Retry Connection"<br>
+            If the issue persists, contact your system administrator
+          </p>
+        </div>
+      `;
+      
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      
+      // Add event handlers
+      const retryBtn = document.getElementById('retrySync');
+      const cancelBtn = document.getElementById('cancelSync');
+      
+      retryBtn.onclick = async () => {
+        retryBtn.disabled = true;
+        retryBtn.textContent = '⏳ Retrying...';
+        
+        // Try to post again
+        const success = await this.postSegmentProgress(segmentNum, completed);
+        
+        if (success) {
+          // Success! Close dialog and allow progression
+          overlay.remove();
+        } else {
+          // Still failed - update button
+          retryBtn.disabled = false;
+          retryBtn.textContent = '🔄 Retry Connection';
+          
+          // Update error message in dialog
+          const errorDetail = dialog.querySelector('[style*="word-break"]');
+          if (errorDetail) {
+            errorDetail.textContent = 'Connection still failing. Please check your network and try again.';
+          }
+        }
+      };
+      
+      cancelBtn.onclick = () => {
+        overlay.remove();
+        // User cancelled - they'll need to retry manually or complete the segment again
+        console.warn('⚠️ User cancelled sync - segment progress not saved to server');
+      };
+      
+      // Prevent closing by clicking overlay
+      overlay.onclick = (e) => {
+        if (e.target === overlay) {
+          // Do nothing - require explicit action
+        }
+      };
+    },
+    
+    // Check if all training is complete
+    isAllTrainingComplete() {
+      // Check if all chapters are completed
+      for (const key in this.allChapters) {
+        const chapter = this.allChapters[key];
+        const progress = chapter.progress;
+        
+        // A chapter is complete if marked as completed OR all segments are done
+        const isCompleted = progress.completed || 
+                           (progress.currentSegment >= progress.totalSegments && progress.totalSegments > 0);
+        
+        if (!isCompleted) {
+          return false; // Found an incomplete chapter
+        }
+      }
+      
+      // All chapters are complete
+      console.log('🎓 ALL TRAINING COMPLETE!');
+      return true;
+    },
+    
     // Post progress for current segment
     async postSegmentProgress(segmentNum, completed = false) {
       if (!this.accessToken || !this.currentChapterKey) {
@@ -502,16 +703,18 @@
         };
       }
       
-      try {
-        const payload = {
-          training_progress: {
-            modules: modulesData,
-            last_updated: new Date().toISOString()
-          }
-        };
-        
-        console.log(`📤 Posting progress: ${this.currentChapterKey} segment ${segmentNum}`);
-        
+      const payload = {
+        training_progress: {
+          modules: modulesData,
+          complete_training: this.isAllTrainingComplete(),
+          last_updated: new Date().toISOString()
+        }
+      };
+      
+      console.log(`📤 Posting progress: ${this.currentChapterKey} segment ${segmentNum}`);
+      
+      // Use retry wrapper for posting progress
+      const result = await this.fetchWithRetry(async () => {
         const response = await this.fetchWithAuth(`${API_BASE}/api/training-progress`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -522,36 +725,34 @@
           throw new Error(`${response.status}: ${response.statusText}`);
         }
         
-        const data = await response.json();
-        console.log('✅ Progress saved:', data);
+        return await response.json();
+      }, null, 'Progress POST');
+      
+      if (result.success) {
+        console.log('✅ Progress saved:', result.data);
         
         // Update progress display
-        this.updateProgressDisplay(data.training_progress);
+        this.updateProgressDisplay(result.data.training_progress);
         
-        // If chapter completed, move to next chapter
+        // Log chapter completion but DON'T auto-advance
+        // Let the modular-training-system show the dialog first
         if (completed) {
           console.log(`🎉 Chapter ${this.currentChapterKey} completed!`);
-          this.moveToNextChapter();
+          console.log(`   ⏸️ Waiting for user to click "Continue" in dialog...`);
+          // The dialog's "Continue" button will call moveToNextChapter()
         }
         
         return true;
+      } else {
+        console.error('❌ Failed to post progress after all retries:', result.error);
         
-      } catch (e) {
-        console.error('❌ Failed to post progress:', e.message);
+        // CRITICAL: We CANNOT allow progression without server confirmation
+        // This is a certification system - no local cheating allowed!
         
-        // Show error popup asking user to reload
-        const shouldReload = confirm(
-          '⚠️ Server Communication Issue\n\n' +
-          'Failed to save your progress to the server.\n' +
-          'Your progress may not be synchronized.\n\n' +
-          'Would you like to reload the page to restore connection?\n\n' +
-          'Click OK to reload, or Cancel to continue (progress may be lost).'
-        );
+        // Show blocking error dialog with manual retry option
+        this.showSyncFailureDialog(segmentNum, completed, result.error);
         
-        if (shouldReload) {
-          window.location.reload();
-        }
-        
+        // Return false to block progression
         return false;
       }
     },
@@ -927,13 +1128,10 @@
               refreshBtn.textContent = '⏳';
               refreshBtn.disabled = true;
               this.fetchProgressFromServer().then(() => {
-                refreshBtn.textContent = '🔄';
-                refreshBtn.disabled = false;
-                
-                // Show brief success feedback
                 refreshBtn.textContent = '✓';
                 setTimeout(() => {
                   refreshBtn.textContent = '🔄';
+                  refreshBtn.disabled = false;
                 }, 1000);
               }).catch(() => {
                 refreshBtn.textContent = '✗';
@@ -959,6 +1157,7 @@
           this.updateProgressDisplay(this.serverProgress || { modules: {} });
         }
       };
+      
       console.log('💡 Debug helper: Type "refreshProgress()" in console to manually refresh progress panel');
     }
   };

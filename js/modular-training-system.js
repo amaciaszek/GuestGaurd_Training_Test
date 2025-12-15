@@ -124,7 +124,7 @@ class ModularTrainingSystem {
       this.FPS = 30;
       this.VER_KEY = 'training_schema';
       this.SCHEMA_VERSION = 4;
-      this.seg = {start:0,end:0,active:false,rafId:null,currentId:null,currentVideo:null};
+      this.seg = {start:0,end:0,active:false,rafId:null,currentId:null,currentVideo:null,currentVideo2:null,crossfadeState:null};
       this.realLifeIndex = 0;
       this.captions = [];
       this.currentCaptionElement = null;
@@ -253,7 +253,8 @@ resolveAsset(p){
           'data-module-id': module.id
         }, [
           el('div', { class: 'module-expand-icon' }, '▶'),
-          el('div', { class: 'module-name' }, module.name)
+          el('div', { class: 'module-name' }, module.name),
+          el('div', { class: 'module-complete-badge', style: 'display: none; margin-left: auto; color: #7CFCB5; font-weight: bold; font-size: 16px;' }, '✓ Complete')
         ]);
 
         const chapterList = el('ul', { class: 'chapter-list' });
@@ -266,7 +267,8 @@ resolveAsset(p){
             'data-chapter-id': chapter.id
           }, [
             el('div', { class: 'chapter-expand-icon' }, '▶'),
-            el('div', { class: 'chapter-title' }, chapter.name)
+            el('div', { class: 'chapter-title' }, chapter.name),
+            el('div', { class: 'chapter-complete-badge', style: 'display: none; margin-left: auto; color: #7CFCB5; font-weight: bold; font-size: 14px;' }, '✓')
           ]);
 
           const segmentList = el('ul', { class: 'segment-list' });
@@ -486,6 +488,12 @@ resolveAsset(p){
         // IMPORTANT: we no longer touch .expanded here
         header.classList.toggle('has-current',   hasCurrent);
         header.classList.toggle('all-completed', allCompleted && !hasCurrent);
+        
+        // Show/hide completion badge
+        const completeBadge = header.querySelector('.chapter-complete-badge');
+        if (completeBadge) {
+          completeBadge.style.display = allCompleted ? 'block' : 'none';
+        }
       });
 
       // --- MODULE STATES (current-module) ---
@@ -494,9 +502,20 @@ resolveAsset(p){
         const chapters = chapterList.querySelectorAll('.chapter-header');
         const hasCurrentChapter = Array.from(chapters)
           .some(ch => ch.classList.contains('has-current'));
+        
+        // Check if all chapters in this module are completed
+        const allChaptersComplete = Array.from(chapters).length > 0 &&
+          Array.from(chapters).every(ch => ch.classList.contains('all-completed'));
 
         // IMPORTANT: we do not add/remove .expanded here anymore
         header.classList.toggle('current-module', hasCurrentChapter);
+        header.classList.toggle('all-modules-completed', allChaptersComplete);
+        
+        // Show/hide module completion badge
+        const completeBadge = header.querySelector('.module-complete-badge');
+        if (completeBadge) {
+          completeBadge.style.display = allChaptersComplete ? 'block' : 'none';
+        }
       });
 
       // --- One-time auto-expand for the current item (initial load only) ---
@@ -797,6 +816,7 @@ initStorage(){
 
     pauseViewer(){
       if (this.seg.currentVideo) this.seg.currentVideo.pause();
+      if (this.seg.currentVideo2) this.seg.currentVideo2.pause();
       if (!this.audio.paused) this.audio.pause();
       const playPause = document.getElementById('playPause');
       const status = document.getElementById('status');
@@ -810,7 +830,18 @@ initStorage(){
       setTimeout(() => {
         this.innerWindow.classList.remove('active', 'animating');
         this.viewer.replaceChildren();
-        if (this.seg.currentVideo){ this.seg.currentVideo.pause(); this.seg.currentVideo=null; }
+        
+        // Clean up video(s)
+        if (this.seg.currentVideo){ 
+          this.seg.currentVideo.pause(); 
+          this.seg.currentVideo = null; 
+        }
+        if (this.seg.currentVideo2){ 
+          this.seg.currentVideo2.pause(); 
+          this.seg.currentVideo2 = null; 
+        }
+        this.seg.crossfadeState = null;
+        
         if (!this.audio.paused) this.audio.pause();
         this.seg.active=false; cancelAnimationFrame(this.seg.rafId);
         this.currentCaptionElement = null;
@@ -840,27 +871,173 @@ initStorage(){
     }
 
     showChapterCompleteDialog(){
+      console.log('📋 === SHOW CHAPTER COMPLETE DIALOG ===');
+      
+      // Check if ALL training is complete
+      const allTrainingComplete = window.GGTrainingAPI && window.GGTrainingAPI.isAllTrainingComplete 
+        ? window.GGTrainingAPI.isAllTrainingComplete() 
+        : false;
+      
+      console.log(`  All training complete: ${allTrainingComplete}`);
+      
+      // Get current and next chapter info
+      let currentChapterName = 'this chapter';
+      let nextChapterName = 'the next chapter';
+      let isLastChapter = false;
+      
+      if (window.GGTrainingAPI && window.GGTrainingAPI.currentChapterKey) {
+        const currentKey = window.GGTrainingAPI.currentChapterKey;
+        const allChapters = window.GGTrainingAPI.CHAPTER_FILES;
+        const currentIndex = allChapters.indexOf(`${currentKey}.json`);
+        
+        console.log(`  Current chapter key: ${currentKey}`);
+        console.log(`  Current index: ${currentIndex}`);
+        
+        // Get current chapter name
+        const currentChapterData = window.GGTrainingAPI.allChapters[currentKey];
+        if (currentChapterData && currentChapterData.data) {
+          currentChapterName = currentChapterData.data.title || currentChapterName;
+          console.log(`  Current chapter name: ${currentChapterName}`);
+        }
+        
+        // Check if this is the last chapter
+        isLastChapter = currentIndex >= 0 && currentIndex === allChapters.length - 1;
+        console.log(`  Is last chapter: ${isLastChapter}`);
+        
+        // Get next chapter name
+        if (currentIndex >= 0 && currentIndex < allChapters.length - 1) {
+          const nextKey = allChapters[currentIndex + 1].replace('.json', '');
+          console.log(`  Next chapter key: ${nextKey}`);
+          
+          const nextChapterData = window.GGTrainingAPI.allChapters[nextKey];
+          if (nextChapterData && nextChapterData.data) {
+            nextChapterName = nextChapterData.data.title || nextChapterName;
+            console.log(`  Next chapter name: ${nextChapterName}`);
+          }
+        }
+      }
+      
       let overlay = document.querySelector('.chapter-complete-overlay');
       if (!overlay){
-        overlay = el('div',{class:'chapter-complete-overlay'}, el('div',{class:'chapter-complete-dialog'},[
-          el('h2',{},'Chapter Complete!'),
-          el('p',{},'You\'ve finished this chapter of the training module. Would you like to continue to the next chapter?'),
-          el('div',{class:'actions'},[
-            el('button',{class:'btn',id:'stayBtn'},'Stay Here'),
-            el('button',{class:'btn primary',id:'continueBtn'},'Continue to Next Chapter')
-          ])
-        ]));
+        console.log('  Creating NEW dialog overlay...');
+        
+        if (allTrainingComplete || isLastChapter) {
+          // Show "ALL TRAINING COMPLETE" dialog
+          overlay = el('div',{class:'chapter-complete-overlay'}, el('div',{class:'chapter-complete-dialog'},[
+            el('h2',{style:'margin: 0 0 16px 0; color: #7CFCB5; font-size: 32px;'},'🎓 Training Complete!'),
+            el('p',{style:'margin: 0 0 8px 0; font-size: 16px; color: #9fb0c5;'},[
+              'Congratulations! You\'ve completed ',
+              el('strong', {style:'color: #00e0ff;'}, currentChapterName)
+            ]),
+            el('p',{style:'margin: 0 0 24px 0; font-size: 18px; font-weight: 700; color: #7CFCB5;'},'✨ You have finished all training modules! ✨'),
+            el('p',{style:'margin: 0 0 24px 0; font-size: 14px; color: #9fb0c5;'},'You can now review any chapter or close this window.'),
+            el('div',{class:'actions', style:'display: flex; gap: 12px; justify-content: center;'},[
+              el('button',{class:'btn',id:'closeCompleteBtn', style:'padding: 12px 24px; font-size: 14px; background: linear-gradient(135deg, #7CFCB5, #00e0ff); font-weight: 700;'},'✓ Close')
+            ])
+          ]));
+        } else {
+          // Show regular "Chapter Complete" dialog
+          overlay = el('div',{class:'chapter-complete-overlay'}, el('div',{class:'chapter-complete-dialog'},[
+            el('h2',{style:'margin: 0 0 16px 0; color: #7CFCB5; font-size: 28px;'},'🎉 Chapter Complete!'),
+            el('p',{style:'margin: 0 0 8px 0; font-size: 14px; color: #9fb0c5;'},[
+              'You\'ve finished ',
+              el('strong', {style:'color: #00e0ff;'}, currentChapterName)
+            ]),
+            el('p',{style:'margin: 0 0 24px 0; font-size: 15px;'},[
+              'Ready to continue to ',
+              el('strong', {style:'color: #7cf6c9;'}, nextChapterName),
+              '?'
+            ]),
+            el('div',{class:'actions', style:'display: flex; gap: 12px; justify-content: center;'},[
+              el('button',{class:'btn alt',id:'stayBtn', style:'padding: 12px 24px; font-size: 14px;'},'Stay Here'),
+              el('button',{class:'btn',id:'continueBtn', style:'padding: 12px 24px; font-size: 14px; background: linear-gradient(135deg, #00e0ff, #0099cc); font-weight: 700;'},'Continue to Next Chapter →')
+            ])
+          ]));
+        }
+        
         document.body.appendChild(overlay);
+        console.log('  ✅ Dialog overlay created and added to body');
+      } else {
+        console.log('  Updating EXISTING dialog overlay...');
+        // Update existing dialog based on completion status
+        const dialog = overlay.querySelector('.chapter-complete-dialog');
+        if (dialog) {
+          if (allTrainingComplete || isLastChapter) {
+            // Update to "ALL COMPLETE" dialog
+            dialog.innerHTML = `
+              <h2 style="margin: 0 0 16px 0; color: #7CFCB5; font-size: 32px;">🎓 Training Complete!</h2>
+              <p style="margin: 0 0 8px 0; font-size: 16px; color: #9fb0c5;">
+                Congratulations! You've completed <strong style="color: #00e0ff;">${currentChapterName}</strong>
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 18px; font-weight: 700; color: #7CFCB5;">✨ You have finished all training modules! ✨</p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; color: #9fb0c5;">You can now review any chapter or close this window.</p>
+              <div class="actions" style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn" id="closeCompleteBtn" style="padding: 12px 24px; font-size: 14px; background: linear-gradient(135deg, #7CFCB5, #00e0ff); font-weight: 700;">✓ Close</button>
+              </div>
+            `;
+          } else {
+            // Update to regular "Chapter Complete" dialog
+            dialog.innerHTML = `
+              <h2 style="margin: 0 0 16px 0; color: #7CFCB5; font-size: 28px;">🎉 Chapter Complete!</h2>
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #9fb0c5;">
+                You've finished <strong style="color: #00e0ff;">${currentChapterName}</strong>
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 15px;">
+                Ready to continue to <strong style="color: #7cf6c9;">${nextChapterName}</strong>?
+              </p>
+              <div class="actions" style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn alt" id="stayBtn" style="padding: 12px 24px; font-size: 14px;">Stay Here</button>
+                <button class="btn" id="continueBtn" style="padding: 12px 24px; font-size: 14px; background: linear-gradient(135deg, #00e0ff, #0099cc); font-weight: 700;">Continue to Next Chapter →</button>
+              </div>
+            `;
+          }
+          console.log('  ✅ Dialog text updated');
+        }
       }
+      
+      console.log('  Setting dialog display to "grid"...');
       overlay.style.display='grid';
-      overlay.querySelector('#stayBtn').onclick = ()=>{ overlay.style.display='none'; this.closeViewer(); };
-      overlay.querySelector('#continueBtn').onclick = ()=>{ overlay.style.display='none'; this.loadNextModule(); };
+      console.log('  ✅ Dialog should now be visible on screen!');
+      
+      // Button handlers with logging
+      const stayBtn = overlay.querySelector('#stayBtn');
+      const continueBtn = overlay.querySelector('#continueBtn');
+      const closeCompleteBtn = overlay.querySelector('#closeCompleteBtn');
+      
+      if (stayBtn) {
+        stayBtn.onclick = ()=>{ 
+          console.log('  👤 User clicked "Stay Here" - closing dialog');
+          overlay.style.display='none'; 
+          this.closeViewer(); 
+        };
+      }
+      
+      if (continueBtn) {
+        continueBtn.onclick = ()=>{ 
+          console.log('  👤 User clicked "Continue to Next Chapter" - loading next chapter');
+          overlay.style.display='none'; 
+          this.loadNextModule(); 
+        };
+      }
+      
+      if (closeCompleteBtn) {
+        closeCompleteBtn.onclick = ()=>{ 
+          console.log('  👤 User clicked "Close" on training complete dialog');
+          overlay.style.display='none'; 
+          this.closeViewer(); 
+        };
+      }
+      
+      console.log('📋 === END SHOW CHAPTER COMPLETE DIALOG ===');
     }
 
     loadNextModule(){
+      console.log('📋 loadNextModule() called from dialog "Continue" button');
+      
       // In the new API system, this is handled by GGTrainingAPI.moveToNextChapter()
       // But we'll implement it here for compatibility
       if (window.GGTrainingAPI) {
+        console.log('  ✅ Calling GGTrainingAPI.moveToNextChapter()...');
         window.GGTrainingAPI.moveToNextChapter();
       } else {
         console.warn('⚠️ GGTrainingAPI not available');
@@ -950,12 +1127,53 @@ initStorage(){
           // Show chapter complete dialog if ALL segments are done
           if (isChapterComplete || isLastSegment){
             console.log('🎉 Chapter Complete! Showing dialog...');
-            const isLastChapter = this.currentModuleIndex === MODULE_SEQUENCE.length - 1;
-            if (isLastChapter){ 
-              alert('Congratulations! You have completed all training modules.'); 
-              this.closeViewer(); 
+            console.log('  isChapterComplete:', isChapterComplete);
+            console.log('  isLastSegment:', isLastSegment);
+            
+            // Check if this is truly the LAST chapter in the entire system
+            // Use GGTrainingAPI.CHAPTER_FILES to get the complete list
+            let isFinalChapter = false;
+            let currentChapterKey = null;
+            let totalChapters = 0;
+            let currentChapterIndex = -1;
+            
+            if (window.GGTrainingAPI && window.GGTrainingAPI.CHAPTER_FILES) {
+              const allChapters = window.GGTrainingAPI.CHAPTER_FILES;
+              currentChapterKey = window.GGTrainingAPI.currentChapterKey;
+              totalChapters = allChapters.length;
+              currentChapterIndex = allChapters.indexOf(`${currentChapterKey}.json`);
+              isFinalChapter = (currentChapterIndex === allChapters.length - 1);
+              
+              console.log('  ✓ Chapter detection:');
+              console.log('    - Current chapter:', currentChapterKey);
+              console.log('    - Chapter position:', `${currentChapterIndex + 1}/${totalChapters}`);
+              console.log('    - Is final chapter:', isFinalChapter);
+              console.log('    - All chapters:', allChapters);
+            } else {
+              console.warn('  ⚠️ GGTrainingAPI not available, cannot determine chapter position');
+            }
+            
+            if (isFinalChapter){ 
+              // This is the last chapter in the entire training system
+              console.log('  🎓 FINAL CHAPTER - Showing completion alert');
+              this.closeViewer();
+              setTimeout(() => {
+                alert('🎓 Congratulations! You have completed ALL training modules!\n\nYou have finished the entire training program.'); 
+              }, 400);
             } else { 
-              this.showChapterCompleteDialog(); 
+              // Show the chapter complete dialog for any other chapter
+              console.log('  📋 REGULAR CHAPTER - Showing chapter complete dialog');
+              console.log('  📋 First closing viewer, then showing dialog...');
+              
+              // Close the viewer first
+              this.closeViewer();
+              
+              // Wait for viewer to close, then show dialog
+              setTimeout(() => {
+                console.log('  📋 Viewer closed, now calling showChapterCompleteDialog()...');
+                this.showChapterCompleteDialog(); 
+                console.log('  ✅ Dialog should now be visible');
+              }, 400); // Wait for viewer close animation (300ms) + small buffer
             }
           } else if (hasNextSegment && nextButton) {
             // Close viewer, wait, then open next segment with animation
@@ -996,7 +1214,16 @@ initStorage(){
 
     wireAudioSegment(startSec,endSec,id){
       const total = Math.max(0.01, endSec-startSec);
-      this.seg = {start:startSec,end:endSec,active:true,currentId:id,currentVideo:this.seg.currentVideo,rafId:null};
+      this.seg = {
+        start: startSec,
+        end: endSec,
+        active: true,
+        currentId: id,
+        currentVideo: this.seg.currentVideo,
+        currentVideo2: this.seg.currentVideo2,
+        crossfadeState: this.seg.crossfadeState,
+        rafId: null
+      };
       
       const fill = document.getElementById('fill');
       const playPause = document.getElementById('playPause');
@@ -1017,6 +1244,7 @@ initStorage(){
         if (now >= this.seg.end - 0.02){
           this.audio.pause();
           if (this.seg.currentVideo) this.seg.currentVideo.pause();
+          if (this.seg.currentVideo2) this.seg.currentVideo2.pause();
           if (playPause) playPause.textContent='▶';
           if (status) status.textContent='Finished';
           cancelAnimationFrame(this.seg.rafId);
@@ -1028,8 +1256,35 @@ initStorage(){
 
       const startSeg = ()=>{
         this.audio.currentTime = startSec;
+        
+        // Apply playback speed if configured
+        if (typeof AUDIO_SPEEDUP_ENABLED !== 'undefined' && AUDIO_SPEEDUP_ENABLED === true) {
+          const speedRate = typeof AUDIO_SPEEDUP_RATE !== 'undefined' ? AUDIO_SPEEDUP_RATE : 1.0;
+          this.audio.playbackRate = speedRate;
+          console.log(`⏩ Audio speed-up enabled: ${speedRate}x playback rate`);
+        } else {
+          this.audio.playbackRate = 1.0;
+        }
+        
         this.audio.play().then(()=>{
-          if (this.seg.currentVideo){ 
+          // Handle video playback - check for crossfade system first
+          if (this.seg.crossfadeState && this.seg.crossfadeState.activeVideo) {
+            // Crossfade system active - play the currently active video
+            const activeVid = this.seg.crossfadeState.activeVideo;
+            
+            // Apply same speed to video if speed-up is enabled
+            if (typeof AUDIO_SPEEDUP_ENABLED !== 'undefined' && AUDIO_SPEEDUP_ENABLED === true) {
+              const speedRate = typeof AUDIO_SPEEDUP_RATE !== 'undefined' ? AUDIO_SPEEDUP_RATE : 1.0;
+              activeVid.playbackRate = speedRate;
+            }
+            activeVid.play().catch(()=>{}); 
+          } else if (this.seg.currentVideo) {
+            // Regular single video or multi-video system
+            // Apply same speed to video if speed-up is enabled
+            if (typeof AUDIO_SPEEDUP_ENABLED !== 'undefined' && AUDIO_SPEEDUP_ENABLED === true) {
+              const speedRate = typeof AUDIO_SPEEDUP_RATE !== 'undefined' ? AUDIO_SPEEDUP_RATE : 1.0;
+              this.seg.currentVideo.playbackRate = speedRate;
+            }
             this.seg.currentVideo.play().catch(()=>{}); 
           }
           if (playPause) playPause.textContent='⏸';
@@ -1054,7 +1309,14 @@ initStorage(){
               startSeg(); 
             } else {
               this.audio.play().then(()=>{
-                if (this.seg.currentVideo) this.seg.currentVideo.play().catch(()=>{});
+                // Handle video playback - check for crossfade system first
+                if (this.seg.crossfadeState && this.seg.crossfadeState.activeVideo) {
+                  // Crossfade system - play the active video
+                  this.seg.crossfadeState.activeVideo.play().catch(()=>{});
+                } else if (this.seg.currentVideo) {
+                  // Regular video
+                  this.seg.currentVideo.play().catch(()=>{});
+                }
                 playPause.textContent='⏸';
                 if (status) status.textContent='Playing';
                 cancelAnimationFrame(this.seg.rafId);
@@ -1063,7 +1325,14 @@ initStorage(){
             }
           } else {
             this.audio.pause();
-            if (this.seg.currentVideo) this.seg.currentVideo.pause();
+            if (this.seg.crossfadeState && this.seg.crossfadeState.activeVideo) {
+              // Pause the active video in crossfade system
+              this.seg.crossfadeState.activeVideo.pause();
+            } else if (this.seg.currentVideo) {
+              // Pause regular video
+              this.seg.currentVideo.pause();
+            }
+            if (this.seg.currentVideo2) this.seg.currentVideo2.pause();
             playPause.textContent='▶';
             if (status) status.textContent='Paused';
           }
@@ -1190,19 +1459,126 @@ const id = button.id;
             this.seg.currentVideo = vid;
             
           } else {
-            // Single video - original behavior
+            // Single video - use crossfade system for seamless looping
             const videoSrc = this.resolveAsset(rawVideoSrc);
-            const vid = el('video', {src: videoSrc});
-            vid.autoplay = true; 
-            vid.muted = true; 
-            vid.playsInline = true; 
-            vid.loop = true; 
-            vid.controls = false;
-            vid.addEventListener('loadedmetadata', () => { 
-              vid.play().catch(() => {}); 
+            
+            // Create container for stacked videos
+            const videoContainer = el('div', {
+              style: 'position: relative; width: 100%; height: 100%; overflow: hidden;'
             });
-            media.appendChild(vid);
-            this.seg.currentVideo = vid;
+            
+            // Create two video elements for crossfading
+            const vid1 = el('video', {
+              src: videoSrc,
+              style: 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.5s ease-in-out; opacity: 1;'
+            });
+            const vid2 = el('video', {
+              src: videoSrc,
+              style: 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.5s ease-in-out; opacity: 0;'
+            });
+            
+            vid1.autoplay = true;
+            vid1.muted = true;
+            vid1.playsInline = true;
+            vid1.loop = false; // We handle looping manually
+            vid1.controls = false;
+            
+            vid2.autoplay = false;
+            vid2.muted = true;
+            vid2.playsInline = true;
+            vid2.loop = false;
+            vid2.controls = false;
+            vid2.preload = 'auto'; // Preload second video
+            
+            // State for tracking which video is active
+            const crossfadeState = {
+              activeVideo: vid1,
+              inactiveVideo: vid2,
+              isTransitioning: false
+            };
+            
+            // Crossfade duration (time before end to start crossfade)
+            const CROSSFADE_DURATION = 0.5; // 500ms crossfade
+            
+            // Monitor video 1
+            vid1.addEventListener('timeupdate', () => {
+              if (crossfadeState.activeVideo !== vid1 || crossfadeState.isTransitioning) return;
+              
+              const timeRemaining = vid1.duration - vid1.currentTime;
+              
+              if (timeRemaining <= CROSSFADE_DURATION && timeRemaining > 0) {
+                console.log('📹 Starting crossfade from video 1 to video 2');
+                crossfadeState.isTransitioning = true;
+                
+                // Start video 2 from beginning
+                vid2.currentTime = 0;
+                vid2.play().catch(() => {});
+                
+                // Fade out vid1, fade in vid2
+                vid1.style.opacity = '0';
+                vid2.style.opacity = '1';
+                
+                // After crossfade completes, swap roles
+                setTimeout(() => {
+                  crossfadeState.activeVideo = vid2;
+                  crossfadeState.inactiveVideo = vid1;
+                  crossfadeState.isTransitioning = false;
+                  
+                  // Reset vid1 for next cycle
+                  vid1.pause();
+                  vid1.currentTime = 0;
+                }, CROSSFADE_DURATION * 1000);
+              }
+            });
+            
+            // Monitor video 2
+            vid2.addEventListener('timeupdate', () => {
+              if (crossfadeState.activeVideo !== vid2 || crossfadeState.isTransitioning) return;
+              
+              const timeRemaining = vid2.duration - vid2.currentTime;
+              
+              if (timeRemaining <= CROSSFADE_DURATION && timeRemaining > 0) {
+                console.log('📹 Starting crossfade from video 2 to video 1');
+                crossfadeState.isTransitioning = true;
+                
+                // Start video 1 from beginning
+                vid1.currentTime = 0;
+                vid1.play().catch(() => {});
+                
+                // Fade out vid2, fade in vid1
+                vid2.style.opacity = '0';
+                vid1.style.opacity = '1';
+                
+                // After crossfade completes, swap roles
+                setTimeout(() => {
+                  crossfadeState.activeVideo = vid1;
+                  crossfadeState.inactiveVideo = vid2;
+                  crossfadeState.isTransitioning = false;
+                  
+                  // Reset vid2 for next cycle
+                  vid2.pause();
+                  vid2.currentTime = 0;
+                }, CROSSFADE_DURATION * 1000);
+              }
+            });
+            
+            // Ensure both videos start playing when loaded
+            vid1.addEventListener('loadedmetadata', () => {
+              vid1.play().catch(() => {});
+            });
+            
+            vid2.addEventListener('loadedmetadata', () => {
+              // vid2 doesn't autoplay, it waits for crossfade
+            });
+            
+            videoContainer.appendChild(vid2); // Back layer
+            videoContainer.appendChild(vid1); // Front layer (starts visible)
+            media.appendChild(videoContainer);
+            
+            // Store reference to both videos
+            this.seg.currentVideo = vid1;
+            this.seg.currentVideo2 = vid2;
+            this.seg.crossfadeState = crossfadeState;
           }
           
         } else if (hasImage) {

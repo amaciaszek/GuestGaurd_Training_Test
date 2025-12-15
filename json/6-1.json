@@ -101,7 +101,7 @@
       "text": "[Parking Considerations]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 6/Chapter 1/Segment 5/6.1.5 Accessible Common Spaces.mov"
+        "src": "/Assets/Module 6/Chapter 1/Segment 6/6.1.6 Parking Considerations.mov"
       }
     },
     {
@@ -117,7 +117,7 @@
       "text": "[Host Access]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 6/Chapter 1/Segment 6/6.1.6 Parking Considerations.mov"
+        "src": "/Assets/Module 6/Chapter 1/Segment 7/6.1.7 Host Access.mp4"
       }
     },
     {
@@ -133,7 +133,7 @@
       "text": "[Additional Items]",
       "contentMedia": {
         "type": "video",
-        "src": "/Assets/Module 6/Chapter 1/Segment 7/6.1.7 Host Access.mp4"
+        "src": "/Assets/Module 6/Chapter 1/Segment 8/6.1.8 Additional Items.mp4"
       }
     },
     {
@@ -144,7 +144,11 @@
       "type": "pill",
       "text": "Done",
       "order": "done",
-      "content": "[Closing]"
+      "content": "[Closing]",
+      "contentMedia": {
+      "type": "video",
+        "src": "/Assets/Module 6/Chapter 1/Segment 9/6.1.9 Outro.mov"
+      }
     }
   ]
 }
