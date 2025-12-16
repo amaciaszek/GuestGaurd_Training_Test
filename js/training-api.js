@@ -33,15 +33,39 @@
       const params = new URLSearchParams(window.location.search);
       const tempToken = params.get('temp_token');
       
-      if (tempToken) {
-        document.getElementById('tempTokenInput').value = tempToken;
-        console.log('🎫 Temp token detected in URL, authenticating...');
-        await this.authenticateWithTempToken(tempToken);
-      } else if (this.accessToken) {
-        console.log('✅ Using stored authentication');
+      // First priority: Check if we already have a valid stored token
+      if (this.accessToken && this.expiresAt && this.expiresAt > Date.now()) {
+        console.log('✅ Already authenticated with valid token');
         this.updateAuthStatus();
         await this.loadAllChaptersAndProgress();
-      } else {
+        
+        // Clean up URL if temp_token is present (it's already been used)
+        if (tempToken) {
+          console.log('🧹 Removing used temp_token from URL');
+          const url = new URL(window.location.href);
+          url.searchParams.delete('temp_token');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
+      // Second priority: Try to exchange temp_token if present and we're not authenticated
+      else if (tempToken) {
+        const tempTokenInput = document.getElementById('tempTokenInput');
+        if (tempTokenInput) {
+          tempTokenInput.value = tempToken;
+        }
+        console.log('🎫 Temp token detected in URL, authenticating...');
+        const success = await this.authenticateWithTempToken(tempToken);
+        
+        // Clean up URL after successful authentication
+        if (success) {
+          console.log('🧹 Removing used temp_token from URL');
+          const url = new URL(window.location.href);
+          url.searchParams.delete('temp_token');
+          window.history.replaceState({}, '', url.toString());
+        }
+      } 
+      // No authentication available
+      else {
         console.log('⚠️ No authentication found');
         this.updateAuthStatus();
       }
@@ -199,7 +223,14 @@
         return true;
       } catch (e) {
         console.error('❌ Authentication failed:', e.message);
-        alert('Authentication failed: ' + e.message);
+        
+        // Update status to show error
+        const statusEl = document.getElementById('authStatus');
+        if (statusEl) {
+          statusEl.className = 'auth-status bad';
+          statusEl.textContent = '✗ Authentication Failed - Please try again or contact support';
+        }
+        
         return false;
       }
     },

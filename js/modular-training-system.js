@@ -689,17 +689,17 @@ initStorage(){
         const withBust = bg + (bg.includes('?') ? '&' : '?') + 'v=' + Date.now();
         img.onload = ()=>{ 
           this.stage.style.backgroundImage = `url('${withBust}')`;
-          // Show hotspots after background loads with a small delay
+          // Show hotspots after background loads with a delay to ensure rendering
           setTimeout(() => {
             this.stage.classList.remove('loading-background');
-          }, 100);
+          }, 300); // Increased delay for better visual experience
         };
         img.onerror = ()=>{ 
           this.stage.style.backgroundImage = `url('${bg}')`;
           // Show hotspots even if background fails to load
           setTimeout(() => {
             this.stage.classList.remove('loading-background');
-          }, 100);
+          }, 300);
         };
         img.src = withBust;
       } else {
