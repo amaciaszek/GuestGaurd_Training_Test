@@ -29,22 +29,65 @@
       this.setupProgressUI();
       this.loadStoredAuth();
       
+      console.log('🔍 After loadStoredAuth:', {
+        hasAccessToken: !!this.accessToken,
+        hasExpiresAt: !!this.expiresAt,
+        expiresAt: this.expiresAt,
+        now: Date.now(),
+        isValid: this.accessToken && this.expiresAt && this.expiresAt > Date.now()
+      });
+      
       // Check for temp_token in URL
       const params = new URLSearchParams(window.location.search);
       const tempToken = params.get('temp_token');
       
       // First priority: Check if we already have a valid stored token
-      if (this.accessToken && this.expiresAt && this.expiresAt > Date.now()) {
-        console.log('✅ Already authenticated with valid token');
-        this.updateAuthStatus();
-        await this.loadAllChaptersAndProgress();
+      if (this.accessToken) {
+        // Check if token is expired (only if we have expiry info)
+        const isExpired = this.expiresAt && this.expiresAt <= Date.now();
         
-        // Clean up URL if temp_token is present (it's already been used)
-        if (tempToken) {
-          console.log('🧹 Removing used temp_token from URL');
-          const url = new URL(window.location.href);
-          url.searchParams.delete('temp_token');
-          window.history.replaceState({}, '', url.toString());
+        console.log('🔍 Token validity check:', {
+          hasAccessToken: !!this.accessToken,
+          hasExpiresAt: !!this.expiresAt,
+          expiresAt: this.expiresAt,
+          isExpired: isExpired
+        });
+        
+        if (!isExpired) {
+          console.log('✅ Already authenticated with valid token');
+          this.updateAuthStatus();
+          await this.loadAllChaptersAndProgress();
+          
+          // Clean up URL if temp_token is present (it's already been used)
+          if (tempToken) {
+            console.log('🧹 Removing used temp_token from URL');
+            const url = new URL(window.location.href);
+            url.searchParams.delete('temp_token');
+            window.history.replaceState({}, '', url.toString());
+          }
+        } else {
+          console.log('⏰ Stored token is expired, clearing and re-authenticating if possible');
+          this.clearAuth();
+          
+          // Try to authenticate with temp_token if available
+          if (tempToken) {
+            const tempTokenInput = document.getElementById('tempTokenInput');
+            if (tempTokenInput) {
+              tempTokenInput.value = tempToken;
+            }
+            console.log('🎫 Temp token detected in URL, authenticating...');
+            const success = await this.authenticateWithTempToken(tempToken);
+            
+            if (success) {
+              console.log('🧹 Removing used temp_token from URL');
+              const url = new URL(window.location.href);
+              url.searchParams.delete('temp_token');
+              window.history.replaceState({}, '', url.toString());
+            }
+          } else {
+            console.log('⚠️ No authentication found');
+            this.updateAuthStatus();
+          }
         }
       }
       // Second priority: Try to exchange temp_token if present and we're not authenticated
@@ -110,28 +153,65 @@
       const refresh = localStorage.getItem('gg_refresh_token');
       const expires = localStorage.getItem('gg_expires_at');
       
+      console.log('🔍 Checking stored auth:', {
+        hasAccess: !!access,
+        hasRefresh: !!refresh,
+        expiresRaw: expires,
+        expiresType: typeof expires
+      });
+      
       if (access) {
         this.accessToken = access;
         this.refreshToken = refresh;
-        this.expiresAt = expires ? parseInt(expires) : null;
-        console.log('📦 Loaded stored auth');
+        this.expiresAt = expires ? parseInt(expires, 10) : null;
+        
+        console.log('🔍 Auth loaded:', {
+          accessToken: access.substring(0, 20) + '...',
+          expiresAt: this.expiresAt,
+          expiresAtDate: this.expiresAt ? new Date(this.expiresAt).toISOString() : 'null',
+          now: Date.now(),
+          nowDate: new Date(Date.now()).toISOString(),
+          isExpired: this.expiresAt ? this.expiresAt < Date.now() : 'no expiry'
+        });
         
         // Check if token is expired
         if (this.expiresAt && this.expiresAt < Date.now()) {
           console.log('⏰ Token expired, clearing...');
           this.clearAuth();
+        } else {
+          console.log('✅ Token is valid');
         }
+      } else {
+        console.log('❌ No access token found in localStorage');
       }
     },
     
     // Save authentication to localStorage
     saveAuth(access, refresh, expiresAt) {
+      console.log('💾 Saving auth:', {
+        access: access ? access.substring(0, 20) + '...' : 'null',
+        refresh: refresh ? refresh.substring(0, 20) + '...' : 'null',
+        expiresAt: expiresAt,
+        expiresAtType: typeof expiresAt,
+        expiresAtDate: expiresAt ? new Date(expiresAt).toISOString() : 'null'
+      });
+      
       localStorage.setItem('gg_access_token', access);
-      localStorage.setItem('gg_refresh_token', refresh);
-      localStorage.setItem('gg_expires_at', expiresAt);
+      if (refresh) {
+        localStorage.setItem('gg_refresh_token', refresh);
+      }
+      // Only save expiresAt if it's a valid number
+      if (expiresAt != null && !isNaN(expiresAt)) {
+        localStorage.setItem('gg_expires_at', String(expiresAt));
+        this.expiresAt = typeof expiresAt === 'string' ? parseInt(expiresAt, 10) : expiresAt;
+      } else {
+        // Remove expiresAt if it's invalid
+        localStorage.removeItem('gg_expires_at');
+        this.expiresAt = null;
+      }
+      
       this.accessToken = access;
       this.refreshToken = refresh;
-      this.expiresAt = expiresAt;
       console.log('💾 Auth saved to localStorage');
     },
     
@@ -153,26 +233,34 @@
     updateAuthStatus() {
       const statusEl = document.getElementById('authStatus');
       
-      if (this.accessToken && this.expiresAt) {
-        const expiresIn = Math.floor((this.expiresAt - Date.now()) / 1000);
-        
-        if (expiresIn > 0) {
-          statusEl.className = 'auth-status ok';
-          statusEl.textContent = `✓ Authenticated (expires in ${expiresIn}s)`;
+      if (!statusEl) return; // Guard against missing element
+      
+      if (this.accessToken) {
+        if (this.expiresAt) {
+          const expiresIn = Math.floor((this.expiresAt - Date.now()) / 1000);
           
-          // Update every second
-          if (!this._statusInterval) {
-            this._statusInterval = setInterval(() => {
-              this.updateAuthStatus();
-            }, 1000);
+          if (expiresIn > 0) {
+            statusEl.className = 'auth-status ok';
+            statusEl.textContent = `✓ Authenticated (expires in ${expiresIn}s)`;
+            
+            // Update every second
+            if (!this._statusInterval) {
+              this._statusInterval = setInterval(() => {
+                this.updateAuthStatus();
+              }, 1000);
+            }
+          } else {
+            statusEl.className = 'auth-status bad';
+            statusEl.textContent = '✗ Token Expired';
+            if (this._statusInterval) {
+              clearInterval(this._statusInterval);
+              this._statusInterval = null;
+            }
           }
         } else {
-          statusEl.className = 'auth-status bad';
-          statusEl.textContent = '✗ Token Expired';
-          if (this._statusInterval) {
-            clearInterval(this._statusInterval);
-            this._statusInterval = null;
-          }
+          // We have a token but no expiry info - assume it's valid
+          statusEl.className = 'auth-status ok';
+          statusEl.textContent = '✓ Authenticated';
         }
       } else {
         statusEl.className = 'auth-status bad';
@@ -207,6 +295,13 @@
         
         const authData = await response.json();
         console.log('✅ Token exchange successful');
+        console.log('🔍 Server response:', {
+          hasAccessToken: !!authData.access_token,
+          hasRefreshToken: !!authData.refresh_token,
+          expiresAt: authData.expires_at,
+          expiresAtType: typeof authData.expires_at,
+          expiresAtDate: authData.expires_at ? new Date(authData.expires_at).toISOString() : 'null'
+        });
         
         // Save auth data
         this.saveAuth(
