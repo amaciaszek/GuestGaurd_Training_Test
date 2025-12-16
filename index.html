@@ -96,6 +96,13 @@
     .btn.warn{ background:#221013; color:#ffd6db; border-color:#5e141f }
     .btn:disabled{ opacity:0.5; cursor:not-allowed; }
     .tiny{opacity:.8; font-size:11px; color:var(--gg-ink-dim); margin-top:6px}
+    
+    /* Hide hotspots while background is loading */
+    .stage.loading-background .hotspot {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
   </style>
 </head>
         

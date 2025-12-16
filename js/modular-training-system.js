@@ -680,15 +680,32 @@ initStorage(){
       document.title = this.config.title || 'Training Module';
       this.title.textContent = this.config.title || 'Training Module';
 
+      // Initially hide all hotspots while loading
+      this.stage.classList.add('loading-background');
+
       const bg = this.resolveAsset(this.config.backgroundImage || '');
       if (bg){
         const img = new Image();
         const withBust = bg + (bg.includes('?') ? '&' : '?') + 'v=' + Date.now();
-        img.onload = ()=>{ this.stage.style.backgroundImage = `url('${withBust}')`; };
-        img.onerror = ()=>{ this.stage.style.backgroundImage = `url('${bg}')`; };
+        img.onload = ()=>{ 
+          this.stage.style.backgroundImage = `url('${withBust}')`;
+          // Show hotspots after background loads with a small delay
+          setTimeout(() => {
+            this.stage.classList.remove('loading-background');
+          }, 100);
+        };
+        img.onerror = ()=>{ 
+          this.stage.style.backgroundImage = `url('${bg}')`;
+          // Show hotspots even if background fails to load
+          setTimeout(() => {
+            this.stage.classList.remove('loading-background');
+          }, 100);
+        };
         img.src = withBust;
       } else {
         this.stage.style.backgroundImage = '';
+        // No background to load, show hotspots immediately
+        this.stage.classList.remove('loading-background');
       }
 
       const audioSrc = this.resolveAsset(this.config.audioFile || '');
