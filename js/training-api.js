@@ -24,24 +24,32 @@
     
     // Initialize the API system
     async init() {
-      console.log('🚀 Initializing Training API...');
+      console.log('🚀 [INIT DEBUG] ===== Initializing Training API =====');
       
       this.setupProgressUI();
+      console.log('🚀 [INIT DEBUG] Progress UI setup complete');
+      
+      console.log('🚀 [INIT DEBUG] Loading stored auth...');
       this.loadStoredAuth();
+      console.log('🚀 [INIT DEBUG] After loadStoredAuth:');
+      console.log('  - accessToken:', this.accessToken ? `${this.accessToken.substring(0, 20)}...` : 'NULL');
+      console.log('  - refreshToken:', this.refreshToken ? `${this.refreshToken.substring(0, 20)}...` : 'NULL');
+      console.log('  - expiresAt:', this.expiresAt || 'NULL');
       
       // Check for temp_token in URL
       const params = new URLSearchParams(window.location.search);
       const tempToken = params.get('temp_token');
+      console.log('🚀 [INIT DEBUG] URL temp_token:', tempToken ? `${tempToken.substring(0, 20)}... (${tempToken.length} chars)` : 'NOT FOUND');
       
       // First priority: Check if we already have a valid stored token
       if (this.accessToken && this.expiresAt && this.expiresAt > Date.now()) {
-        console.log('✅ Already authenticated with valid token');
+        console.log('✅ [INIT DEBUG] Already authenticated with valid token');
         this.updateAuthStatus();
         await this.loadAllChaptersAndProgress();
         
         // Clean up URL if temp_token is present (it's already been used)
         if (tempToken) {
-          console.log('🧹 Removing used temp_token from URL');
+          console.log('🧹 [INIT DEBUG] Removing used temp_token from URL');
           const url = new URL(window.location.href);
           url.searchParams.delete('temp_token');
           window.history.replaceState({}, '', url.toString());
@@ -53,22 +61,28 @@
         if (tempTokenInput) {
           tempTokenInput.value = tempToken;
         }
-        console.log('🎫 Temp token detected in URL, authenticating...');
+        console.log('🎫 [INIT DEBUG] Temp token detected in URL, authenticating...');
         const success = await this.authenticateWithTempToken(tempToken);
+        console.log('🎫 [INIT DEBUG] Authentication result:', success ? 'SUCCESS' : 'FAILED');
         
         // Clean up URL after successful authentication
         if (success) {
-          console.log('🧹 Removing used temp_token from URL');
+          console.log('🧹 [INIT DEBUG] Removing used temp_token from URL');
           const url = new URL(window.location.href);
           url.searchParams.delete('temp_token');
           window.history.replaceState({}, '', url.toString());
+          console.log('🧹 [INIT DEBUG] URL cleaned:', window.location.href);
         }
       } 
       // No authentication available
       else {
-        console.log('⚠️ No authentication found');
+        console.log('⚠️ [INIT DEBUG] No authentication found');
+        console.log('⚠️ [INIT DEBUG] - No valid stored token');
+        console.log('⚠️ [INIT DEBUG] - No temp_token in URL');
         this.updateAuthStatus();
       }
+      
+      console.log('🚀 [INIT DEBUG] ===== Initialization Complete =====');
     },
     
     // Retry wrapper for fetch operations with exponential backoff
@@ -106,37 +120,90 @@
     
     // Load stored authentication from localStorage
     loadStoredAuth() {
+      console.log('🔍 [AUTH DEBUG] Attempting to load stored authentication...');
+      
       const access = localStorage.getItem('gg_access_token');
       const refresh = localStorage.getItem('gg_refresh_token');
       const expires = localStorage.getItem('gg_expires_at');
+      
+      console.log('🔍 [AUTH DEBUG] localStorage contents:');
+      console.log('  - access_token:', access ? `${access.substring(0, 20)}... (${access.length} chars)` : 'NOT FOUND');
+      console.log('  - refresh_token:', refresh ? `${refresh.substring(0, 20)}... (${refresh.length} chars)` : 'NOT FOUND');
+      console.log('  - expires_at:', expires || 'NOT FOUND');
       
       if (access) {
         this.accessToken = access;
         this.refreshToken = refresh;
         this.expiresAt = expires ? parseInt(expires) : null;
-        console.log('📦 Loaded stored auth');
+        
+        const now = Date.now();
+        const expiresIn = this.expiresAt ? Math.floor((this.expiresAt - now) / 1000) : 'N/A';
+        
+        console.log('📦 [AUTH DEBUG] Loaded stored auth successfully:');
+        console.log('  - Token expires at:', this.expiresAt ? new Date(this.expiresAt).toISOString() : 'N/A');
+        console.log('  - Current time:', new Date(now).toISOString());
+        console.log('  - Expires in:', expiresIn, 'seconds');
         
         // Check if token is expired
-        if (this.expiresAt && this.expiresAt < Date.now()) {
-          console.log('⏰ Token expired, clearing...');
+        if (this.expiresAt && this.expiresAt < now) {
+          console.log('⏰ [AUTH DEBUG] Token is EXPIRED - clearing...');
           this.clearAuth();
+        } else {
+          console.log('✅ [AUTH DEBUG] Token is still valid');
         }
+      } else {
+        console.log('❌ [AUTH DEBUG] No access token found in localStorage');
       }
     },
     
     // Save authentication to localStorage
     saveAuth(access, refresh, expiresAt) {
+      console.log('💾 [AUTH DEBUG] Attempting to save authentication...');
+      console.log('💾 [AUTH DEBUG] Received parameters:');
+      console.log('  - access:', access ? `${access.substring(0, 20)}... (${access.length} chars)` : 'NULL/UNDEFINED');
+      console.log('  - refresh:', refresh ? `${refresh.substring(0, 20)}... (${refresh.length} chars)` : 'NULL/UNDEFINED');
+      console.log('  - expiresAt:', expiresAt ? `${expiresAt} (${new Date(expiresAt).toISOString()})` : 'NULL/UNDEFINED');
+      
+      // Save to localStorage
       localStorage.setItem('gg_access_token', access);
       localStorage.setItem('gg_refresh_token', refresh);
       localStorage.setItem('gg_expires_at', expiresAt);
+      
+      // Verify what was actually saved
+      const savedAccess = localStorage.getItem('gg_access_token');
+      const savedRefresh = localStorage.getItem('gg_refresh_token');
+      const savedExpires = localStorage.getItem('gg_expires_at');
+      
+      console.log('💾 [AUTH DEBUG] Verified localStorage after save:');
+      console.log('  - access_token:', savedAccess ? `${savedAccess.substring(0, 20)}... (${savedAccess.length} chars)` : 'FAILED TO SAVE');
+      console.log('  - refresh_token:', savedRefresh ? `${savedRefresh.substring(0, 20)}... (${savedRefresh.length} chars)` : 'FAILED TO SAVE');
+      console.log('  - expires_at:', savedExpires || 'FAILED TO SAVE');
+      
+      // Update instance variables
       this.accessToken = access;
       this.refreshToken = refresh;
       this.expiresAt = expiresAt;
-      console.log('💾 Auth saved to localStorage');
+      
+      console.log('✅ [AUTH DEBUG] Auth saved to localStorage successfully');
+      console.log('✅ [AUTH DEBUG] Instance variables updated');
     },
     
     // Clear authentication
     clearAuth() {
+      console.log('🗑️ [AUTH DEBUG] Clearing authentication...');
+      console.log('🗑️ [AUTH DEBUG] Current state before clear:');
+      console.log('  - accessToken:', this.accessToken ? 'EXISTS' : 'NULL');
+      console.log('  - refreshToken:', this.refreshToken ? 'EXISTS' : 'NULL');
+      console.log('  - expiresAt:', this.expiresAt || 'NULL');
+      
+      // Get stack trace to see who called clearAuth
+      try {
+        throw new Error('Stack trace');
+      } catch (e) {
+        console.log('🗑️ [AUTH DEBUG] clearAuth called from:');
+        console.log(e.stack);
+      }
+      
       localStorage.removeItem('gg_access_token');
       localStorage.removeItem('gg_refresh_token');
       localStorage.removeItem('gg_expires_at');
@@ -146,7 +213,12 @@
       this.allChapters = {};
       this.currentChapterKey = null;
       this.serverProgress = {};
-      console.log('🗑️ Auth cleared');
+      
+      console.log('🗑️ [AUTH DEBUG] Auth cleared successfully');
+      console.log('🗑️ [AUTH DEBUG] Verifying localStorage:');
+      console.log('  - gg_access_token:', localStorage.getItem('gg_access_token') || 'REMOVED');
+      console.log('  - gg_refresh_token:', localStorage.getItem('gg_refresh_token') || 'REMOVED');
+      console.log('  - gg_expires_at:', localStorage.getItem('gg_expires_at') || 'REMOVED');
     },
     
     // Update authentication status display
@@ -187,42 +259,59 @@
     // Authenticate with temporary token
     async authenticateWithTempToken(tempToken) {
       try {
-        console.log('🔑 Exchanging temp token...');
+        console.log('🔑 [AUTH DEBUG] Starting temp token exchange...');
+        console.log('🔑 [AUTH DEBUG] Temp token:', tempToken ? `${tempToken.substring(0, 20)}... (${tempToken.length} chars)` : 'NULL/UNDEFINED');
         
-        const response = await fetch(
-          `${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(tempToken)}`,
-          {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'TrainingPlatform/1.0'
-            }
+        const apiUrl = `${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(tempToken)}`;
+        console.log('🔑 [AUTH DEBUG] API URL:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TrainingPlatform/1.0'
           }
-        );
+        });
+        
+        console.log('🔑 [AUTH DEBUG] Response status:', response.status, response.statusText);
+        console.log('🔑 [AUTH DEBUG] Response ok:', response.ok);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.error('🔑 [AUTH DEBUG] Error response data:', errorData);
           throw new Error(`Token exchange failed: ${errorData.error || response.statusText}`);
         }
         
         const authData = await response.json();
-        console.log('✅ Token exchange successful');
+        console.log('✅ [AUTH DEBUG] Token exchange successful!');
+        console.log('✅ [AUTH DEBUG] Received auth data structure:', Object.keys(authData));
+        console.log('✅ [AUTH DEBUG] Auth data details:');
+        console.log('  - access_token:', authData.access_token ? `${authData.access_token.substring(0, 20)}... (${authData.access_token.length} chars)` : 'MISSING');
+        console.log('  - refresh_token:', authData.refresh_token ? `${authData.refresh_token.substring(0, 20)}... (${authData.refresh_token.length} chars)` : 'MISSING');
+        console.log('  - expires_at:', authData.expires_at || 'MISSING');
         
         // Save auth data
+        console.log('🔑 [AUTH DEBUG] Calling saveAuth...');
         this.saveAuth(
           authData.access_token,
           authData.refresh_token,
           authData.expires_at
         );
+        console.log('🔑 [AUTH DEBUG] saveAuth completed');
         
         this.updateAuthStatus();
+        console.log('🔑 [AUTH DEBUG] Auth status updated');
         
         // Load all chapters and progress
+        console.log('🔑 [AUTH DEBUG] Loading chapters and progress...');
         await this.loadAllChaptersAndProgress();
+        console.log('🔑 [AUTH DEBUG] Chapters and progress loaded');
         
         return true;
       } catch (e) {
-        console.error('❌ Authentication failed:', e.message);
+        console.error('❌ [AUTH DEBUG] Authentication failed with error:', e);
+        console.error('❌ [AUTH DEBUG] Error message:', e.message);
+        console.error('❌ [AUTH DEBUG] Error stack:', e.stack);
         
         // Update status to show error
         const statusEl = document.getElementById('authStatus');
@@ -1190,6 +1279,45 @@
       };
       
       console.log('💡 Debug helper: Type "refreshProgress()" in console to manually refresh progress panel');
+      
+      // Add additional debugging helpers
+      window.debugAuth = () => {
+        console.log('🔍 [DEBUG HELPER] ===== Authentication Debug Info =====');
+        console.log('Instance State:');
+        console.log('  - accessToken:', this.accessToken ? `${this.accessToken.substring(0, 20)}... (${this.accessToken.length} chars)` : 'NULL');
+        console.log('  - refreshToken:', this.refreshToken ? `${this.refreshToken.substring(0, 20)}... (${this.refreshToken.length} chars)` : 'NULL');
+        console.log('  - expiresAt:', this.expiresAt || 'NULL');
+        if (this.expiresAt) {
+          const now = Date.now();
+          const expiresIn = Math.floor((this.expiresAt - now) / 1000);
+          console.log('  - expires in:', expiresIn > 0 ? `${expiresIn} seconds` : 'EXPIRED');
+          console.log('  - expires at:', new Date(this.expiresAt).toISOString());
+        }
+        
+        console.log('\nlocalStorage Contents:');
+        const access = localStorage.getItem('gg_access_token');
+        const refresh = localStorage.getItem('gg_refresh_token');
+        const expires = localStorage.getItem('gg_expires_at');
+        console.log('  - gg_access_token:', access ? `${access.substring(0, 20)}... (${access.length} chars)` : 'NOT FOUND');
+        console.log('  - gg_refresh_token:', refresh ? `${refresh.substring(0, 20)}... (${refresh.length} chars)` : 'NOT FOUND');
+        console.log('  - gg_expires_at:', expires || 'NOT FOUND');
+        
+        console.log('\nURL Parameters:');
+        const params = new URLSearchParams(window.location.search);
+        const tempToken = params.get('temp_token');
+        console.log('  - temp_token:', tempToken ? `${tempToken.substring(0, 20)}... (${tempToken.length} chars)` : 'NOT FOUND');
+        
+        console.log('=========================================');
+      };
+      
+      window.clearAuthDebug = () => {
+        console.log('🗑️ [DEBUG HELPER] Clearing authentication...');
+        window.GGTrainingAPI.clearAuth();
+        console.log('✅ [DEBUG HELPER] Authentication cleared');
+      };
+      
+      console.log('💡 Debug helper: Type "debugAuth()" in console to inspect authentication state');
+      console.log('💡 Debug helper: Type "clearAuthDebug()" in console to clear authentication');
     }
   };
   
