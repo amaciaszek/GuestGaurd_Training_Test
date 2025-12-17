@@ -12,6 +12,42 @@
     currentChapterKey: null,
     serverProgress: {},
     
+    // Extract expiration time from JWT token
+    extractJWTExpiration(token) {
+      try {
+        // JWT format: header.payload.signature
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+          console.warn('🔍 [JWT] Invalid JWT format');
+          return null;
+        }
+        
+        // Decode base64url payload
+        const payload = parts[1];
+        // Replace base64url chars with base64
+        const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        // Add padding if needed
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+        // Decode
+        const decoded = JSON.parse(atob(padded));
+        
+        console.log('🔍 [JWT] Decoded token payload:', decoded);
+        
+        // JWT exp is in seconds, convert to milliseconds
+        if (decoded.exp) {
+          const expiresAt = decoded.exp * 1000;
+          console.log('✅ [JWT] Extracted expiration:', new Date(expiresAt).toISOString());
+          return expiresAt;
+        }
+        
+        console.warn('⚠️ [JWT] No exp field in token');
+        return null;
+      } catch (e) {
+        console.error('❌ [JWT] Failed to decode token:', e);
+        return null;
+      }
+    },
+    
     // All chapter files in the system
     CHAPTER_FILES: [
       "1-1.json", "1-2.json", "1-3.json", "1-4.json", "1-5.json",
@@ -36,6 +72,17 @@
       console.log('  - refreshToken:', this.refreshToken ? `${this.refreshToken.substring(0, 20)}...` : 'NULL');
       console.log('  - expiresAt:', this.expiresAt || 'NULL');
       
+      // If we have an accessToken but no expiresAt, try to extract it from the JWT
+      if (this.accessToken && !this.expiresAt) {
+        console.log('⚠️ [INIT DEBUG] Have accessToken but no expiresAt, attempting JWT extraction...');
+        const extractedExpiry = this.extractJWTExpiration(this.accessToken);
+        if (extractedExpiry) {
+          this.expiresAt = extractedExpiry;
+          localStorage.setItem('gg_expires_at', extractedExpiry);
+          console.log('✅ [INIT DEBUG] Extracted and saved expiration from JWT');
+        }
+      }
+      
       // Check for temp_token in URL
       const params = new URLSearchParams(window.location.search);
       const tempToken = params.get('temp_token');
@@ -54,6 +101,13 @@
           url.searchParams.delete('temp_token');
           window.history.replaceState({}, '', url.toString());
         }
+      }
+      // Special case: Have accessToken but no/expired expiresAt - assume token is still good
+      else if (this.accessToken && !tempToken) {
+        console.log('⚠️ [INIT DEBUG] Have accessToken but cannot verify expiration');
+        console.log('⚠️ [INIT DEBUG] Assuming token is valid and proceeding...');
+        this.updateAuthStatus();
+        await this.loadAllChaptersAndProgress();
       }
       // Second priority: Try to exchange temp_token if present and we're not authenticated
       else if (tempToken) {
@@ -136,6 +190,18 @@
         this.refreshToken = refresh;
         this.expiresAt = expires ? parseInt(expires) : null;
         
+        // If expiresAt is missing, try to extract from JWT
+        if (!this.expiresAt) {
+          console.log('⚠️ [AUTH DEBUG] No expires_at in localStorage, attempting JWT extraction...');
+          const extractedExpiry = this.extractJWTExpiration(access);
+          if (extractedExpiry) {
+            this.expiresAt = extractedExpiry;
+            // Save it for future use
+            localStorage.setItem('gg_expires_at', extractedExpiry);
+            console.log('✅ [AUTH DEBUG] Extracted and saved expiration from JWT');
+          }
+        }
+        
         const now = Date.now();
         const expiresIn = this.expiresAt ? Math.floor((this.expiresAt - now) / 1000) : 'N/A';
         
@@ -148,8 +214,10 @@
         if (this.expiresAt && this.expiresAt < now) {
           console.log('⏰ [AUTH DEBUG] Token is EXPIRED - clearing...');
           this.clearAuth();
-        } else {
+        } else if (this.expiresAt) {
           console.log('✅ [AUTH DEBUG] Token is still valid');
+        } else {
+          console.log('⚠️ [AUTH DEBUG] Cannot verify token expiration (no exp field in JWT)');
         }
       } else {
         console.log('❌ [AUTH DEBUG] No access token found in localStorage');
@@ -164,6 +232,20 @@
       console.log('  - refresh:', refresh ? `${refresh.substring(0, 20)}... (${refresh.length} chars)` : 'NULL/UNDEFINED');
       console.log('  - expiresAt:', expiresAt ? `${expiresAt} (${new Date(expiresAt).toISOString()})` : 'NULL/UNDEFINED');
       
+      // If expiresAt is missing, try to extract from JWT
+      if (!expiresAt && access) {
+        console.log('⚠️ [AUTH DEBUG] No expires_at provided by API, attempting to extract from JWT...');
+        expiresAt = this.extractJWTExpiration(access);
+        
+        if (expiresAt) {
+          console.log('✅ [AUTH DEBUG] Successfully extracted expiration from JWT');
+        } else {
+          // Fall back to 1 hour from now if extraction fails
+          expiresAt = Date.now() + (60 * 60 * 1000);
+          console.log('⚠️ [AUTH DEBUG] Could not extract expiration, using 1-hour default:', new Date(expiresAt).toISOString());
+        }
+      }
+      
       // Save to localStorage
       localStorage.setItem('gg_access_token', access);
       localStorage.setItem('gg_refresh_token', refresh);
@@ -177,15 +259,17 @@
       console.log('💾 [AUTH DEBUG] Verified localStorage after save:');
       console.log('  - access_token:', savedAccess ? `${savedAccess.substring(0, 20)}... (${savedAccess.length} chars)` : 'FAILED TO SAVE');
       console.log('  - refresh_token:', savedRefresh ? `${savedRefresh.substring(0, 20)}... (${savedRefresh.length} chars)` : 'FAILED TO SAVE');
-      console.log('  - expires_at:', savedExpires || 'FAILED TO SAVE');
+      console.log('  - expires_at:', savedExpires ? `${savedExpires} (${new Date(parseInt(savedExpires)).toISOString()})` : 'FAILED TO SAVE');
       
       // Update instance variables
       this.accessToken = access;
       this.refreshToken = refresh;
       this.expiresAt = expiresAt;
       
+      const expiresIn = expiresAt ? Math.floor((expiresAt - Date.now()) / 1000) : 'N/A';
       console.log('✅ [AUTH DEBUG] Auth saved to localStorage successfully');
       console.log('✅ [AUTH DEBUG] Instance variables updated');
+      console.log('✅ [AUTH DEBUG] Token expires in:', expiresIn, 'seconds');
     },
     
     // Clear authentication
@@ -1301,6 +1385,24 @@
         console.log('  - gg_access_token:', access ? `${access.substring(0, 20)}... (${access.length} chars)` : 'NOT FOUND');
         console.log('  - gg_refresh_token:', refresh ? `${refresh.substring(0, 20)}... (${refresh.length} chars)` : 'NOT FOUND');
         console.log('  - gg_expires_at:', expires || 'NOT FOUND');
+        
+        // Try to decode JWT if present
+        if (access) {
+          console.log('\nJWT Token Analysis:');
+          const extractedExpiry = this.extractJWTExpiration(access);
+          if (extractedExpiry) {
+            const now = Date.now();
+            const expiresIn = Math.floor((extractedExpiry - now) / 1000);
+            console.log('  - JWT exp field:', new Date(extractedExpiry).toISOString());
+            console.log('  - JWT expires in:', expiresIn > 0 ? `${expiresIn} seconds` : 'EXPIRED');
+            
+            if (expires && parseInt(expires) !== extractedExpiry) {
+              console.log('  ⚠️ WARNING: localStorage expires_at does not match JWT exp field!');
+            }
+          } else {
+            console.log('  ⚠️ Could not extract expiration from JWT');
+          }
+        }
         
         console.log('\nURL Parameters:');
         const params = new URLSearchParams(window.location.search);
