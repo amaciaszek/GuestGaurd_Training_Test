@@ -29,8 +29,24 @@
       this.setupProgressUI();
       
       // Check for temp_token in URL - ONLY source of authentication
+      console.log('🔍 DEBUGGING - Full URL:', window.location.href);
+      console.log('🔍 DEBUGGING - Search params:', window.location.search);
+      
       const params = new URLSearchParams(window.location.search);
       const tempToken = params.get('temp_token');
+      
+      console.log('🔍 DEBUGGING - Raw temp_token value:', tempToken);
+      console.log('🔍 DEBUGGING - Token type:', typeof tempToken);
+      console.log('🔍 DEBUGGING - Token length:', tempToken ? tempToken.length : 0);
+      console.log('🔍 DEBUGGING - Token first 50 chars:', tempToken ? tempToken.substring(0, 50) : 'null');
+      
+      // Inspect token character codes to find hidden characters
+      if (tempToken) {
+        console.log('🔍 DEBUGGING - Token char codes (first 20):');
+        for (let i = 0; i < Math.min(20, tempToken.length); i++) {
+          console.log(`  [${i}] = "${tempToken[i]}" (code: ${tempToken.charCodeAt(i)})`);
+        }
+      }
       
       if (tempToken) {
         console.log('🎫 Temp token detected in URL, authenticating...');
@@ -140,31 +156,45 @@
     async authenticateWithTempToken(tempToken) {
       try {
         console.log('🔑 Exchanging temp token...');
+        console.log('🔍 DEBUGGING - Token being exchanged:', tempToken);
+        console.log('🔍 DEBUGGING - Token length:', tempToken.length);
+        console.log('🔍 DEBUGGING - Encoded token:', encodeURIComponent(tempToken));
         
-        const response = await fetch(
-          `${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(tempToken)}`,
-          {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'TrainingPlatform/1.0'
-            }
+        const apiUrl = `${API_BASE}/api/training-auth?temp_token=${encodeURIComponent(tempToken)}`;
+        console.log('🔍 DEBUGGING - Full API URL:', apiUrl);
+        console.log('🔍 DEBUGGING - API_BASE:', API_BASE);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TrainingPlatform/1.0'
           }
-        );
+        });
+        
+        console.log('🔍 DEBUGGING - Response status:', response.status);
+        console.log('🔍 DEBUGGING - Response ok:', response.ok);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.error('🔍 DEBUGGING - Error response:', errorData);
           throw new Error(`Token exchange failed: ${errorData.error || response.statusText}`);
         }
         
         const authData = await response.json();
         console.log('✅ Token exchange successful');
+        console.log('🔍 DEBUGGING - Auth data received:', authData);
+        console.log('🔍 DEBUGGING - Access token (first 20 chars):', authData.access_token ? authData.access_token.substring(0, 20) : 'null');
+        console.log('🔍 DEBUGGING - Refresh token exists:', !!authData.refresh_token);
+        console.log('🔍 DEBUGGING - Expires at:', authData.expires_at);
         
         // Store auth data in memory only (no localStorage)
         this.accessToken = authData.access_token;
         this.refreshToken = authData.refresh_token;
         this.expiresAt = authData.expires_at;
         console.log('💾 Auth stored in session memory (NOT localStorage)');
+        console.log('🔍 DEBUGGING - Stored accessToken exists:', !!this.accessToken);
+        console.log('🔍 DEBUGGING - Stored expiresAt:', this.expiresAt);
         
         this.updateAuthStatus();
         
@@ -174,12 +204,14 @@
         return true;
       } catch (e) {
         console.error('❌ Authentication failed:', e.message);
+        console.error('🔍 DEBUGGING - Full error:', e);
+        console.error('🔍 DEBUGGING - Error stack:', e.stack);
         
         // Update status to show error
         const statusEl = document.getElementById('authStatus');
         if (statusEl) {
           statusEl.className = 'auth-status bad';
-          statusEl.textContent = '✗ Authentication Failed - Please try again or contact support';
+          statusEl.textContent = `✗ Authentication Failed: ${e.message}`;
         }
         
         return false;
