@@ -184,17 +184,28 @@
         const authData = await response.json();
         console.log('✅ Token exchange successful');
         console.log('🔍 DEBUGGING - Auth data received:', authData);
+        console.log('🔍 DEBUGGING - Full auth data:', JSON.stringify(authData, null, 2));
         console.log('🔍 DEBUGGING - Access token (first 20 chars):', authData.access_token ? authData.access_token.substring(0, 20) : 'null');
         console.log('🔍 DEBUGGING - Refresh token exists:', !!authData.refresh_token);
-        console.log('🔍 DEBUGGING - Expires at:', authData.expires_at);
+        console.log('🔍 DEBUGGING - Expires at (from server):', authData.expires_at);
+        
+        // Handle missing expires_at - calculate default expiration (1 hour from now)
+        let expiresAt = authData.expires_at;
+        if (!expiresAt) {
+          // If server doesn't provide expires_at, default to 1 hour from now
+          expiresAt = Date.now() + (60 * 60 * 1000); // 1 hour in milliseconds
+          console.warn('⚠️ Server did not provide expires_at, using default: 1 hour from now');
+          console.log('🔍 DEBUGGING - Calculated expires_at:', expiresAt);
+        }
         
         // Store auth data in memory only (no localStorage)
         this.accessToken = authData.access_token;
         this.refreshToken = authData.refresh_token;
-        this.expiresAt = authData.expires_at;
+        this.expiresAt = expiresAt;
         console.log('💾 Auth stored in session memory (NOT localStorage)');
         console.log('🔍 DEBUGGING - Stored accessToken exists:', !!this.accessToken);
         console.log('🔍 DEBUGGING - Stored expiresAt:', this.expiresAt);
+        console.log('🔍 DEBUGGING - Token expires in:', Math.floor((this.expiresAt - Date.now()) / 1000), 'seconds');
         
         this.updateAuthStatus();
         
@@ -370,6 +381,18 @@
         
         const data = await response.json();
         console.log('✅ Progress fetched from server:', data);
+        console.log('🔍 DEBUGGING - Full progress response:', JSON.stringify(data, null, 2));
+        console.log('🔍 DEBUGGING - Has training_progress field:', !!data.training_progress);
+        console.log('🔍 DEBUGGING - Has modules field:', !!(data.training_progress && data.training_progress.modules));
+        
+        if (data.training_progress && data.training_progress.modules) {
+          console.log('🔍 DEBUGGING - Modules in response:', Object.keys(data.training_progress.modules));
+          // Show first module's structure for debugging
+          const firstModule = Object.keys(data.training_progress.modules)[0];
+          if (firstModule) {
+            console.log(`🔍 DEBUGGING - Structure of ${firstModule}:`, JSON.stringify(data.training_progress.modules[firstModule], null, 2));
+          }
+        }
         
         this.serverProgress = data.training_progress || {};
         
@@ -388,30 +411,44 @@
     applyServerProgress() {
       if (!this.serverProgress || !this.serverProgress.modules) {
         console.log('⚠️ No server progress to apply');
+        console.log('🔍 DEBUGGING - serverProgress:', this.serverProgress);
         return;
       }
       
       console.log('📝 Applying server progress to local chapters...');
+      console.log('🔍 DEBUGGING - Server modules:', Object.keys(this.serverProgress.modules));
+      
+      let appliedCount = 0;
       
       for (const [key, chapter] of Object.entries(this.allChapters)) {
         const parsed = this.parseChapterKey(key);
-        if (!parsed) continue;
+        if (!parsed) {
+          console.log(`  ⚠️ Could not parse key: ${key}`);
+          continue;
+        }
         
         const moduleKey = `module_${parsed.module}`;
         const moduleData = this.serverProgress.modules[moduleKey];
         
+        console.log(`  🔍 Checking ${key}: moduleKey=${moduleKey}, moduleData exists=${!!moduleData}`);
+        
         if (moduleData && moduleData.chapters && moduleData.chapters[parsed.chapter]) {
           const serverChapterProgress = moduleData.chapters[parsed.chapter];
+          
+          console.log(`  📝 Applying progress for ${key}:`, serverChapterProgress);
           
           chapter.progress.currentSegment = serverChapterProgress.current_segment || 0;
           chapter.progress.completed = serverChapterProgress.completed || false;
           chapter.progress.lastUpdated = serverChapterProgress.last_updated || null;
           
-          console.log(`  ✓ Applied progress for ${key}: segment ${chapter.progress.currentSegment}/${chapter.progress.totalSegments}`);
+          console.log(`  ✓ Applied progress for ${key}: segment ${chapter.progress.currentSegment}/${chapter.progress.totalSegments}${chapter.progress.completed ? ' (COMPLETED)' : ''}`);
+          appliedCount++;
+        } else {
+          console.log(`  ⚠️ No server progress for ${key} (module: ${moduleKey}, chapter index: ${parsed.chapter})`);
         }
       }
       
-      console.log('✅ Server progress applied');
+      console.log(`✅ Server progress applied to ${appliedCount} chapters`);
     },
     
     // Report progress to server
@@ -435,6 +472,7 @@
       };
       
       console.log(`📤 Reporting progress to server: ${chapterKey} segment ${segmentIndex}${completed ? ' (COMPLETED)' : ''}`);
+      console.log('🔍 DEBUGGING - Progress payload:', JSON.stringify(payload, null, 2));
       
       const result = await this.fetchWithRetry(
         async () => {
@@ -454,11 +492,15 @@
           
           const data = await response.json();
           console.log('✅ Progress reported successfully:', data);
+          console.log('🔍 DEBUGGING - Server response:', JSON.stringify(data, null, 2));
           
           // Update local progress with server response
           if (data.training_progress) {
+            console.log('🔍 DEBUGGING - Updating local progress with server response');
             this.serverProgress = data.training_progress;
             this.applyServerProgress();
+          } else {
+            console.warn('⚠️ Server response did not include training_progress');
           }
           
           return data;
