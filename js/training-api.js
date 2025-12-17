@@ -1,10 +1,10 @@
 // ===== GuestGuard Training API Integration =====
-// Rewritten to use chapter-test.html authentication pattern
+// Server-based authentication and progress tracking - NO localStorage
 (function() {
   'use strict';
 
   window.GGTrainingAPI = {
-    // State
+    // State - Session only (not persisted)
     accessToken: null,
     refreshToken: null,
     expiresAt: null,
@@ -24,51 +24,37 @@
     
     // Initialize the API system
     async init() {
-      console.log('🚀 Initializing Training API...');
+      console.log('🚀 Initializing Training API (Server-based mode)...');
       
       this.setupProgressUI();
-      this.loadStoredAuth();
       
-      // Check for temp_token in URL
+      // Check for temp_token in URL - ONLY source of authentication
       const params = new URLSearchParams(window.location.search);
       const tempToken = params.get('temp_token');
       
-      // First priority: Check if we already have a valid stored token
-      if (this.accessToken && this.expiresAt && this.expiresAt > Date.now()) {
-        console.log('✅ Already authenticated with valid token');
-        this.updateAuthStatus();
-        await this.loadAllChaptersAndProgress();
-        
-        // Clean up URL if temp_token is present (it's already been used)
-        if (tempToken) {
-          console.log('🧹 Removing used temp_token from URL');
-          const url = new URL(window.location.href);
-          url.searchParams.delete('temp_token');
-          window.history.replaceState({}, '', url.toString());
-        }
-      }
-      // Second priority: Try to exchange temp_token if present and we're not authenticated
-      else if (tempToken) {
-        const tempTokenInput = document.getElementById('tempTokenInput');
-        if (tempTokenInput) {
-          tempTokenInput.value = tempToken;
-        }
+      if (tempToken) {
         console.log('🎫 Temp token detected in URL, authenticating...');
         const success = await this.authenticateWithTempToken(tempToken);
         
-        // Clean up URL after successful authentication
+        // Clean up URL after authentication attempt
         if (success) {
-          console.log('🧹 Removing used temp_token from URL');
+          console.log('🧹 Removing temp_token from URL');
           const url = new URL(window.location.href);
           url.searchParams.delete('temp_token');
           window.history.replaceState({}, '', url.toString());
         }
-      } 
-      // No authentication available
-      else {
-        console.log('⚠️ No authentication found');
+      } else {
+        console.log('⚠️ No temp_token in URL - authentication required');
         this.updateAuthStatus();
+        this.showAuthRequiredMessage();
       }
+    },
+    
+    // Show authentication required message
+    showAuthRequiredMessage() {
+      document.getElementById('moduleTitle').textContent = 'Please authenticate to continue';
+      const stage = document.getElementById('stage');
+      stage.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9fb0c5;font-size:18px;">🔒 Authentication Required</div>';
     },
     
     // Retry wrapper for fetch operations with exponential backoff
@@ -104,49 +90,15 @@
       return { success: false, error: 'Max retries exceeded' };
     },
     
-    // Load stored authentication from localStorage
-    loadStoredAuth() {
-      const access = localStorage.getItem('gg_access_token');
-      const refresh = localStorage.getItem('gg_refresh_token');
-      const expires = localStorage.getItem('gg_expires_at');
-      
-      if (access) {
-        this.accessToken = access;
-        this.refreshToken = refresh;
-        this.expiresAt = expires ? parseInt(expires) : null;
-        console.log('📦 Loaded stored auth');
-        
-        // Check if token is expired
-        if (this.expiresAt && this.expiresAt < Date.now()) {
-          console.log('⏰ Token expired, clearing...');
-          this.clearAuth();
-        }
-      }
-    },
-    
-    // Save authentication to localStorage
-    saveAuth(access, refresh, expiresAt) {
-      localStorage.setItem('gg_access_token', access);
-      localStorage.setItem('gg_refresh_token', refresh);
-      localStorage.setItem('gg_expires_at', expiresAt);
-      this.accessToken = access;
-      this.refreshToken = refresh;
-      this.expiresAt = expiresAt;
-      console.log('💾 Auth saved to localStorage');
-    },
-    
-    // Clear authentication
+    // Clear authentication (session only - no localStorage)
     clearAuth() {
-      localStorage.removeItem('gg_access_token');
-      localStorage.removeItem('gg_refresh_token');
-      localStorage.removeItem('gg_expires_at');
       this.accessToken = null;
       this.refreshToken = null;
       this.expiresAt = null;
       this.allChapters = {};
       this.currentChapterKey = null;
       this.serverProgress = {};
-      console.log('🗑️ Auth cleared');
+      console.log('🗑️ Session auth cleared (no localStorage)');
     },
     
     // Update authentication status display
@@ -168,7 +120,7 @@
           }
         } else {
           statusEl.className = 'auth-status bad';
-          statusEl.textContent = '✗ Token Expired';
+          statusEl.textContent = '✗ Token Expired - Refresh page with new token';
           if (this._statusInterval) {
             clearInterval(this._statusInterval);
             this._statusInterval = null;
@@ -208,16 +160,15 @@
         const authData = await response.json();
         console.log('✅ Token exchange successful');
         
-        // Save auth data
-        this.saveAuth(
-          authData.access_token,
-          authData.refresh_token,
-          authData.expires_at
-        );
+        // Store auth data in memory only (no localStorage)
+        this.accessToken = authData.access_token;
+        this.refreshToken = authData.refresh_token;
+        this.expiresAt = authData.expires_at;
+        console.log('💾 Auth stored in session memory (NOT localStorage)');
         
         this.updateAuthStatus();
         
-        // Load all chapters and progress
+        // Load all chapters and progress from server
         await this.loadAllChaptersAndProgress();
         
         return true;
@@ -386,7 +337,7 @@
         }
         
         const data = await response.json();
-        console.log('✅ Progress fetched:', data);
+        console.log('✅ Progress fetched from server:', data);
         
         this.serverProgress = data.training_progress || {};
         
@@ -401,539 +352,183 @@
       }
     },
     
-    // Apply server progress to local chapter data
+    // Apply server progress to local chapter objects
     applyServerProgress() {
-      const modules = this.serverProgress.modules || {};
+      if (!this.serverProgress || !this.serverProgress.modules) {
+        console.log('⚠️ No server progress to apply');
+        return;
+      }
       
-      for (const key in this.allChapters) {
-        const { module, chapter } = this.parseChapterKey(key);
+      console.log('📝 Applying server progress to local chapters...');
+      
+      for (const [key, chapter] of Object.entries(this.allChapters)) {
+        const parsed = this.parseChapterKey(key);
+        if (!parsed) continue;
         
-        if (modules[module] && modules[module].chapters && modules[module].chapters[chapter]) {
-          const serverChapterProgress = modules[module].chapters[chapter];
+        const moduleKey = `module_${parsed.module}`;
+        const moduleData = this.serverProgress.modules[moduleKey];
+        
+        if (moduleData && moduleData.chapters && moduleData.chapters[parsed.chapter]) {
+          const serverChapterProgress = moduleData.chapters[parsed.chapter];
           
-          this.allChapters[key].progress = {
-            currentSegment: serverChapterProgress.currentSegment || 0,
-            totalSegments: this.allChapters[key].progress.totalSegments,
-            completed: serverChapterProgress.completed || false,
-            lastUpdated: serverChapterProgress.lastUpdated
-          };
+          chapter.progress.currentSegment = serverChapterProgress.current_segment || 0;
+          chapter.progress.completed = serverChapterProgress.completed || false;
+          chapter.progress.lastUpdated = serverChapterProgress.last_updated || null;
           
-          console.log(`📍 Applied progress for ${key}: segment ${serverChapterProgress.currentSegment}`);
+          console.log(`  ✓ Applied progress for ${key}: segment ${chapter.progress.currentSegment}/${chapter.progress.totalSegments}`);
         }
       }
+      
+      console.log('✅ Server progress applied');
+    },
+    
+    // Report progress to server
+    async reportProgress(chapterKey, segmentIndex, completed = false) {
+      if (!this.accessToken) {
+        console.warn('⚠️ Cannot report progress without authentication');
+        return { success: false };
+      }
+      
+      const parsed = this.parseChapterKey(chapterKey);
+      if (!parsed) {
+        console.error('❌ Invalid chapter key:', chapterKey);
+        return { success: false };
+      }
+      
+      const payload = {
+        module_number: parsed.module,
+        chapter_index: parsed.chapter,
+        segment_index: segmentIndex,
+        completed: completed
+      };
+      
+      console.log(`📤 Reporting progress to server: ${chapterKey} segment ${segmentIndex}${completed ? ' (COMPLETED)' : ''}`);
+      
+      const result = await this.fetchWithRetry(
+        async () => {
+          const response = await this.fetchWithAuth(`${API_BASE}/api/training-progress`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`Progress report failed: ${errorData.error || response.statusText}`);
+          }
+          
+          const data = await response.json();
+          console.log('✅ Progress reported successfully:', data);
+          
+          // Update local progress with server response
+          if (data.training_progress) {
+            this.serverProgress = data.training_progress;
+            this.applyServerProgress();
+          }
+          
+          return data;
+        },
+        3, // retry attempts
+        `Report Progress (${chapterKey}:${segmentIndex})`
+      );
+      
+      if (result.success) {
+        // Refresh progress display after successful report
+        this.updateProgressDisplay(this.serverProgress);
+      }
+      
+      return result;
     },
     
     // Resume from last progress
     resumeFromLastProgress() {
-      console.log('\n🔍 ===== AUTO-RESUME: DETERMINING WHICH CHAPTER TO LOAD =====');
-      console.log('This system automatically takes you to your last active chapter');
+      console.log('🔍 Finding last progress position...');
       
-      // Separate chapters into categories
-      const incompleteWithProgress = [];
-      const completed = [];
-      const notStarted = [];
+      let lastChapterKey = null;
+      let lastSegmentIndex = 0;
       
-      for (const key in this.allChapters) {
+      // Iterate through chapters in order
+      for (const filename of this.CHAPTER_FILES) {
+        const key = filename.replace('.json', '');
         const chapter = this.allChapters[key];
-        const progress = chapter.progress;
         
-        const isCompleted = progress.completed || 
-                           (progress.currentSegment >= progress.totalSegments && progress.totalSegments > 0);
-        
-        const hasProgress = progress.currentSegment > 0;
-        
-        console.log(`📊 ${key}: ${progress.currentSegment}/${progress.totalSegments} segments | ` +
-                   `completed: ${isCompleted} | lastUpdated: ${progress.lastUpdated || 'never'}`);
-        
-        if (isCompleted) {
-          completed.push({ key, ...progress });
-        } else if (hasProgress) {
-          incompleteWithProgress.push({ key, ...progress });
-        } else {
-          notStarted.push({ key, ...progress });
+        if (chapter && chapter.progress) {
+          if (chapter.progress.completed) {
+            // If completed, this is the last completed chapter
+            lastChapterKey = key;
+            lastSegmentIndex = chapter.progress.totalSegments;
+          } else if (chapter.progress.currentSegment > 0) {
+            // If in progress, this is where we resume
+            lastChapterKey = key;
+            lastSegmentIndex = chapter.progress.currentSegment;
+            break; // Stop here, we found the resume point
+          } else {
+            // Not started yet, this is our resume point if no others found
+            if (!lastChapterKey || lastSegmentIndex === chapter.progress.totalSegments) {
+              lastChapterKey = key;
+              lastSegmentIndex = 0;
+              break;
+            }
+          }
         }
       }
       
-      console.log(`\n📈 Summary:`);
-      console.log(`  - Completed chapters: ${completed.length}`);
-      console.log(`  - Incomplete with progress: ${incompleteWithProgress.length}`);
-      console.log(`  - Not started: ${notStarted.length}`);
-      
-      let targetKey = null;
-      let reason = '';
-      
-      // Priority 1: Resume incomplete chapter with most recent progress
-      if (incompleteWithProgress.length > 0) {
-        // Sort by lastUpdated timestamp (most recent first)
-        incompleteWithProgress.sort((a, b) => {
-          const timeA = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
-          const timeB = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
-          return timeB - timeA; // Most recent first
-        });
-        
-        targetKey = incompleteWithProgress[0].key;
-        const lastUpdate = incompleteWithProgress[0].lastUpdated 
-          ? new Date(incompleteWithProgress[0].lastUpdated).toLocaleString()
-          : 'unknown';
-        reason = `📍 RESUMING: Most recent incomplete chapter (${incompleteWithProgress[0].currentSegment}/${incompleteWithProgress[0].totalSegments} segments, last updated: ${lastUpdate})`;
+      // If we found a resume point, load that chapter
+      if (lastChapterKey) {
+        console.log(`✅ Resuming from ${lastChapterKey} segment ${lastSegmentIndex}`);
+        this.loadChapter(lastChapterKey);
+      } else {
+        console.log('⚠️ No progress found, starting from beginning');
+        this.loadChapter(this.CHAPTER_FILES[0].replace('.json', ''));
       }
-      // Priority 2: Start first not-started chapter
-      else if (notStarted.length > 0) {
-        // Find first chapter in sequence order
-        const ordered = this.CHAPTER_FILES.filter(f => 
-          notStarted.some(ns => ns.key === f.replace('.json', ''))
-        );
-        
-        if (ordered.length > 0) {
-          targetKey = ordered[0].replace('.json', '');
-          reason = '🆕 Starting first chapter with no progress';
-        }
-      }
-      // Priority 3: All chapters completed - go to first chapter
-      else if (completed.length > 0) {
-        targetKey = '1-1';
-        reason = '🎉 All chapters completed - returning to start';
-        console.log('🎉 Congratulations! All chapters completed!');
-      }
-      // Fallback: Start from beginning
-      else {
-        targetKey = '1-1';
-        reason = '🆕 No progress data - starting from beginning';
-      }
-      
-      console.log(`\n✅ AUTO-RESUME DECISION: Load ${targetKey}`);
-      console.log(`   ${reason}`);
-      console.log('===== END AUTO-RESUME =====\n');
-      
-      this.currentChapterKey = targetKey;
-      this.loadCurrentChapter();
     },
     
-    // Load current chapter into the training system
-    loadCurrentChapter() {
-      if (!this.currentChapterKey || !this.allChapters[this.currentChapterKey]) {
-        console.error('❌ Cannot load chapter:', this.currentChapterKey);
+    // Load a specific chapter
+    loadChapter(chapterKey) {
+      const chapter = this.allChapters[chapterKey];
+      if (!chapter) {
+        console.error(`❌ Chapter ${chapterKey} not found`);
         return;
       }
       
-      const chapter = this.allChapters[this.currentChapterKey];
-      console.log(`📖 Loading chapter ${this.currentChapterKey}...`);
+      console.log(`📖 Loading chapter ${chapterKey}...`);
+      this.currentChapterKey = chapterKey;
       
-      // Reset stage and load the chapter
-      window.resetStageShell();
-      
-      // Create ModularTrainingSystem with the chapter data and current progress
-      new ModularTrainingSystem(
-        chapter.data,
-        0,  // idx not used in new system
-        this.currentChapterKey,
-        null,  // transcript
-        chapter.progress.currentSegment  // start from saved progress
-      );
-    },
-    
-    // Show blocking sync failure dialog with retry option
-    showSyncFailureDialog(segmentNum, completed, error) {
-      // Remove any existing dialog
-      const existing = document.getElementById('syncFailureDialog');
-      if (existing) existing.remove();
-      
-      const overlay = document.createElement('div');
-      overlay.id = 'syncFailureDialog';
-      overlay.style.cssText = `
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.85);
-        z-index: 999999;
-        display: grid;
-        place-items: center;
-        backdrop-filter: blur(4px);
-      `;
-      
-      const dialog = document.createElement('div');
-      dialog.style.cssText = `
-        background: linear-gradient(135deg, #1a1f2e, #0f1419);
-        border: 2px solid #ff6b6b;
-        border-radius: 16px;
-        padding: 32px;
-        max-width: 500px;
-        box-shadow: 0 8px 32px rgba(255, 107, 107, 0.4);
-        font-family: ui-monospace, monospace;
-      `;
-      
-      dialog.innerHTML = `
-        <div style="text-align: center; margin-bottom: 24px;">
-          <div style="font-size: 64px; margin-bottom: 16px;">⚠️</div>
-          <h2 style="margin: 0 0 12px 0; color: #ff6b6b; font-size: 24px; font-weight: 700;">
-            Server Connection Failed
-          </h2>
-          <p style="margin: 0 0 8px 0; color: #9fb0c5; font-size: 14px; line-height: 1.6;">
-            Your progress could not be saved to the server after multiple attempts.
-          </p>
-          <p style="margin: 0; color: #7cf6c9; font-size: 13px; font-weight: 600;">
-            ✓ Your segment completion is preserved in memory
-          </p>
-        </div>
-        
-        <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); 
-                    border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-          <div style="font-size: 11px; color: #ff9999; font-weight: 700; margin-bottom: 8px;">
-            ERROR DETAILS
-          </div>
-          <div style="font-size: 12px; color: #d7e2f1; font-family: monospace; word-break: break-word;">
-            ${error}
-          </div>
-        </div>
-        
-        <div style="background: rgba(124, 246, 201, 0.1); border: 1px solid rgba(124, 246, 201, 0.3);
-                    border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-          <div style="font-size: 11px; color: #7cf6c9; font-weight: 700; margin-bottom: 8px;">
-            WHAT THIS MEANS
-          </div>
-          <ul style="margin: 0; padding-left: 20px; color: #9fb0c5; font-size: 13px; line-height: 1.8;">
-            <li>You won't need to re-watch this segment</li>
-            <li>But you cannot proceed until the server confirms your progress</li>
-            <li>This ensures your training completion is properly recorded</li>
-          </ul>
-        </div>
-        
-        <div style="display: flex; gap: 12px;">
-          <button id="retrySync" style="
-            flex: 1;
-            background: linear-gradient(135deg, #00e0ff, #0099cc);
-            color: #001014;
-            border: none;
-            padding: 14px 24px;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            font-family: ui-monospace, monospace;
-          ">
-            🔄 Retry Connection
-          </button>
-          <button id="cancelSync" style="
-            background: rgba(159, 176, 197, 0.1);
-            color: #9fb0c5;
-            border: 1px solid rgba(159, 176, 197, 0.3);
-            padding: 14px 24px;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            font-family: ui-monospace, monospace;
-          ">
-            Cancel
-          </button>
-        </div>
-        
-        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(159, 176, 197, 0.2);">
-          <p style="margin: 0; font-size: 11px; color: #6b7a8f; text-align: center; line-height: 1.5;">
-            💡 TIP: Check your internet connection, then click "Retry Connection"<br>
-            If the issue persists, contact your system administrator
-          </p>
-        </div>
-      `;
-      
-      overlay.appendChild(dialog);
-      document.body.appendChild(overlay);
-      
-      // Add event handlers
-      const retryBtn = document.getElementById('retrySync');
-      const cancelBtn = document.getElementById('cancelSync');
-      
-      retryBtn.onclick = async () => {
-        retryBtn.disabled = true;
-        retryBtn.textContent = '⏳ Retrying...';
-        
-        // Try to post again
-        const success = await this.postSegmentProgress(segmentNum, completed);
-        
-        if (success) {
-          // Success! Close dialog and allow progression
-          overlay.remove();
-        } else {
-          // Still failed - update button
-          retryBtn.disabled = false;
-          retryBtn.textContent = '🔄 Retry Connection';
-          
-          // Update error message in dialog
-          const errorDetail = dialog.querySelector('[style*="word-break"]');
-          if (errorDetail) {
-            errorDetail.textContent = 'Connection still failing. Please check your network and try again.';
-          }
-        }
-      };
-      
-      cancelBtn.onclick = () => {
-        overlay.remove();
-        // User cancelled - they'll need to retry manually or complete the segment again
-        console.warn('⚠️ User cancelled sync - segment progress not saved to server');
-      };
-      
-      // Prevent closing by clicking overlay
-      overlay.onclick = (e) => {
-        if (e.target === overlay) {
-          // Do nothing - require explicit action
-        }
-      };
-    },
-    
-    // Check if all training is complete
-    isAllTrainingComplete() {
-      // Check if all chapters are completed
-      for (const key in this.allChapters) {
-        const chapter = this.allChapters[key];
-        const progress = chapter.progress;
-        
-        // A chapter is complete if marked as completed OR all segments are done
-        const isCompleted = progress.completed || 
-                           (progress.currentSegment >= progress.totalSegments && progress.totalSegments > 0);
-        
-        if (!isCompleted) {
-          return false; // Found an incomplete chapter
+      // Update title
+      const parsed = this.parseChapterKey(chapterKey);
+      if (parsed) {
+        const moduleObj = TRAINING_STRUCTURE.find(m => m.id === `module-${parsed.module}`);
+        if (moduleObj && moduleObj.chapters[parsed.chapter]) {
+          document.getElementById('moduleTitle').textContent = moduleObj.chapters[parsed.chapter].name;
         }
       }
       
-      // All chapters are complete
-      console.log('🎓 ALL TRAINING COMPLETE!');
-      return true;
-    },
-    
-    // Post progress for current segment
-    async postSegmentProgress(segmentNum, completed = false) {
-      if (!this.accessToken || !this.currentChapterKey) {
-        console.warn('⚠️ Cannot post progress: not authenticated or no current chapter');
-        return false;
-      }
-      
-      const chapter = this.allChapters[this.currentChapterKey];
-      if (!chapter) return false;
-      
-      // Update local progress
-      chapter.progress.currentSegment = segmentNum;
-      chapter.progress.completed = completed;
-      chapter.progress.lastUpdated = new Date().toISOString();
-      
-      // Build modules data for API
-      const modulesData = {};
-      
-      for (const key in this.allChapters) {
-        const { module, chapter: chapNum } = this.parseChapterKey(key);
-        const prog = this.allChapters[key].progress;
-        
-        if (!modulesData[module]) {
-          modulesData[module] = { chapters: {} };
-        }
-        
-        modulesData[module].chapters[chapNum] = {
-          currentSegment: prog.currentSegment,
-          totalSegments: prog.totalSegments,
-          completed: prog.completed,
-          lastUpdated: prog.lastUpdated
-        };
-      }
-      
-      const payload = {
-        training_progress: {
-          modules: modulesData,
-          complete_training: this.isAllTrainingComplete(),
-          last_updated: new Date().toISOString()
-        }
-      };
-      
-      console.log(`📤 Posting progress: ${this.currentChapterKey} segment ${segmentNum}`);
-      
-      // Use retry wrapper for posting progress
-      const result = await this.fetchWithRetry(async () => {
-        const response = await this.fetchWithAuth(`${API_BASE}/api/training-progress`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`${response.status}: ${response.statusText}`);
-        }
-        
-        return await response.json();
-      }, null, 'Progress POST');
-      
-      if (result.success) {
-        console.log('✅ Progress saved:', result.data);
-        
-        // Update progress display
-        this.updateProgressDisplay(result.data.training_progress);
-        
-        // Log chapter completion but DON'T auto-advance
-        // Let the modular-training-system show the dialog first
-        if (completed) {
-          console.log(`🎉 Chapter ${this.currentChapterKey} completed!`);
-          console.log(`   ⏸️ Waiting for user to click "Continue" in dialog...`);
-          // The dialog's "Continue" button will call moveToNextChapter()
-        }
-        
-        return true;
-      } else {
-        console.error('❌ Failed to post progress after all retries:', result.error);
-        
-        // CRITICAL: We CANNOT allow progression without server confirmation
-        // This is a certification system - no local cheating allowed!
-        
-        // Show blocking error dialog with manual retry option
-        this.showSyncFailureDialog(segmentNum, completed, result.error);
-        
-        // Return false to block progression
-        return false;
+      // Initialize the training system with this chapter
+      if (window.initTrainingSystem) {
+        window.initTrainingSystem(chapter.data, chapterKey);
       }
     },
     
-    // Move to next chapter
-    moveToNextChapter() {
-      const currentIndex = this.CHAPTER_FILES.indexOf(`${this.currentChapterKey}.json`);
-      
-      if (currentIndex >= 0 && currentIndex < this.CHAPTER_FILES.length - 1) {
-        const nextFilename = this.CHAPTER_FILES[currentIndex + 1];
-        const nextKey = nextFilename.replace('.json', '');
-        
-        console.log(`➡️ Moving to next chapter: ${nextKey}`);
-        this.currentChapterKey = nextKey;
-        this.loadCurrentChapter();
-      } else {
-        console.log('🎓 All chapters completed!');
-        document.getElementById('moduleTitle').textContent = 'All chapters completed! 🎉';
+    // Get next chapter
+    getNextChapter() {
+      const currentIndex = this.CHAPTER_FILES.findIndex(f => f.replace('.json', '') === this.currentChapterKey);
+      if (currentIndex === -1 || currentIndex === this.CHAPTER_FILES.length - 1) {
+        return null; // No next chapter
       }
+      return this.CHAPTER_FILES[currentIndex + 1].replace('.json', '');
     },
     
     // Update progress display panel
-    updateProgressDisplay(trainingProgress) {
-      console.log('\n📊 ===== UPDATE PROGRESS DISPLAY =====');
-      console.log('trainingProgress parameter:', trainingProgress);
-      console.log('this.allChapters:', this.allChapters);
-      console.log('Number of chapters loaded:', Object.keys(this.allChapters).length);
+    updateProgressDisplay(progressData) {
+      console.log('\n===== UPDATING PROGRESS DISPLAY =====');
+      console.log('Progress data:', progressData);
       
-      const modules = (trainingProgress && trainingProgress.modules) || {};
-      const lastUpdated = trainingProgress && trainingProgress.last_updated;
-      
-      // Calculate BOTH segment-based AND time-based progress
-      let totalSegments = 0;
-      let completedSegments = 0;
-      let totalSeconds = 0;
-      let completedSeconds = 0;
-      
-      console.log('\n📈 Calculating overall progress:');
-      
-      // Build debug information
-      let debugLines = [];
-      debugLines.push(`Loaded Chapters: ${Object.keys(this.allChapters).length}`);
-      debugLines.push(`Server Progress Available: ${!!trainingProgress}`);
-      debugLines.push(`Using SEGMENT_TIMINGS: ${!!window.SEGMENT_TIMINGS}`);
-      debugLines.push('');
-      
-      for (const key in this.allChapters) {
-        const chapter = this.allChapters[key];
-        const progress = chapter.progress || {};
-        const current = progress.currentSegment || 0;
-        const total = progress.totalSegments || 0;
-        
-        // Get timing data
-        const chapterDuration = this.getChapterDuration(key);
-        const segmentDurations = window.SEGMENT_TIMINGS && window.SEGMENT_TIMINGS[key] 
-          ? window.SEGMENT_TIMINGS[key].durations 
-          : [];
-        
-        // Calculate completed time for this chapter
-        let chapterCompletedTime = 0;
-        if (segmentDurations.length > 0) {
-          for (let i = 0; i < current && i < segmentDurations.length; i++) {
-            chapterCompletedTime += segmentDurations[i];
-          }
-        }
-        
-        totalSeconds += chapterDuration;
-        completedSeconds += chapterCompletedTime;
-        
-        console.log(`  ${key}: ${current}/${total} segments (${chapterCompletedTime}/${chapterDuration}s) ${progress.completed ? '✓' : ''}`);
-        debugLines.push(`${key}: ${current}/${total} segments, ${chapterCompletedTime}/${chapterDuration}s`);
-        
-        totalSegments += total;
-        completedSegments += current;
-      }
-      
-      debugLines.push('');
-      debugLines.push(`Segment Total: ${completedSegments}/${totalSegments}`);
-      debugLines.push(`Time Total: ${completedSeconds}/${totalSeconds}s`);
-      
-      console.log(`\n✅ TOTALS: ${completedSegments}/${totalSegments} segments`);
-      console.log(`⏱️ TIME TOTALS: ${completedSeconds}/${totalSeconds} seconds`);
-      
-      // Use time-based progress as primary if available, fallback to segment-based
-      const overallPercent = totalSeconds > 0
-        ? Math.round((completedSeconds / totalSeconds) * 100)
-        : totalSegments > 0
-          ? Math.round((completedSegments / totalSegments) * 100)
-          : 0;
-      
-      console.log(`📊 Overall Percentage: ${overallPercent}% (${totalSeconds > 0 ? 'time-based' : 'segment-based'})`);
-      
-      // Update overall progress elements
-      const overallPercentEl = document.getElementById('overallPercent');
-      const segmentCountEl = document.getElementById('segmentCount');
-      const overallBarEl = document.getElementById('overallBar');
-      const lastUpdatedEl = document.getElementById('lastUpdated');
-      const debugInfoEl = document.getElementById('debugInfo');
-      const debugTextEl = document.getElementById('debugText');
-      
-      if (overallPercentEl) {
-        overallPercentEl.textContent = overallPercent;
-        console.log(`✅ Set overallPercent to: ${overallPercent}%`);
-      } else {
-        console.error('❌ overallPercent element NOT FOUND');
-      }
-      
-      if (segmentCountEl) {
-        // Show time if available, otherwise segments
-        if (totalSeconds > 0) {
-          const completedMin = Math.floor(completedSeconds / 60);
-          const completedSec = completedSeconds % 60;
-          const totalMin = Math.floor(totalSeconds / 60);
-          const totalSec = totalSeconds % 60;
-          segmentCountEl.textContent = `${completedMin}:${completedSec.toString().padStart(2,'0')} / ${totalMin}:${totalSec.toString().padStart(2,'0')} completed`;
-        } else {
-          segmentCountEl.textContent = `${completedSegments}/${totalSegments} segments completed`;
-        }
-        console.log(`✅ Set segmentCount to: ${segmentCountEl.textContent}`);
-      }
-      
-      if (overallBarEl) {
-        overallBarEl.style.width = `${overallPercent}%`;
-        console.log(`✅ Set progress bar width to: ${overallPercent}%`);
-      }
-      
-      if (lastUpdated && lastUpdatedEl) {
-        const date = new Date(lastUpdated);
-        lastUpdatedEl.textContent = 
-          `Synced ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
-        console.log(`✅ Set lastUpdated timestamp`);
-      } else if (lastUpdatedEl) {
-        lastUpdatedEl.textContent = 'Not synced with server';
-      }
-      
-      // Show debug info if progress is 0 or seems wrong
-      if (debugInfoEl && debugTextEl && (totalSegments === 0 || (overallPercent === 0 && Object.keys(this.allChapters).length > 0))) {
-        debugInfoEl.style.display = 'block';
-        debugTextEl.textContent = debugLines.join('\n');
-        console.log('⚠️ Showing debug info because progress looks wrong');
-      } else if (debugInfoEl) {
-        debugInfoEl.style.display = 'none';
-      }
-      
-      console.log('\n📊 Module-by-module breakdown:');
-      
-      // Update module progress list
-      const moduleList = document.getElementById('moduleProgressList');
+      const moduleList = document.getElementById('moduleList');
       if (!moduleList) {
-        console.error('❌ moduleProgressList element NOT FOUND');
+        console.warn('⚠️ Module list element not found');
         return;
       }
       
@@ -941,27 +536,19 @@
       
       // Group chapters by module
       const moduleGroups = {};
-      for (const key in this.allChapters) {
+      for (const [key, chapter] of Object.entries(this.allChapters)) {
         const parsed = this.parseChapterKey(key);
         if (!parsed) continue;
         
-        const { module } = parsed;
-        if (!moduleGroups[module]) {
-          moduleGroups[module] = [];
+        if (!moduleGroups[parsed.module]) {
+          moduleGroups[parsed.module] = [];
         }
-        moduleGroups[module].push(key);
+        moduleGroups[parsed.module].push({ key, chapter, parsed });
       }
       
-      // Display each module with expandable chapter details
-      for (let modNum = 1; modNum <= 6; modNum++) {
-        const chapters = moduleGroups[modNum] || [];
-        
-        if (chapters.length === 0) {
-          console.log(`  Module ${modNum}: No chapters loaded`);
-          continue;
-        }
-        
-        console.log(`\n  Module ${modNum}: ${chapters.length} chapters`);
+      // Display each module
+      for (const [modNum, chapters] of Object.entries(moduleGroups).sort((a, b) => parseInt(a[0]) - parseInt(b[0]))) {
+        console.log(`\nModule ${modNum}:`);
         
         let modTotalSegments = 0;
         let modCompletedSegments = 0;
@@ -969,20 +556,22 @@
         let modCompletedSeconds = 0;
         let chapterDetailsHTML = '';
         
-        chapters.sort((a, b) => {
-          const aNum = parseInt(a.split('-')[1]);
-          const bNum = parseInt(b.split('-')[1]);
-          return aNum - bNum;
-        });
-        
-        chapters.forEach(key => {
-          const chapter = this.allChapters[key];
-          if (chapter) {
-            const progress = chapter.progress || {};
-            const current = progress.currentSegment || 0;
-            const total = progress.totalSegments || 0;
+        chapters.sort((a, b) => a.parsed.chapter - b.parsed.chapter).forEach(({ key, chapter }) => {
+          const chapterData = chapter.data;
+          const chapterProgress = chapter.progress;
+          
+          if (chapterData && chapterProgress) {
+            const total = chapterProgress.totalSegments;
+            const current = chapterProgress.currentSegment;
+            const isCompleted = chapterProgress.completed;
             
-            // Get timing data for this chapter
+            modTotalSegments += total;
+            modCompletedSegments += isCompleted ? total : current;
+            
+            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+            console.log(`  ${key}: ${current}/${total} = ${percent}%${isCompleted ? ' ✓' : ''}`);
+            
+            // Calculate time-based progress
             const chapterDuration = this.getChapterDuration(key);
             const segmentDurations = window.SEGMENT_TIMINGS && window.SEGMENT_TIMINGS[key] 
               ? window.SEGMENT_TIMINGS[key].durations 
@@ -990,22 +579,11 @@
             
             let chapterCompletedTime = 0;
             if (segmentDurations.length > 0) {
-              for (let i = 0; i < current && i < segmentDurations.length; i++) {
+              for (let i = 0; i < Math.min(current, segmentDurations.length); i++) {
                 chapterCompletedTime += segmentDurations[i];
               }
             }
             
-            // Use time-based percentage if available
-            const percent = chapterDuration > 0
-              ? Math.round((chapterCompletedTime / chapterDuration) * 100)
-              : total > 0
-                ? Math.round((current / total) * 100)
-                : 0;
-            
-            console.log(`    ${key}: ${current}/${total} (${percent}%) - ${chapterCompletedTime}/${chapterDuration}s`);
-            
-            modTotalSegments += total;
-            modCompletedSegments += current;
             modTotalSeconds += chapterDuration;
             modCompletedSeconds += chapterCompletedTime;
             
@@ -1172,7 +750,7 @@
                 }, 2000);
               });
             } else {
-              alert('Not authenticated. Please authenticate to sync progress.');
+              alert('Not authenticated. Please refresh page with authentication token.');
             }
           });
         }

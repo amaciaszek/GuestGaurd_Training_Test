@@ -136,14 +136,14 @@ window.resetStageShell = function(){
     
     if (btnClearAuth) {
       btnClearAuth.addEventListener('click', () => {
-        if (confirm('Clear authentication? You will need to re-authenticate to continue.')) {
+        if (confirm('Clear authentication? You will need to refresh the page with a new token to continue.')) {
           window.GGTrainingAPI.clearAuth();
           window.GGTrainingAPI.updateAuthStatus();
           
           // Reset UI
-          document.getElementById('moduleTitle').textContent = 'Please authenticate to continue';
+          document.getElementById('moduleTitle').textContent = 'Please refresh with new authentication token';
           const stage = document.getElementById('stage');
-          stage.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9fb0c5;font-size:18px;">🔒 Authentication Required</div>';
+          stage.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9fb0c5;font-size:18px;">🔒 Authentication Cleared - Please refresh page</div>';
         }
       });
     }
