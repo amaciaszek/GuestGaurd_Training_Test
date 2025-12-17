@@ -234,7 +234,7 @@ resolveAsset(p){
         targetChapterNum = parseInt(match[2], 10);
         console.log('🎯 DETECTED FROM FILENAME: Module', targetModuleNum, 'Chapter', targetChapterNum);
       } else {
-        console.warn(⚠️ Could not parse module/chapter from filename:', this.moduleFilename);
+        console.warn('⚠️ Could not parse module/chapter from filename:', this.moduleFilename);
       }
 
       const targetModuleId  = targetModuleNum  ? `module-${targetModuleNum}`         : null;
