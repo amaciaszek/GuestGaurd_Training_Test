@@ -232,6 +232,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- Application Scripts - Load in order -->
+  
+  <!-- Debug Scripts - Load FIRST for iOS debugging -->
+  <script src="js/debug-logger.js"></script>
+  <script src="js/auth-debug.js"></script>
   <script src="js/config.js"></script>
   <script src="js/training-api.js"></script>
   <script src="js/modular-training-system.js"></script>
