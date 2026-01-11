@@ -260,8 +260,9 @@ class DebugLogger {
         redirect: options.redirect || 'follow'
       });
       
+      const startTime = performance.now(); // Declare outside try/catch
+      
       try {
-        const startTime = performance.now();
         const response = await originalFetch(...args);
         const duration = (performance.now() - startTime).toFixed(2);
         const clonedResponse = response.clone();
@@ -287,7 +288,7 @@ class DebugLogger {
       } catch (error) {
         const duration = (performance.now() - startTime).toFixed(2);
         
-        this.error(`❌ FETCH ERROR: ${url} ${error.message}`);
+        this.error(`❌ FETCH ERROR: ${url} ${error.message} (${duration}ms)`);
         
         // Enhanced error details for Safari debugging
         this.error('🔍 Error Details:', {
