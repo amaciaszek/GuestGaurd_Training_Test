@@ -252,11 +252,22 @@ class DebugLogger {
         this.log('📋 Request Headers:', options.headers);
       }
       
+      // Log request mode and credentials for CORS debugging
+      this.log('🔧 Request Config:', {
+        mode: options.mode || 'cors',
+        credentials: options.credentials || 'same-origin',
+        cache: options.cache || 'default',
+        redirect: options.redirect || 'follow'
+      });
+      
       try {
+        const startTime = performance.now();
         const response = await originalFetch(...args);
+        const duration = (performance.now() - startTime).toFixed(2);
         const clonedResponse = response.clone();
         
-        this.log(`✅ FETCH RESPONSE: ${response.status} ${url}`);
+        this.log(`✅ FETCH RESPONSE: ${response.status} ${url} (${duration}ms)`);
+        this.log('📊 Response Headers:', Object.fromEntries(response.headers.entries()));
         
         // Try to read response body
         try {
@@ -274,7 +285,33 @@ class DebugLogger {
         
         return response;
       } catch (error) {
-        this.error(`❌ FETCH ERROR: ${url}`, error.message);
+        const duration = (performance.now() - startTime).toFixed(2);
+        
+        this.error(`❌ FETCH ERROR: ${url} ${error.message}`);
+        
+        // Enhanced error details for Safari debugging
+        this.error('🔍 Error Details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          constructor: error.constructor.name
+        });
+        
+        // Check for specific error types
+        if (error.name === 'TypeError' && error.message.includes('Load failed')) {
+          this.error('💡 Safari "Load failed" error detected. Possible causes:');
+          this.error('   1. CORS policy blocking the request');
+          this.error('   2. Network error (check internet connection)');
+          this.error('   3. SSL/TLS certificate issue');
+          this.error('   4. Server not responding');
+          this.error('   5. Safari security policy (tracking prevention)');
+          this.error('🔧 Try: Check browser console Network tab for more details');
+        }
+        
+        if (error.message.includes('CORS')) {
+          this.error('💡 CORS error - server must include proper Access-Control headers');
+        }
+        
         throw error;
       }
     };

@@ -116,61 +116,65 @@
 
 // ===== Additional Network Debugging =====
 
-// Monitor Supabase client creation
-(function() {
-  const originalSupabase = window.supabase;
+// Test CORS and endpoint availability
+async function testEndpoint(url) {
+  window.iosDebug.log('🧪 Testing endpoint:', url);
   
-  Object.defineProperty(window, 'supabase', {
-    get: function() {
-      return originalSupabase;
-    },
-    set: function(value) {
-      window.iosDebug.log('🗄️ Supabase client created');
-      
-      if (value && value.auth) {
-        // Wrap auth methods
-        const originalSignIn = value.auth.signInWithPassword;
-        if (originalSignIn) {
-          value.auth.signInWithPassword = async function(...args) {
-            window.iosDebug.log('🔑 Supabase signInWithPassword called');
-            try {
-              const result = await originalSignIn.apply(this, args);
-              window.iosDebug.log('✅ Supabase signIn success:', {
-                hasUser: !!result.data?.user,
-                hasSession: !!result.data?.session,
-                error: result.error
-              });
-              return result;
-            } catch (error) {
-              window.iosDebug.error('❌ Supabase signIn failed:', error);
-              throw error;
-            }
-          };
-        }
-
-        const originalSetSession = value.auth.setSession;
-        if (originalSetSession) {
-          value.auth.setSession = async function(...args) {
-            window.iosDebug.log('🔄 Supabase setSession called');
-            try {
-              const result = await originalSetSession.apply(this, args);
-              window.iosDebug.log('✅ Supabase setSession success:', {
-                hasSession: !!result.data?.session,
-                error: result.error
-              });
-              return result;
-            } catch (error) {
-              window.iosDebug.error('❌ Supabase setSession failed:', error);
-              throw error;
-            }
-          };
-        }
-      }
-      
-      return originalSupabase = value;
+  try {
+    // Try a simple HEAD request first
+    const headResponse = await fetch(url, { 
+      method: 'HEAD',
+      mode: 'cors'
+    }).catch(e => {
+      window.iosDebug.warn('HEAD request failed (might be normal):', e.message);
+      return null;
+    });
+    
+    if (headResponse) {
+      window.iosDebug.log('✅ HEAD request succeeded:', {
+        status: headResponse.status,
+        headers: Object.fromEntries(headResponse.headers.entries())
+      });
     }
-  });
-})();
+    
+    // Try OPTIONS for CORS preflight
+    const optionsResponse = await fetch(url, {
+      method: 'OPTIONS',
+      mode: 'cors'
+    }).catch(e => {
+      window.iosDebug.warn('OPTIONS request failed:', e.message);
+      return null;
+    });
+    
+    if (optionsResponse) {
+      window.iosDebug.log('✅ CORS preflight (OPTIONS):', {
+        status: optionsResponse.status,
+        corsHeaders: {
+          'access-control-allow-origin': optionsResponse.headers.get('access-control-allow-origin'),
+          'access-control-allow-methods': optionsResponse.headers.get('access-control-allow-methods'),
+          'access-control-allow-headers': optionsResponse.headers.get('access-control-allow-headers')
+        }
+      });
+    }
+  } catch (error) {
+    window.iosDebug.error('❌ Endpoint test failed:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+  }
+}
+
+// Auto-test the auth endpoint when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  const API_BASE = 'https://guestguard-platform.vercel.app';
+  
+  // Test with a dummy token after a short delay
+  setTimeout(() => {
+    window.iosDebug.log('🔍 Testing auth endpoint accessibility...');
+    testEndpoint(`${API_BASE}/api/training-auth?temp_token=test`);
+  }, 1000);
+});
 
 // ===== URL Parameter Debugging =====
 document.addEventListener('DOMContentLoaded', () => {
