@@ -351,9 +351,12 @@
         
         const response = await fetch(apiUrl, {
           method: 'GET',
+          mode: 'cors',
+          credentials: 'omit',
+          cache: 'default',
+          redirect: 'follow',
           headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'TrainingPlatform/1.0'
+            'Accept': 'application/json'
           }
         });
         
@@ -415,11 +418,21 @@
       }
       
       const headers = {
+        'Accept': 'application/json',
         ...options.headers,
         'Authorization': `Bearer ${this.accessToken}`
       };
       
-      return fetch(url, { ...options, headers });
+      const fetchOptions = {
+        mode: 'cors',
+        credentials: 'omit',
+        cache: 'default',
+        redirect: 'follow',
+        ...options,
+        headers
+      };
+      
+      return fetch(url, fetchOptions);
     },
     
     // Parse chapter key (e.g., "2-1" -> { module: 2, chapter: 0 })
