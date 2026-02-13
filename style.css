@@ -975,13 +975,169 @@ input[type="file"] {
 }
 
 /* ============================================
-   RESPONSIVE
+   RESPONSIVE - Mobile/Tablet Layout
    ============================================ */
+
+/* Landscape tablets - keep side-by-side layout */
+@media (min-width: 768px) and (max-width: 900px) and (orientation: landscape) {
+  .frame {
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  
+  .sidebar {
+    border-right: 1px solid rgba(255, 255, 255, .08);
+    border-top: none;
+  }
+  
+  .sidebar::before {
+    display: none; /* No drag handle in landscape */
+  }
+  
+  .sidebar-header {
+    padding: 12px 10px;
+    text-align: left;
+  }
+}
+
+/* Portrait mode - vertical split layout */
 @media (max-width: 900px) {
   .frame {
+    /* Switch to vertical layout: titlebar, stage, sidebar */
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr 1fr; /* titlebar, stage (50%), sidebar (50%) */
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
   }
+  
+  /* Titlebar spans full width */
+  .titlebar {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  /* Stage takes top half */
+  .stage {
+    grid-column: 1;
+    grid-row: 2;
+    height: 100%;
+    width: 100%;
+    aspect-ratio: unset;
+    background-size: contain; /* Keep contain so image isn't cropped */
+    background-position: center;
+  }
+  
+  /* Sidebar reimagined for bottom half */
   .sidebar {
-    display: none;
+    grid-column: 1;
+    grid-row: 3;
+    border-right: none;
+    border-top: 2px solid rgba(0, 224, 255, .3);
+    background: linear-gradient(180deg, #0a0a0f 0%, #060609 100%);
+    height: 100%;
+    overflow-y: auto;
+    display: block; /* Make sure it's visible */
+    position: relative;
+  }
+  
+  /* Add a visual drag handle at top of sidebar */
+  .sidebar::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: rgba(255, 255, 255, .3);
+    border-radius: 2px;
+    display: block;
+    margin: 8px auto;
+    z-index: 11;
+  }
+  
+  /* Enhanced sidebar header for mobile */
+  .sidebar-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(0, 224, 255, .12), rgba(0, 224, 255, .06));
+    backdrop-filter: blur(8px);
+    padding: 14px 12px;
+    padding-top: 20px; /* Extra space for drag handle */
+    font-size: 13px;
+    border-bottom: 2px solid rgba(0, 224, 255, .3);
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Adjust module/chapter spacing for mobile */
+  .module-header {
+    padding: 12px 12px;
+    font-size: 12px;
+  }
+  
+  .chapter-header {
+    padding: 10px 10px 10px 20px;
+    font-size: 11px;
+  }
+  
+  .segment-item {
+    padding: 8px 10px 8px 32px;
+    font-size: 10px;
+  }
+  
+  /* Make expand icons more touch-friendly */
+  .module-expand-icon,
+  .chapter-expand-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+  }
+  
+  .segment-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
+  }
+  
+  /* Hotspots - smaller for mobile stage */
+  .hotspot {
+    font-size: 11px;
+  }
+  
+  .hotspot.pill {
+    font-size: 13px;
+    padding: 8px 14px;
+  }
+  
+  /* Inner window (viewer) adjustments for mobile */
+  .inner-window {
+    max-width: 95%;
+    max-height: 85%;
+  }
+  
+  .inner-window header {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  /* Progress button positioning for mobile */
+  #toggleProgressBtn {
+    top: 50px;
+    right: 10px;
+    padding: 8px 14px;
+    font-size: 11px;
+  }
+  
+  #progressPanel {
+    top: 50px;
+    right: 10px;
+    width: calc(100vw - 40px);
+    max-width: 380px;
+    max-height: 40vh;
   }
 }
