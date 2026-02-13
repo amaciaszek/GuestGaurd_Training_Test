@@ -76,6 +76,13 @@ window.resetStageShell = function(){
     const authContent = document.getElementById('authContent');
     const authWrap = document.querySelector('.auth-wrap');
     
+    // START COLLAPSED BY DEFAULT
+    if (authContent && authWrap && toggleBtn) {
+      authContent.classList.add('collapsed');
+      authWrap.classList.add('collapsed');
+      toggleBtn.textContent = 'Expand';
+    }
+    
     // Toggle authentication section
     if (toggleBtn && authContent) {
       toggleBtn.addEventListener('click', () => {
@@ -90,6 +97,30 @@ window.resetStageShell = function(){
           authWrap.classList.add('collapsed');
           toggleBtn.textContent = 'Expand';
         }
+      });
+    }
+    
+    // KEYBOARD SHORTCUT: Press 'D' to toggle debug/auth box quickly
+    document.addEventListener('keydown', (e) => {
+      // Only trigger if not typing in an input field
+      if (e.key === 'd' || e.key === 'D') {
+        if (document.activeElement.tagName !== 'INPUT' && 
+            document.activeElement.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          if (toggleBtn) {
+            toggleBtn.click();
+            console.log('🔧 Debug box toggled via keyboard shortcut (D)');
+          }
+        }
+      }
+    });
+    
+    // FLOATING DEBUG BUTTON: Wire up the mobile-friendly button
+    const floatingDebugBtn = document.getElementById('floatingDebugBtn');
+    if (floatingDebugBtn && toggleBtn) {
+      floatingDebugBtn.addEventListener('click', () => {
+        toggleBtn.click();
+        console.log('🔧 Debug box toggled via floating button');
       });
     }
     

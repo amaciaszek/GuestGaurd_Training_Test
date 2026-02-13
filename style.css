@@ -1114,15 +1114,43 @@ input[type="file"] {
     padding: 8px 14px;
   }
   
-  /* Inner window (viewer) adjustments for mobile */
+  /* Inner window (viewer) adjustments for mobile portrait */
   .inner-window {
-    max-width: 95%;
-    max-height: 85%;
+    /* Portrait: Take up most of the top half (stage area) */
+    max-width: 95% !important;
+    max-height: 80% !important;
+    width: 95% !important;
+    height: auto !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
   }
   
   .inner-window header {
     padding: 10px 12px;
-    font-size: 14px;
+    font-size: 13px;
+  }
+  
+  .viewer {
+    max-height: 60vh;
+  }
+  
+  #closeViewer {
+    padding: 6px 12px;
+    font-size: 20px;
+  }
+}
+
+/* Mobile landscape orientation - viewer takes more horizontal space */
+@media (max-width: 900px) and (orientation: landscape) {
+  .inner-window {
+    max-width: 85% !important;
+    max-height: 75% !important;
+    width: 85% !important;
+  }
+  
+  .viewer {
+    max-height: 50vh;
   }
   
   /* Progress button positioning for mobile */
