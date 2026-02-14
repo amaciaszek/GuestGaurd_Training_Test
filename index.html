@@ -7,6 +7,12 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
 
+  <script>
+    // ===== DEBUG CONFIGURATION =====
+    // Set to true to show the debug panel, false to hide it
+    const SHOW_DEBUG_PANEL = false;
+  </script>
+
   <style>
     :root{
       --gg-bg:#0b0f14;
@@ -113,46 +119,6 @@
     .stage:not(.loading-background) .hotspot {
       transition: opacity 0.4s ease, visibility 0.4s ease;
     }
-    
-    /* Floating debug toggle button - only visible on mobile */
-    #floatingDebugBtn {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: rgba(255, 107, 107, 0.15);
-      border: 1px solid rgba(255, 107, 107, 0.3);
-      color: #ff6b6b;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 700;
-      font-family: var(--gg-mono);
-      cursor: pointer;
-      z-index: 1099;
-      display: none; /* Hidden by default */
-      transition: all 0.2s ease;
-      backdrop-filter: blur(4px);
-    }
-    
-    #floatingDebugBtn:hover {
-      background: rgba(255, 107, 107, 0.25);
-      border-color: rgba(255, 107, 107, 0.5);
-    }
-    
-    #floatingDebugBtn:active {
-      transform: scale(0.95);
-    }
-    
-    /* Show floating debug button only on mobile when auth is collapsed */
-    @media (max-width: 900px) {
-      #floatingDebugBtn {
-        display: block;
-      }
-      
-      .auth-wrap:not(.collapsed) ~ * #floatingDebugBtn {
-        opacity: 0.3;
-      }
-    }
   </style>
 </head>
         
@@ -180,9 +146,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Floating debug toggle button - shows on mobile only -->
-  <button id="floatingDebugBtn" title="Toggle Debug Panel (Press D)">🔧 Debug</button>
 
   <main class="frame" role="main" aria-label="Training Module">
     <div class="titlebar">
@@ -283,5 +246,27 @@
   <script src="js/training-api.js"></script>
   <script src="js/modular-training-system.js"></script>
   <script src="js/app.js"></script>
+  
+  <!-- Debug Panel Visibility Control -->
+  <script>
+    (function() {
+      'use strict';
+      
+      // Hide/show debug panel based on config
+      document.addEventListener('DOMContentLoaded', () => {
+        const debugInfo = document.getElementById('debugInfo');
+        
+        if (debugInfo) {
+          if (typeof SHOW_DEBUG_PANEL !== 'undefined' && SHOW_DEBUG_PANEL === true) {
+            debugInfo.style.display = 'block';
+            console.log('🔧 Debug panel enabled (SHOW_DEBUG_PANEL = true)');
+          } else {
+            debugInfo.style.display = 'none';
+            console.log('🔇 Debug panel hidden (SHOW_DEBUG_PANEL = false)');
+          }
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

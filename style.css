@@ -419,6 +419,12 @@ body {
   pointer-events: none;
 }
 
+/* Pill hotspots need badge positioned outside to avoid text overlap */
+.hotspot.pill::before {
+  top: -12px;
+  left: -12px;
+}
+
 .hotspot.done::after {
   content: '✓';
   position: absolute;
@@ -1030,6 +1036,22 @@ input[type="file"] {
     background-position: center;
   }
   
+  /* Fix circular hotspots being stretched in mobile */
+  .hotspot.circle {
+    aspect-ratio: 1 / 1; /* Force circles to stay circular */
+  }
+  
+  /* Ensure all hotspots maintain proportions */
+  .hotspot {
+    max-width: 80px;
+    max-height: 80px;
+  }
+  
+  .hotspot.circle {
+    width: 60px !important;
+    height: 60px !important;
+  }
+  
   /* Sidebar reimagined for bottom half */
   .sidebar {
     grid-column: 1;
@@ -1112,6 +1134,16 @@ input[type="file"] {
   .hotspot.pill {
     font-size: 13px;
     padding: 8px 14px;
+    padding-left: 20px; /* Extra left padding to make room for badge */
+  }
+  
+  /* Make pill badges more visible on mobile */
+  .hotspot.pill::before {
+    top: -8px;
+    left: -8px;
+    width: 22px;
+    height: 22px;
+    font-size: 13px;
   }
   
   /* Inner window (viewer) adjustments for mobile portrait */
@@ -1139,21 +1171,8 @@ input[type="file"] {
     padding: 6px 12px;
     font-size: 20px;
   }
-}
-
-/* Mobile landscape orientation - viewer takes more horizontal space */
-@media (max-width: 900px) and (orientation: landscape) {
-  .inner-window {
-    max-width: 85% !important;
-    max-height: 75% !important;
-    width: 85% !important;
-  }
   
-  .viewer {
-    max-height: 50vh;
-  }
-  
-  /* Progress button positioning for mobile */
+  /* Progress button positioning for mobile portrait */
   #toggleProgressBtn {
     top: 50px;
     right: 10px;
@@ -1167,5 +1186,18 @@ input[type="file"] {
     width: calc(100vw - 40px);
     max-width: 380px;
     max-height: 40vh;
+  }
+}
+
+/* Mobile landscape orientation - viewer takes more horizontal space */
+@media (max-width: 900px) and (orientation: landscape) {
+  .inner-window {
+    max-width: 85% !important;
+    max-height: 75% !important;
+    width: 85% !important;
+  }
+  
+  .viewer {
+    max-height: 50vh;
   }
 }
