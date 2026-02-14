@@ -1025,15 +1025,22 @@ input[type="file"] {
     font-size: 13px;
   }
   
-  /* Stage takes top half */
+  /* Stage takes top half - maintain aspect ratio for proper hotspot positioning */
   .stage {
     grid-column: 1;
     grid-row: 2;
-    height: 100%;
-    width: 100%;
-    aspect-ratio: unset;
-    background-size: contain; /* Keep contain so image isn't cropped */
+    /* CRITICAL: Maintain aspect ratio so hotspots stay positioned correctly */
+    aspect-ratio: 6000 / 4000; /* Match the original image ratio */
+    background-size: contain;
     background-position: center;
+    background-repeat: no-repeat;
+    /* Center the stage within its grid cell */
+    align-self: center;
+    justify-self: center;
+    /* Use full width available, height will adjust to maintain aspect ratio */
+    width: 100%;
+    height: auto;
+    max-height: 100%;
   }
   
   /* Fix circular hotspots being stretched in mobile */
@@ -1041,15 +1048,17 @@ input[type="file"] {
     aspect-ratio: 1 / 1; /* Force circles to stay circular */
   }
   
-  /* Ensure all hotspots maintain proportions */
-  .hotspot {
-    max-width: 80px;
-    max-height: 80px;
+  /* Adjust badge sizes for mobile */
+  .hotspot::before {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
   }
   
-  .hotspot.circle {
-    width: 60px !important;
-    height: 60px !important;
+  .hotspot.done::after {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
   }
   
   /* Sidebar reimagined for bottom half */

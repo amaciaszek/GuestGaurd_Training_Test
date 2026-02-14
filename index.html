@@ -265,6 +265,23 @@
             console.log('🔇 Debug panel hidden (SHOW_DEBUG_PANEL = false)');
           }
         }
+        
+        // Also hide any debug buttons/toggles
+        if (typeof SHOW_DEBUG_PANEL !== 'undefined' && SHOW_DEBUG_PANEL === false) {
+          // Hide debug logger button if it exists
+          const style = document.createElement('style');
+          style.textContent = `
+            #debugToggle,
+            .debug-toggle,
+            [class*="debug-button"],
+            [id*="debug-button"],
+            button[onclick*="debug"],
+            .ios-debug-toggle {
+              display: none !important;
+            }
+          `;
+          document.head.appendChild(style);
+        }
       });
     })();
   </script>
