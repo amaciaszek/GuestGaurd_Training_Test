@@ -419,7 +419,7 @@ body {
   pointer-events: none;
 }
 
-/* Pill hotspots need badge positioned outside to avoid text overlap */
+/* Desktop: Pill badges positioned to avoid text overlap */
 .hotspot.pill::before {
   top: -8px;
   left: -8px;
@@ -981,7 +981,7 @@ input[type="file"] {
 }
 
 /* ============================================
-   RESPONSIVE - Mobile/Tablet Layout
+   RESPONSIVE - MOBILE SIDEBAR AT BOTTOM
    ============================================ */
 
 /* Landscape tablets - keep side-by-side layout */
@@ -997,7 +997,7 @@ input[type="file"] {
   }
   
   .sidebar::before {
-    display: none; /* No drag handle in landscape */
+    display: none;
   }
   
   .sidebar-header {
@@ -1006,18 +1006,16 @@ input[type="file"] {
   }
 }
 
-/* Portrait mode - vertical split layout */
+/* Portrait mode - SIDEBAR AT BOTTOM HALF */
 @media (max-width: 900px) {
   .frame {
-    /* Switch to vertical layout: titlebar, stage, sidebar */
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr 1fr; /* titlebar, stage (50%), sidebar (50%) */
+    grid-template-rows: auto 1fr 1fr;
     height: 100vh;
     min-height: 100vh;
     max-height: 100vh;
   }
   
-  /* Titlebar spans full width */
   .titlebar {
     grid-column: 1;
     grid-row: 1;
@@ -1025,30 +1023,24 @@ input[type="file"] {
     font-size: 13px;
   }
   
-  /* Stage takes top half - maintain aspect ratio for proper hotspot positioning */
   .stage {
     grid-column: 1;
     grid-row: 2;
-    /* CRITICAL: Maintain aspect ratio so hotspots stay positioned correctly */
-    aspect-ratio: 6000 / 4000; /* Match the original image ratio */
+    aspect-ratio: 6000 / 4000;
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    /* Center the stage within its grid cell */
     align-self: center;
     justify-self: center;
-    /* Use full width available, height will adjust to maintain aspect ratio */
     width: 100%;
     height: auto;
     max-height: 100%;
   }
   
-  /* Fix circular hotspots being stretched in mobile */
   .hotspot.circle {
-    aspect-ratio: 1 / 1; /* Force circles to stay circular */
+    aspect-ratio: 1 / 1;
   }
   
-  /* Adjust badge sizes for mobile */
   .hotspot::before {
     width: 18px;
     height: 18px;
@@ -1061,7 +1053,6 @@ input[type="file"] {
     font-size: 10px;
   }
   
-  /* Sidebar reimagined for bottom half */
   .sidebar {
     grid-column: 1;
     grid-row: 3;
@@ -1070,11 +1061,10 @@ input[type="file"] {
     background: linear-gradient(180deg, #0a0a0f 0%, #060609 100%);
     height: 100%;
     overflow-y: auto;
-    display: block; /* Make sure it's visible */
+    display: block;
     position: relative;
   }
   
-  /* Add a visual drag handle at top of sidebar */
   .sidebar::before {
     content: '';
     position: sticky;
@@ -1090,7 +1080,6 @@ input[type="file"] {
     z-index: 11;
   }
   
-  /* Enhanced sidebar header for mobile */
   .sidebar-header {
     position: sticky;
     top: 0;
@@ -1098,14 +1087,13 @@ input[type="file"] {
     background: linear-gradient(180deg, rgba(0, 224, 255, .12), rgba(0, 224, 255, .06));
     backdrop-filter: blur(8px);
     padding: 14px 12px;
-    padding-top: 20px; /* Extra space for drag handle */
+    padding-top: 20px;
     font-size: 13px;
     border-bottom: 2px solid rgba(0, 224, 255, .3);
     text-align: center;
     letter-spacing: 0.5px;
   }
   
-  /* Adjust module/chapter spacing for mobile */
   .module-header {
     padding: 12px 12px;
     font-size: 12px;
@@ -1121,7 +1109,6 @@ input[type="file"] {
     font-size: 10px;
   }
   
-  /* Make expand icons more touch-friendly */
   .module-expand-icon,
   .chapter-expand-icon {
     width: 16px;
@@ -1135,7 +1122,6 @@ input[type="file"] {
     font-size: 9px;
   }
   
-  /* Hotspots - smaller for mobile stage */
   .hotspot {
     font-size: 11px;
   }
@@ -1143,10 +1129,9 @@ input[type="file"] {
   .hotspot.pill {
     font-size: 13px;
     padding: 8px 14px;
-    padding-left: 20px; /* Extra left padding to make room for badge */
+    padding-left: 20px;
   }
   
-  /* Make pill badges more visible on mobile */
   .hotspot.pill::before {
     top: -10px;
     left: -10px;
@@ -1155,9 +1140,7 @@ input[type="file"] {
     font-size: 13px;
   }
   
-  /* Inner window (viewer) adjustments for mobile portrait */
   .inner-window {
-    /* Portrait: Take up most of the top half (stage area) */
     max-width: 95% !important;
     max-height: 80% !important;
     width: 95% !important;
@@ -1181,7 +1164,6 @@ input[type="file"] {
     font-size: 20px;
   }
   
-  /* Progress button positioning for mobile portrait */
   #toggleProgressBtn {
     top: 50px;
     right: 10px;
@@ -1198,7 +1180,6 @@ input[type="file"] {
   }
 }
 
-/* Mobile landscape orientation - viewer takes more horizontal space */
 @media (max-width: 900px) and (orientation: landscape) {
   .inner-window {
     max-width: 85% !important;

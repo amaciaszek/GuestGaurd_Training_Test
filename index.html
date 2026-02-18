@@ -288,7 +288,7 @@
           
           // Also aggressively remove debug button from DOM after a short delay
           setTimeout(() => {
-            // Find and remove any element with "debug" in text content
+            // Find and remove any button with "debug" in text content
             const allButtons = document.querySelectorAll('button');
             allButtons.forEach(btn => {
               if (btn.textContent.toLowerCase().includes('debug')) {
