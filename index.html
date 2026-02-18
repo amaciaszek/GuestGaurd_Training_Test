@@ -275,12 +275,40 @@
             .debug-toggle,
             [class*="debug-button"],
             [id*="debug-button"],
+            [id*="Debug"],
             button[onclick*="debug"],
             .ios-debug-toggle {
               display: none !important;
+              visibility: hidden !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
             }
           `;
           document.head.appendChild(style);
+          
+          // Also aggressively remove debug button from DOM after a short delay
+          setTimeout(() => {
+            // Find and remove any element with "debug" in text content
+            const allButtons = document.querySelectorAll('button');
+            allButtons.forEach(btn => {
+              if (btn.textContent.toLowerCase().includes('debug')) {
+                console.log('🗑️ Removing debug button from DOM');
+                btn.remove();
+              }
+            });
+            
+            // Also check for common debug button IDs/classes
+            const debugElements = document.querySelectorAll(
+              '#debugToggle, .debug-toggle, [id*="debug"], [class*="debug"]'
+            );
+            debugElements.forEach(el => {
+              // Only remove if it looks like a button/toggle, not data containers
+              if (el.tagName === 'BUTTON' || el.onclick || el.style.cursor === 'pointer') {
+                console.log('🗑️ Removing debug element:', el.id || el.className);
+                el.remove();
+              }
+            });
+          }, 500);
         }
       });
     })();

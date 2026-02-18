@@ -421,8 +421,8 @@ body {
 
 /* Pill hotspots need badge positioned outside to avoid text overlap */
 .hotspot.pill::before {
-  top: -12px;
-  left: -12px;
+  top: -8px;
+  left: -8px;
 }
 
 .hotspot.done::after {
@@ -1148,8 +1148,8 @@ input[type="file"] {
   
   /* Make pill badges more visible on mobile */
   .hotspot.pill::before {
-    top: -8px;
-    left: -8px;
+    top: -10px;
+    left: -10px;
     width: 22px;
     height: 22px;
     font-size: 13px;
