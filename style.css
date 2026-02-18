@@ -452,7 +452,7 @@ body {
    VIEWER WINDOW (Inner Window)
    ============================================ */
 .inner-window {
-  position: fixed; /* Changed from absolute to fixed for viewport-relative positioning */
+  position: absolute;
   /* No default position - JavaScript controls all positioning via inline styles */
   z-index: 999;
   background: #000;
@@ -464,10 +464,6 @@ body {
   flex-direction: column;
   transition: all var(--animation-duration) linear;
   opacity: 0;
-  
-  /* CRITICAL: Keep window within viewport during orientation changes */
-  max-width: 95vw !important;
-  max-height: 90vh !important;
 }
 
 .inner-window.active {
@@ -977,15 +973,41 @@ input[type="file"] {
 /* HIDE SCROLLBAR for narration-only content */
 .subs-only::-webkit-scrollbar {
   display: none;
+}
+
+.subs-only {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
 
 /* ============================================
-   RESPONSIVE - ASPECT RATIO BASED
-   Portrait layout for ANY device where height > width * 1.2
+   RESPONSIVE - MOBILE SIDEBAR AT BOTTOM
    ============================================ */
 
-/* Portrait orientation - SIDEBAR AT BOTTOM HALF */
-/* If height is 20% larger than width: aspect-ratio < 1/1.2 = 5/6 */
-@media (max-aspect-ratio: 5/6) {
+/* Landscape tablets - keep side-by-side layout */
+@media (min-width: 768px) and (max-width: 900px) and (orientation: landscape) {
+  .frame {
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  
+  .sidebar {
+    border-right: 1px solid rgba(255, 255, 255, .08);
+    border-top: none;
+  }
+  
+  .sidebar::before {
+    display: none;
+  }
+  
+  .sidebar-header {
+    padding: 12px 10px;
+    text-align: left;
+  }
+}
+
+/* Portrait mode - SIDEBAR AT BOTTOM HALF */
+@media (max-width: 900px) {
   .frame {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr 1fr;
@@ -1158,8 +1180,7 @@ input[type="file"] {
   }
 }
 
-/* Landscape - adjust viewer for horizontal screens */
-@media (min-aspect-ratio: 5/6) and (orientation: landscape) {
+@media (max-width: 900px) and (orientation: landscape) {
   .inner-window {
     max-width: 85% !important;
     max-height: 75% !important;
