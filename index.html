@@ -314,4 +314,62 @@
     })();
   </script>
 </body>
+
+  <!-- Orientation Change Handler - Fixes viewer going off-screen when rotating -->
+  <script>
+    (function() {
+      'use strict';
+      
+      function repositionViewer() {
+        const viewer = document.getElementById('innerWindow');
+        if (!viewer || !viewer.classList.contains('active')) return;
+        
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const rect = viewer.getBoundingClientRect();
+        const maxWidth = vw * 0.95;
+        const maxHeight = vh * 0.90;
+        const isOutside = rect.right > vw || rect.bottom > vh || rect.left < 0 || rect.top < 0;
+        const isTooLarge = rect.width > maxWidth || rect.height > maxHeight;
+        
+        if (isOutside || isTooLarge) {
+          const newWidth = Math.min(rect.width, maxWidth);
+          const newHeight = Math.min(rect.height, maxHeight);
+          viewer.style.left = '50%';
+          viewer.style.top = '50%';
+          viewer.style.transform = 'translate(-50%, -50%)';
+          viewer.style.width = newWidth + 'px';
+          viewer.style.height = newHeight + 'px';
+          viewer.style.maxWidth = '95vw';
+          viewer.style.maxHeight = '90vh';
+        }
+      }
+      
+      window.addEventListener('orientationchange', () => setTimeout(repositionViewer, 100));
+      
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          const viewer = document.getElementById('innerWindow');
+          if (viewer && viewer.classList.contains('active')) repositionViewer();
+        }, 150);
+      });
+      
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            const viewer = mutation.target;
+            if (viewer.classList.contains('active')) setTimeout(repositionViewer, 50);
+          }
+        });
+      });
+      
+      document.addEventListener('DOMContentLoaded', () => {
+        const viewer = document.getElementById('innerWindow');
+        if (viewer) observer.observe(viewer, { attributes: true, attributeFilter: ['class'] });
+      });
+    })();
+  </script>
+</body>
 </html>
